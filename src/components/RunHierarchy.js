@@ -3,10 +3,13 @@ import React, { Component, useState, useEffect } from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import { tree as d3tree, hierarchy } from 'd3-hierarchy';
 import { select } from 'd3-selection';
+import { trackPromise } from 'react-promise-tracker';
+
 import Node from './Node'
 import Link from './Link'
 import ProgressSpinner from './ProgressSpinner'
 import { HierarchyService } from '../services/HierarchyService'
+import { ConfigurationService } from '../services/testbench-configuration-service';
 
 /*
 const RunHierarchy = () => {
@@ -29,8 +32,12 @@ class RunHierarchy extends Component {
     constructor(props) {
         super(props);
 
+        let baseUrl = "http://localhost:5000"
+        this.configurationService = new ConfigurationService(baseUrl)
+
         this.state = {
             runId: props.runId,
+            filename: props.filename,
             data: null,
             selectedKeys: null
         };
@@ -41,8 +48,9 @@ class RunHierarchy extends Component {
     }
 
     async loadData() {
-        let data = await HierarchyService.getTreeNodes();
-        this.setTreeData(data);
+        //let data = await HierarchyService.getTreeNodes();
+        this.hierarchy = await trackPromise(this.configurationService.getRunHierarchy(this.state.runId, this.state.filename));
+        this.setTreeData([this.hierarchy]);
     }
 
     setTreeData(data) {
@@ -53,7 +61,7 @@ class RunHierarchy extends Component {
 
     generateTree() {
         if (!this.state.data) return [[], []]
-        const tree = d3tree().size([1000, 1000])
+        const tree = d3tree().size([window.innerWidth, window.innerWidth / 3])
             .nodeSize([100, 100])
             .separation((a, b) => 2);
 
@@ -90,7 +98,7 @@ class RunHierarchy extends Component {
                     width="100%"
                     height="500"
                 >
-                    <g transform={`translate(500, 50)`}>
+                    <g transform={`translate(${window.innerWidth / 2}, 50)`}>
                         {links.map((link, i) => {
                             return (
                                 <Link key={link.key} source={link.source} target={link.target} />
@@ -98,10 +106,14 @@ class RunHierarchy extends Component {
                         })}
                         {nodes.map((node, i) => {
                             return (
-                                <Node key={node.key} label={node.data.label} transform={`translate(${node.x}, ${node.y})`} />
+                                    <Node key={node.key} label={node.data.name} transform={`translate(${node.x}, ${node.y})`} />
                             )
                         })}
-                        <ProgressSpinner x={0} y={30} percentage={0}/>
+                        {nodes.map((node, i) => {
+                            return (
+                                    <ProgressSpinner key={`pb-${node.key}`} x={node.x} y={node.y} percentage={0} />
+                            )
+                        })}
                     </g>
                 </svg>
                 <button onClick={this.handleButtonClick.bind(this)} />

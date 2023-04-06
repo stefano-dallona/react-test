@@ -3,8 +3,16 @@ import './App.css';
 import "primereact/resources/themes/vela-blue/theme.css";
 import "primereact/resources/primereact.min.css";
 import "primeicons/primeicons.css";
+import 'primeflex/primeflex.css';
 
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BlockUI } from 'primereact/blockui';
+import { ProgressSpinner } from 'primereact/progressspinner';
+import { Button } from 'primereact/button';
+import ReactWaves from "@dschoon/react-waves";
+import { ThreeDots, ColorRing } from 'react-loader-spinner';
+import { usePromiseTracker } from 'react-promise-tracker';
+import { trackPromise } from 'react-promise-tracker';
 
 import Navigation from './components/Nav';
 import About from './components/About';
@@ -12,12 +20,7 @@ import Contact from './components/Contact';
 import FilesList from './components/FilesList';
 import RunHierarchy from './components/RunHierarchy'
 import Waveforms from './components/Waveforms';
-import { BlockUI } from 'primereact/blockui';
-import { ProgressSpinner } from 'primereact/progressspinner';
-import { Button } from 'primereact/button';
-import { ThreeDots, ColorRing } from 'react-loader-spinner';
-import { usePromiseTracker } from 'react-promise-tracker';
-import { trackPromise } from 'react-promise-tracker';
+import RunList from './components/RunList';
 
 function App() {
 
@@ -68,8 +71,9 @@ function App() {
       </BrowserRouter>
       <FilesList />
       <Button label="Block" onClick={fakeLoading} />
-      <RunHierarchy runId={"1be59452-a242-4e4e-bd83-4bd051bca2bb"}/>
-      <Waveforms runId={"1be59452-a242-4e4e-bd83-4bd051bca2bb"} filename={"Blues_Bass.wav"} segmentEventHandler={(segment) => { alert(`(x:${segment.start_sample}, width: ${segment.num_samples})`) }}/>
+      <RunHierarchy runId={"1be59452-a242-4e4e-bd83-4bd051bca2bb"} filename={"Blues_Bass.wav"} />
+      <Waveforms runId={"1be59452-a242-4e4e-bd83-4bd051bca2bb"} filename={"Blues_Bass.wav"} segmentEventHandler={(segment) => { /*alert(`(x:${segment.start_sample}, width: ${segment.num_samples})`)*/ }}/>
+      <RunList></RunList>
     </div>
   );
 }
