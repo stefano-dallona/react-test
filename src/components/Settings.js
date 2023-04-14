@@ -80,7 +80,8 @@ class Settings extends Component {
         }
 
         if (this.getCurrentPageName() == "Input File Selection") {
-            if (this.getPageSettings().length == 0)
+            let workerSettings = this.getPageSettings()
+            if (workerSettings.settings.length == 0)
                 errors.push(`${this.getCurrentPageName()}: At least one audio file must be selected`)
         } else {
             let workerSettings = this.getPageSettings()
