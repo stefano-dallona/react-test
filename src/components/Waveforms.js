@@ -1,4 +1,5 @@
 import { primeflex } from '../../node_modules/primeflex/primeflex.css'
+import 'primeicons/primeicons.css';
 
 import React, { Component, setState } from 'react';
 import cloneDeep from 'lodash/cloneDeep';
@@ -6,6 +7,10 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import { MultiSelect } from 'primereact/multiselect';
 import { Accordion, AccordionTab } from 'primereact/accordion';
+import { Toolbar } from 'primereact/toolbar';
+import { Button } from 'primereact/button';
+import { SplitButton } from 'primereact/splitbutton';
+import { Dropdown } from 'primereact/dropdown';
 
 import { ConfigurationService } from '../services/testbench-configuration-service';
 import { AnalysisService } from '../services/testbench-analysis-service';
@@ -22,6 +27,7 @@ class Waveforms extends Component {
         super(props);
 
         this.samplesVisualizer = React.createRef();
+        this.spectrogram = React.createRef();
 
         this.audioContext = new AudioContext()
 
@@ -40,19 +46,46 @@ class Waveforms extends Component {
         this.state = {
             runId: props.runId || "",
             filename: props.filename || "",
+            audioFiles: ["Blues_Bass.wav", "Blues_Guitar.wav"],
+            channels: ["0", "1"],
             selectedAudioFiles: [],
+            selectedChannel: null,
             selectedLossSimulations: [],
+            audioFileToPlay: 0,
             buffersListReady: false,
             lossSimulationsReady: false
         };
     }
 
-    componentDidMount() {
+    setRunId(runId) {
+        this.setState({
+            runId: runId
+        })
+    }
+
+    setFilename(filename) {
+        this.setState({
+            filename: filename
+        }, this.reloadData)
+    }
+
+    setSelectedChannel(selectedChannel) {
+        this.setState({
+            selectedChannel: selectedChannel
+        })
+    }
+
+    reloadData = () => {
+        this.clearWaveforms()
         this.initColorsPalette()
         this.loadHierarchy().then(() => {
             this.loadBuffers();
             this.loadLossSimulation()
         });
+    }
+
+    componentDidMount() {
+        this.reloadData()
     }
 
     setAudioFiles(audioFiles) {
@@ -88,6 +121,12 @@ class Waveforms extends Component {
     setSelectedLossSimulations(lossSimulations) {
         this.setState({
             selectedLossSimulations: lossSimulations
+        });
+    }
+
+    setAudioFileToPlay(audioFileToPlay) {
+        this.setState({
+            audioFileToPlay: audioFileToPlay
         });
     }
 
@@ -167,6 +206,12 @@ class Waveforms extends Component {
         return _treeToList(root)
     }
 
+    getPlayableFilesButtons() {
+        return this.audioFiles.map((file, i) => {
+            return { label: file.label, icon: (this.state.audioFileToPlay == i) ? "pi pi-check" : "", command: () => { this.setAudioFileToPlay(i) } }
+        });
+    }
+
     handleSegmentEvent() {
         return function (e) {
             let eventType = e.type;
@@ -190,6 +235,17 @@ class Waveforms extends Component {
                 if (this.segmentEventHandler) this.segmentEventHandler.apply(null, [datum])
             }
         }.bind(this)
+    }
+
+    clearWaveforms() {
+        if (this.waveuiEl) {
+            this.waveuiEl.lastElementChild.remove()
+            this.timeline = null
+            this.waveformTrack = null
+        }
+        if (this.spectrogram.current) {
+            //this.spectrogram.current
+        }
     }
 
     renderWaveforms(waveformTrackId) {
@@ -280,29 +336,59 @@ class Waveforms extends Component {
     }
 
     render() {
+        const startContent = (
+            <React.Fragment>
+                <SplitButton label="Play" icon="pi pi-play" model={this.getPlayableFilesButtons()} className="mr-2"></SplitButton>
+                <Button icon="pi pi-pause" className="mr-2">Pause</Button>
+                <Button icon="pi pi-step-backward" className="mr-2">Previous Loss</Button>
+                <Button icon="pi pi-step-forward" className="mr-2">Next Loss</Button>
+                <Button icon="pi pi-arrows-h" className="mr-2">Play Zoomed</Button>
+
+                <i className="pi p-toolbar-separator mr-2" />
+            </React.Fragment>
+        );
+
+        const endContent = (
+            <React.Fragment>
+            </React.Fragment>
+        );
+
         let waveformTrackId = 'waveform';
         return (
             <Accordion multiple activeIndex={[0, 1, 2]}>
                 <AccordionTab header="Waveform">
-                    <div id="runWaveforms" className="grid"
+                    <div id="runWaveforms" className="card flex flex-wrap gap-3 p-fluid"
                         ref={(c) => {
                             this.waveuiEl = c;
                         }}>
-                        <div className="col-2"><label style={{ color: 'white' }}>Displayed loss simulations</label></div>
-                        <div className="col-4">
-                            <MultiSelect id='displayedLossSimulations' value={this.state.selectedLossSimulations} onChange={(e) => this.setSelectedLossSimulations(e.value)} options={this.lossSimulationFiles} optionLabel="name" optionValue='uuid' display="chip"
-                                placeholder="Select loss simulations" maxSelectedLabels={3} className="w-full md:w-20rem" />
+                        <div className="flex-auto">
+                            <label htmlFor='selectedAudioFile' style={{ color: 'white' }}>Audio File</label>
+                            <Dropdown inputId='selectedAudioFile' id='selectedAudioFile' value={this.state.filename} onChange={(e) => {this.setFilename(e.value)}} options={this.state.audioFiles}
+                                placeholder="Select audio file" className="w-full md:w-20rem" />
                         </div>
-                        <div className="col-2"><label style={{ color: 'white' }}>Displayed audio files</label></div>
-                        <div className="col-4">
-                            <MultiSelect id='displayedAudioFiles' value={this.state.selectedAudioFiles} onChange={(e) => this.setSelectedAudioFiles(e.value)} options={this.audioFiles} optionLabel="label" optionValue='uuid' display="chip"
+                        <div className="flex-auto">
+                            <label htmlFor='selectedChannel' style={{ color: 'white' }}>Channel</label>
+                            <Dropdown inputId='selectedChannel' id='selectedChannel' value={this.state.selectedChannel} onChange={(e) => {this.setSelectedChannel(e.value)}} options={this.state.channels}
+                                placeholder="Select channel" className="w-full md:w-20rem" />
+                        </div>
+                        <div className="flex-auto">
+                            <label htmlFor='displayedLossSimulations' style={{ color: 'white' }}>Displayed loss simulations</label>
+                            <Dropdown inputId='displayedLossSimulations' id='displayedLossSimulations' value={this.state.selectedLossSimulations} onChange={(e) => this.setSelectedLossSimulations(e.value)} options={this.lossSimulationFiles} optionLabel="name" optionValue='uuid' display="chip"
+                                placeholder="Select loss simulations" className="w-full md:w-20rem" />
+                        </div>
+                        <div className="flex-auto">
+                            <label htmlFor='displayedAudioFiles' style={{ color: 'white' }}>Displayed audio files</label>
+                            <MultiSelect inputId='displayedAudioFiles' id='displayedAudioFiles' value={this.state.selectedAudioFiles} onChange={(e) => this.setSelectedAudioFiles(e.value)} options={this.audioFiles} optionLabel="label" optionValue='uuid' display="chip"
                                 placeholder="Select audio files" maxSelectedLabels={3} className="w-full md:w-20rem" />
                         </div>
                         {this.waveuiEl && this.state.lossSimulationsReady && this.state.buffersListReady && this.renderAll(waveformTrackId)}
                     </div>
+                    <div className="card">
+                        <Toolbar start={startContent} end={endContent} />
+                    </div>
                 </AccordionTab>
                 <AccordionTab header="Spectrogram">
-                    <Spectrogram runId={this.props.runId} filename={this.props.filename}></Spectrogram>
+                    <Spectrogram ref={this.spectrogram} runId={this.state.runId} filename={this.state.filename}></Spectrogram>
                 </AccordionTab>
                 <AccordionTab header="Samples">
                     {this.waveuiEl && this.state.lossSimulationsReady && this.state.buffersListReady && (

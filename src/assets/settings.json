@@ -1,0 +1,269 @@
+[
+   {
+      "property": "GlobalSettings",
+      "value": [
+         {
+            "name": "GlobalSettings",
+            "settings": [
+               {
+                  "property": "fs",
+                  "value": "44100",
+                  "type": "int",
+                  "mandatory": "true"
+               },
+               {
+                  "property": "chans",
+                  "value": "1",
+                  "type": "int",
+                  "mandatory": "true"
+               },
+               {
+                  "property": "packet_size",
+                  "value": "32",
+                  "type": "str",
+                  "mandatory": "true"
+               },
+               {
+                  "property": "N",
+                  "value": "1024",
+                  "type": "int",
+                  "mandatory": "true"
+               },
+               {
+                  "property": "hop",
+                  "value": "512",
+                  "type": "int",
+                  "mandatory": "true"
+               },
+               {
+                  "property": "amp_scale",
+                  "value": "512",
+                  "type": "float",
+                  "mandatory": "true"
+               }
+            ]
+         }
+      ]
+   },
+   {
+      "property": "PlsAlgorithm",
+      "value": [
+         {
+            "uuid": "8cc5fbb8-d91c-11ed-afa1-0242ac120002",
+            "name": "BinomialPLS",
+            "settings": [
+               {
+                  "property": "simulator",
+                  "value": "1",
+                  "type": "select",
+                  "options": ["PacketLossSimulator", "SampleLossSimulator"],
+                  "mandatory": "true"
+               },
+               {
+                  "property": "seed",
+                  "value": "1",
+                  "type": "int",
+                  "mandatory": "true"
+               },
+               {
+                  "property": "per",
+                  "value": "0.0001",
+                  "type": "float",
+                  "mandatory": "true"
+               }
+            ]
+         },
+         {
+            "uuid": "8cc600d6-d91c-11ed-afa1-0242ac120002",
+            "name": "GilbertElliotPLS",
+            "settings": [
+               {
+                  "property": "simulator",
+                  "value": "1",
+                  "type": "select",
+                  "options": ["PacketLossSimulator", "SampleLossSimulator"],
+                  "mandatory": "true"
+               },
+               {
+                  "property": "seed",
+                  "value": "1",
+                  "type": "int",
+                  "mandatory": "true"
+               },
+               {
+                  "property": "p",
+                  "value": "0.001",
+                  "type": "float",
+                  "mandatory": "true"
+               },
+               {
+                  "property": "r",
+                  "value": "0.05",
+                  "type": "float",
+                  "mandatory": "true"
+               },
+               {
+                  "property": "h",
+                  "value": "0.5",
+                  "type": "float",
+                  "mandatory": "true"
+               },
+               {
+                  "property": "k",
+                  "value": "0.99999900",
+                  "type": "float",
+                  "mandatory": "true"
+               }
+            ]
+         }
+      ],
+      "type": "select",
+      "mandatory": "true",
+      "multiple": "true"
+   },
+   {
+      "property": "PlcAlgorithm",
+      "value": [
+         {
+            "uuid": "8cc6570c-d91c-11ed-afa1-0242ac120002",
+            "name": "ZeroPLC",
+            "settings": []
+         },
+         {
+            "uuid": "8cc65bd0-d91c-11ed-afa1-0242ac120002",
+            "name": "LastPacketPLC",
+            "settings": []
+         },
+         {
+            "uuid": "8cc65de2-d91c-11ed-afa1-0242ac120002",
+            "name": "LowCostPLC",
+            "settings": [
+               {
+                  "property": "max_frequency",
+                  "value": "4800",
+                  "type": "float",
+                  "mandatory": "true"
+               },
+               {
+                  "property": "f_min",
+                  "value": "80",
+                  "type": "int",
+                  "mandatory": "true"
+               },
+               {
+                  "property": "beta",
+                  "value": "1",
+                  "type": "float",
+                  "mandatory": "true"
+               },
+               {
+                  "property": "n_m",
+                  "value": "2",
+                  "type": "int",
+                  "mandatory": "true"
+               },
+               {
+                  "property": "fade_in_length",
+                  "value": "10",
+                  "type": "int",
+                  "mandatory": "true"
+               },
+               {
+                  "property": "fade_out_length",
+                  "value": "0.5",
+                  "type": "float",
+                  "mandatory": "true"
+               },
+               {
+                  "property": "extraction_length",
+                  "value": "2",
+                  "type": "int",
+                  "mandatory": "true"
+               }
+            ]
+         },
+         {
+            "uuid": "8cc65f7c-d91c-11ed-afa1-0242ac120002",
+            "name": "DeepLearningPLC",
+            "settings": [
+               {
+                  "property": "model_path",
+                  "value": "",
+                  "type": "str",
+                  "mandatory": "true"
+               },
+               {
+                  "property": "fs_dl",
+                  "value": "16000",
+                  "type": "int",
+                  "mandatory": "true"
+               },
+               {
+                  "property": "context_length",
+                  "value": "0.5",
+                  "type": "float",
+                  "mandatory": "true"
+               },
+               {
+                  "property": "hop_size",
+                  "value": "0.25",
+                  "type": "float",
+                  "mandatory": "true"
+               },
+               {
+                  "property": "window_length",
+                  "value": "0.5",
+                  "type": "float",
+                  "mandatory": "true"
+               },
+               {
+                  "property": "lower_edge_hertz",
+                  "value": "20.0",
+                  "type": "float",
+                  "mandatory": "true"
+               },
+               {
+                  "property": "upper_edge_hertz",
+                  "value": "4000.0",
+                  "type": "float",
+                  "mandatory": "true"
+               },
+               {
+                  "property": "num_mel_bins",
+                  "value": "64",
+                  "type": "int",
+                  "mandatory": "true"
+               }
+            ]
+         }
+      ],
+      "type": "select",
+      "mandatory": "true",
+      "multiple": "true"
+   },
+   {
+      "property": "OutputAnalyser",
+      "value": [
+         {
+            "uuid": "8cc66170-d91c-11ed-afa1-0242ac120002",
+            "name": "MSECalculator",
+            "settings": []
+         },
+         {
+            "uuid": "8cc662b0-d91c-11ed-afa1-0242ac120002",
+            "name": "PEAQCalculator",
+            "settings": [
+               {
+                  "property": "peaq_mode",
+                  "value": "nb",
+                  "type": "str",
+                  "mandatory": "true"
+               }
+            ]
+         }
+      ],
+      "type": "select",
+      "mandatory": "true",
+      "multiple": "true"
+   }
+]

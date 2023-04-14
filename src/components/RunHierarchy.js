@@ -8,7 +8,6 @@ import { trackPromise } from 'react-promise-tracker';
 import Node from './Node'
 import Link from './Link'
 import ProgressSpinner from './ProgressSpinner'
-import { HierarchyService } from '../services/HierarchyService'
 import { ConfigurationService } from '../services/testbench-configuration-service';
 
 /*
@@ -106,17 +105,16 @@ class RunHierarchy extends Component {
                         })}
                         {nodes.map((node, i) => {
                             return (
-                                    <Node key={node.key} label={node.data.name} transform={`translate(${node.x}, ${node.y})`} />
+                                <Node key={node.key} label={node.data.name} transform={`translate(${node.x}, ${node.y})`} />
                             )
                         })}
                         {nodes.map((node, i) => {
                             return (
-                                    <ProgressSpinner key={`pb-${node.key}`} x={node.x} y={node.y} percentage={0} />
+                                <ProgressSpinner key={`pb-${node.key}`} x={node.x} y={node.y} percentage={0} />
                             )
                         })}
                     </g>
                 </svg>
-                <button onClick={this.handleButtonClick.bind(this)} />
             </div>
         )
     }
