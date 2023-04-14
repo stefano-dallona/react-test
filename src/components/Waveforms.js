@@ -446,13 +446,13 @@ class Waveforms extends Component {
                         <Toolbar start={startContent} end={endContent} />
                     </div>
                 </AccordionTab>
-                <AccordionTab header="Spectrogram">
-                    <Spectrogram ref={this.spectrogram} runId={this.state.runId} filename={this.state.filename}></Spectrogram>
-                </AccordionTab>
                 <AccordionTab header="Samples">
                     {this.waveuiEl && this.state.lossSimulationsReady && this.state.buffersListReady && (
                         <SamplesVisualizer ref={this.samplesVisualizer} runId={this.props.runId} />
                     )}
+                </AccordionTab>
+                <AccordionTab header="Spectrogram">
+                    <Spectrogram ref={this.spectrogram} runId={this.state.runId} filename={this.state.filename}></Spectrogram>
                 </AccordionTab>
             </Accordion>
         )
