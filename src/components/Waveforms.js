@@ -130,6 +130,65 @@ class Waveforms extends Component {
         });
     }
 
+    playSound(delay, offset, duration) {
+        this.startTime = this.audioContext.currentTime
+        this.startOffset = 0
+        if (!this.playing) {
+            this.audioContext.resume()
+            this.audioSource = this.audioContext.createBufferSource();
+            this.audioSource.buffer = this.buffersList[this.state.audioFileToPlay];
+            this.audioSource.connect(this.audioContext.destination);
+            this.audioSource.start(delay ? delay : 0, offset ? offset : 0, duration ? duration : this.audioSource.buffer.duration);
+            this.playing = true
+            console.log("source.buffer.duration:" + this.audioSource.buffer.duration);
+        } else {
+            console.log("Already playing ...")
+        }
+        this.updateCursor()()
+    }
+
+    pauseSound() {
+        if (this.playing) {
+            this.audioSource.stop()
+            this.audioSource.disconnect(this.audioContext.destination)
+            this.audioContext.suspend()
+            this.startOffset = this.audioContext.currentTime
+            this.playing = false
+        } else {
+            this.audioContext.resume()
+            this.audioSource = this.audioContext.createBufferSource();
+            this.audioSource.buffer = this.buffersList[this.state.audioFileToPlay];
+            this.audioSource.connect(this.audioContext.destination);
+            this.audioSource.start(0, this.startOffset);
+            this.playing = true
+        }
+
+        this.updateCursor()()
+    }
+
+    playInterval(start, duration) {
+        this.audioContext.resume()
+        this.audioSource = this.audioContext.createBufferSource();
+        this.audioSource.buffer = this.bufferLoader.buffersList[this.state.audioFileToPlay];
+        this.audioSource.connect(this.audioContext.destination);
+        this.audioSource.start(0, start, duration);
+        this.model.playing = true
+    }
+
+    updateCursor() {
+        const _view = this
+        // listen for time passing...
+        return function loop() {
+          if (_view.cursorLayer) {
+            let offset = _view.audioContext.currentTime - _view.startTime
+            let position = offset < _view.buffersList[0].duration ? offset : 0
+            _view.cursorLayer.currentPosition = position
+            _view.cursorLayer.update();
+          }
+          window.requestAnimationFrame(loop);
+        };
+      }
+
     initColorsPalette() {
         while (this.colors.length < 100) {
             let newColor = null
@@ -339,11 +398,11 @@ class Waveforms extends Component {
         const startContent = (
             <React.Fragment>
                 <div className="card flex">
-                    <SplitButton label="Play" icon="pi pi-play" model={this.getPlayableFilesButtons()} className="mr-2"></SplitButton>
-                    <Button icon="pi pi-pause" className="mr-2">Pause</Button>
+                    <SplitButton label="Play" icon="pi pi-play" model={this.getPlayableFilesButtons()} onClick={() => this.playSound.bind(this)(0, 0)} className="mr-2"></SplitButton>
+                    <Button icon="pi pi-pause" onClick={this.pauseSound.bind(this)} className="mr-2">Pause</Button>
                     <Button icon="pi pi-step-backward" className="mr-2">Previous Loss</Button>
                     <Button icon="pi pi-step-forward" className="mr-2">Next Loss</Button>
-                    <Button icon="pi pi-arrows-h" className="mr-2">Play Zoomed</Button>
+                    <Button icon="pi pi-arrows-h" onClick={this.playInterval} className="mr-2">Play Zoomed</Button>
                 </div>
             </React.Fragment>
         );
