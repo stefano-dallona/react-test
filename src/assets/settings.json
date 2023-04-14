@@ -20,7 +20,7 @@
                {
                   "property": "packet_size",
                   "value": "32",
-                  "type": "str",
+                  "type": "int",
                   "mandatory": "true"
                },
                {

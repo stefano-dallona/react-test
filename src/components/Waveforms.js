@@ -338,13 +338,13 @@ class Waveforms extends Component {
     render() {
         const startContent = (
             <React.Fragment>
-                <SplitButton label="Play" icon="pi pi-play" model={this.getPlayableFilesButtons()} className="mr-2"></SplitButton>
-                <Button icon="pi pi-pause" className="mr-2">Pause</Button>
-                <Button icon="pi pi-step-backward" className="mr-2">Previous Loss</Button>
-                <Button icon="pi pi-step-forward" className="mr-2">Next Loss</Button>
-                <Button icon="pi pi-arrows-h" className="mr-2">Play Zoomed</Button>
-
-                <i className="pi p-toolbar-separator mr-2" />
+                <div className="card flex">
+                    <SplitButton label="Play" icon="pi pi-play" model={this.getPlayableFilesButtons()} className="mr-2"></SplitButton>
+                    <Button icon="pi pi-pause" className="mr-2">Pause</Button>
+                    <Button icon="pi pi-step-backward" className="mr-2">Previous Loss</Button>
+                    <Button icon="pi pi-step-forward" className="mr-2">Next Loss</Button>
+                    <Button icon="pi pi-arrows-h" className="mr-2">Play Zoomed</Button>
+                </div>
             </React.Fragment>
         );
 
@@ -363,12 +363,12 @@ class Waveforms extends Component {
                         }}>
                         <div className="flex-auto">
                             <label htmlFor='selectedAudioFile' style={{ color: 'white' }}>Audio File</label>
-                            <Dropdown inputId='selectedAudioFile' id='selectedAudioFile' value={this.state.filename} onChange={(e) => {this.setFilename(e.value)}} options={this.state.audioFiles}
+                            <Dropdown inputId='selectedAudioFile' id='selectedAudioFile' value={this.state.filename} onChange={(e) => { this.setFilename(e.value) }} options={this.state.audioFiles}
                                 placeholder="Select audio file" className="w-full md:w-20rem" />
                         </div>
                         <div className="flex-auto">
                             <label htmlFor='selectedChannel' style={{ color: 'white' }}>Channel</label>
-                            <Dropdown inputId='selectedChannel' id='selectedChannel' value={this.state.selectedChannel} onChange={(e) => {this.setSelectedChannel(e.value)}} options={this.state.channels}
+                            <Dropdown inputId='selectedChannel' id='selectedChannel' value={this.state.selectedChannel} onChange={(e) => { this.setSelectedChannel(e.value) }} options={this.state.channels}
                                 placeholder="Select channel" className="w-full md:w-20rem" />
                         </div>
                         <div className="flex-auto">
