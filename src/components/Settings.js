@@ -23,6 +23,8 @@ class Settings extends Component {
         this.inputFilesSelector = React.createRef();
         this.workerSettings = React.createRef();
 
+        this.execute = props.execute
+
         let baseUrl = "http://localhost:5000"
         this.configurationService = new ConfigurationService(baseUrl)
 
@@ -32,6 +34,7 @@ class Settings extends Component {
 
         this.defaultSettings = defaultSettings
         this.storedSettings = []
+        this.runId = null
 
         this.state = {
             currentPage: 0
@@ -148,8 +151,12 @@ class Settings extends Component {
     save = async () => {
         let [success, errors] = this.storeSettings()
         if (success) {
-            await this.configurationService.saveRunConfiguration(this.storedSettings.flatMap((item) => item))
-            this.toast.current.show({ severity: 'info', summary: JSON.stringify(this.storedSettings), detail: 'Run configuration saved!' });
+            this.runId = await this.configurationService.saveRunConfiguration(this.storedSettings.flatMap((item) => item))
+            let details = "" //JSON.stringify(this.storedSettings)
+            this.toast.current.show({ severity: 'info', summary: `Run configuration saved!\nUUID:${this.runId}`, detail: details });
+            if (this.execute) {
+                setTimeout(this.execute(this.runId), 2000)
+            }
         } else {
             errors.forEach((error) => this.showMessage('error', error, ""))
         }

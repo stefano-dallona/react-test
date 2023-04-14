@@ -30,7 +30,7 @@ export class ConfigurationService {
             },
             body: JSON.stringify(configuration)
         };
-        let response = await fetch(this.baseUrl + "/runs", request).catch((error) => {
+        let response = await fetch(this.baseUrl + `/runs`, request).catch((error) => {
             console.log(error)
         })
         if (response.ok) {

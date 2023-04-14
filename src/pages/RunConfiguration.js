@@ -9,40 +9,18 @@ import { trackPromise } from 'react-promise-tracker';
 import Settings from '../components/Settings';
 
 
-/*
-class RunConfiguration extends Component {
-
-    constructor(props) {
-        super(props);
-
-        this.state = {
-        };
-    }
-
-    componentDidMount() {
-
-    }
-
-    render() {
-        return (
-            <div id="runConfiguration" className="card p-fluid">
-                <Settings paged="false"></Settings>
-            </div>
-        )
-    }
-}
-
-export default RunConfiguration;
-*/
-
 export const RunConfiguration = (props) => {
     let navigate = useNavigate()
     let { runId } = useParams()
     let settings = useRef()
 
+    const execute = (runId) => {
+        navigate(`/run/${runId}/execution`)
+    }
+
     return (
         <div id="runConfiguration" className="card p-fluid">
-            <Settings ref={settings} paged="false"></Settings>
+            <Settings ref={settings} execute={execute} paged="false"></Settings>
         </div>
     )
 
