@@ -8,15 +8,20 @@ import { DropzoneComponent } from 'react-dropzone-component';
 
 import { PickList } from 'primereact/picklist';
 
+import { ConfigurationService } from '../services/testbench-configuration-service'
+
 class InputFilesSelector extends Component {
 
     constructor(props) {
         super(props);
 
+        this.baseUrl = 'http://localhost:5000'
+        this.configurationService = new ConfigurationService(this.baseUrl)
+
         this.dropzoneConfig = {
             iconFiletypes: ['.wav'],
             showFiletypeIcon: true,
-            postUrl: "http://localhost:5000/upload"
+            postUrl: `${this.baseUrl}/upload`
         }
 
         this.djsConfig = {
@@ -38,7 +43,10 @@ class InputFilesSelector extends Component {
                 _this.dropzone.removeFile(file)
             },
             uploadprogress: (file, progress, bytesSent) => {
-                if (file.upload.chunked && progress === 100) return;
+                if (file.upload.chunked && progress === 100) {
+                    this.loadInputFiles()
+                    return;
+                }
                 let progressElement = file.previewElement.querySelector("[data-dz-uploadprogress]");
                 progressElement.style.width = progress + "%";
                 console.log("file:" + file + ", progress:" + progress)
@@ -49,9 +57,18 @@ class InputFilesSelector extends Component {
         }
 
         this.state = {
-            source: ["a", "b", "c", "d"],
-            target: []
+            availableInputFiles: [],
+            selectedInputFiles: []
         }
+    }
+
+    async componentDidMount() {
+        this.loadInputFiles()
+    }
+
+    loadInputFiles = async () => {
+        let availableInputFiles = await this.configurationService.getInputFiles()
+        this.setAvailableInputFiles(availableInputFiles)        
     }
 
     dropzoneInit = (dropzone) => {
@@ -59,20 +76,21 @@ class InputFilesSelector extends Component {
         this.dropzone._callbacks.uploadprogress = []
     }
 
-    setSource = (source) => {
+    setAvailableInputFiles = (availableInputFiles) => {
         this.setState({
-            source: source
+            availableInputFiles: availableInputFiles
         })
     }
-    setTarget = (target) => {
+
+    setSelectedInputFiles = (selectedInputFiles) => {
         this.setState({
-            target: target
+            selectedInputFiles: selectedInputFiles
         })
     }
 
     onChange = (event) => {
-        this.setSource(event.source);
-        this.setTarget(event.target);
+        this.setAvailableInputFiles(event.source.sort());
+        this.setSelectedInputFiles(event.target.sort());
     };
 
     render() {
@@ -82,7 +100,7 @@ class InputFilesSelector extends Component {
                     djsConfig={this.djsConfig}
                     eventHandlers={this.dropzoneEventHandlers}
                     className="mb-2"></DropzoneComponent>
-                <PickList source={this.state.source} target={this.state.target} onChange={this.onChange} filter filterBy="name" breakpoint="1400px"
+                <PickList source={this.state.availableInputFiles} target={this.state.selectedInputFiles} onChange={this.onChange} filter filterBy="name" breakpoint="1400px"
                     sourceHeader="Available" targetHeader="Selected" sourceStyle={{ height: '30rem' }} targetStyle={{ height: '30rem' }}
                     sourceFilterPlaceholder="Search by name" targetFilterPlaceholder="Search by name" />
             </div>

@@ -54,7 +54,7 @@
             "settings": [
                {
                   "property": "simulator",
-                  "value": "1",
+                  "value": null,
                   "type": "select",
                   "options": ["PacketLossSimulator", "SampleLossSimulator"],
                   "mandatory": "true"
@@ -79,7 +79,7 @@
             "settings": [
                {
                   "property": "simulator",
-                  "value": "1",
+                  "value": null,
                   "type": "select",
                   "options": ["PacketLossSimulator", "SampleLossSimulator"],
                   "mandatory": "true"

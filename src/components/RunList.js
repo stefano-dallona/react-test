@@ -31,7 +31,7 @@ class RunList extends Component {
     setSelectedRun(runId) {
         this.setState({
             selectedRun: runId
-        })
+        }, this.props.parentChangeHandler)
     }
 
     componentDidMount() {
@@ -57,7 +57,7 @@ class RunList extends Component {
     render() {
         return (
             <div id="runList">
-                <DataTable stripedRows value={this.state.data} selectionMode="single" selection={this.state.selectedRun} onChange={(e) => this.setSelectedRun(e.id)}>
+                <DataTable stripedRows value={this.state.data} selectionMode="single" selection={this.state.selectedRun} onSelectionChange={(e) => this.setSelectedRun(e.value)}>
                     <Column field="run_id" header="Run ID"></Column>
                     <Column field="seed" header="Seed"></Column>
                     <Column field="files" header="Files"></Column>

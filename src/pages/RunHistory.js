@@ -10,8 +10,58 @@ import { Button } from 'primereact/button';
 
 import RunList from '../components/RunList';
 import withNavigation from "../components/withNavigation";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useRef } from "react";
 
+export const RunHistory = (props) => {
+    let navigate = useNavigate()
+    let location = useLocation()
+    let runList = useRef()
 
+    const execute = () => {
+        navigate(`/run/${runList.current.state.selectedRun.run_id}/execution`)
+    }
+
+    const analyse = () => {
+        navigate(`/run/${runList.current.state.selectedRun.run_id}/analysis`)
+    }
+
+    const onChange = () => {
+        if (location.state) {
+            switch (location.state.nextPage) {
+                case "RunExecution":
+                    execute()
+                    break
+                case "RunAnalysis":
+                    analyse()
+                    break
+                default:
+            }
+        }
+    }
+
+    const startContent = (
+        <React.Fragment>
+            <Button icon="pi" className="mr-2" onClick={execute}>Execute</Button>
+            <Button icon="pi" className="mr-2" onClick={analyse}>Analyse</Button>
+
+            <i className="pi p-toolbar-separator mr-2" />
+        </React.Fragment>
+    );
+
+    return (
+        <div id="runHistory" className="card p-fluid">
+            <Panel header="Run List">
+                <RunList ref={runList} parentChangeHandler={onChange}></RunList>
+            </Panel>
+            {(!location.state || !location.state.nextPage) && (
+                <Toolbar start={startContent} />
+            )}
+        </div>
+    )
+}
+
+/*
 class RunHistory extends Component {
 
     constructor(props) {
@@ -68,4 +118,4 @@ class RunHistory extends Component {
 }
 
 export default withNavigation(RunHistory);
-
+*/

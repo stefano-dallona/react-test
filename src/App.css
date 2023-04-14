@@ -35,3 +35,11 @@
     transform: rotate(360deg);
   }
 }
+
+.p-picklist-source-controls {
+  visibility: hidden
+}
+
+.p-picklist-target-controls {
+  visibility: hidden
+}

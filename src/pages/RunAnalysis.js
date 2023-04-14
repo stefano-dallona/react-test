@@ -3,11 +3,12 @@ import "primereact/resources/primereact.min.css";
 import "primeicons/primeicons.css";
 import 'primeflex/primeflex.css';
 
-import React, { Component } from 'react';
+import React, { Component, forwardRef } from 'react';
 import Waveforms from '../components/Waveforms';
 import withNavigation from "../components/withNavigation";
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 
-
+/*
 class RunAnalysis extends Component {
 
     constructor(props) {
@@ -38,10 +39,25 @@ class RunAnalysis extends Component {
     render() {
         return (
             <div id="runAnalysis" className="card p-fluid">
-                <Waveforms runId={this.state.runId} filename={this.state.filename} segmentEventHandler={(segment) => { /*alert(`(x:${segment.start_sample}, width: ${segment.num_samples})`)*/ }}></Waveforms>
+                <Waveforms runId={this.state.runId} filename={this.state.filename} segmentEventHandler={(segment) => {  }}></Waveforms>
             </div>
         )
     }
 }
 
 export default withNavigation(RunAnalysis);
+*/
+
+export const RunAnalysis = (props) => {
+    let navigate = useNavigate()
+    let { runId } = useParams()
+
+    return (
+        runId ? (
+            <div id="runAnalysis" className="card p-fluid">
+                <Waveforms runId={runId} filename={""} segmentEventHandler={(segment) => { }}></Waveforms>
+            </div>
+        ) : <Navigate to={`/run/history`} state={{nextPage: "RunAnalysis"}} />
+    )
+
+}

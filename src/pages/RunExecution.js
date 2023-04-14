@@ -10,8 +10,9 @@ import { Button } from 'primereact/button';
 
 import RunHierarchy from '../components/RunHierarchy';
 import withNavigation from "../components/withNavigation";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
 
-
+/*
 class RunExecution extends Component {
 
     constructor(props) {
@@ -58,4 +59,34 @@ class RunExecution extends Component {
 }
 
 export default withNavigation(RunExecution);
+*/
 
+export const RunExecution = (props) => {
+    let navigate = useNavigate()
+    let { runId } = useParams()
+
+    const analyse = () => {
+        navigate(`/run/${runId}/analysis`)
+    }
+
+    const startContent = (
+        <React.Fragment>
+            <Button icon="pi" className="mr-2">Execute</Button>
+            <Button icon="pi" className="mr-2" onClick={analyse}>Analyse</Button>
+
+            <i className="pi p-toolbar-separator mr-2" />
+        </React.Fragment>
+    );
+
+    return (
+        runId ? (
+            <div id="runAnalysis" className="card p-fluid">
+                <Panel header="Run Hierarchy">
+                    <RunHierarchy runId={runId} filename={""} />
+                </Panel>
+                <Toolbar start={startContent} />
+            </div>
+        ) : <Navigate to={`/run/history`} state={{nextPage: "RunExecution"}} />
+    )
+
+}
