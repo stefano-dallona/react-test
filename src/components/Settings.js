@@ -9,7 +9,8 @@ import { Toast } from 'primereact/toast';
 import InputFilesSelector from './InputFilesSelector';
 import WorkersSettings from './WorkersSettings';
 
-import defaultSettings from '../assets/settings.json'
+import defaultSettings from '../assets/settings.json';
+import { ConfigurationService } from '../services/testbench-configuration-service';
 
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -21,6 +22,9 @@ class Settings extends Component {
         this.toast = React.createRef();
         this.inputFilesSelector = React.createRef();
         this.workerSettings = React.createRef();
+
+        let baseUrl = "http://localhost:5000"
+        this.configurationService = new ConfigurationService(baseUrl)
 
         this.paged = props.paged || true
 
@@ -93,9 +97,9 @@ class Settings extends Component {
         return errors
     }
 
-    getPageSettings = () => {
-        if (this.state.currentPage == 0)
-            return this.inputFilesSelector.current.state.selectedInputFiles
+    getPageSettings = (page = this.state.currentPage) => {
+        if (page == 0)
+            return { name: this.pages[page], settings: this.inputFilesSelector.current.state.selectedInputFiles }
         else {
             let selectedWorkers = this.workerSettings.current.state.selectedWorkers
             let currentWorkerSettings = this.workerSettings.current.state.currentWorkerSettings
@@ -115,11 +119,11 @@ class Settings extends Component {
         if (this.isLastPage()) return
 
         let [success, errors] = this.storeSettings()
-        if (! success) {
+        if (!success) {
             errors.forEach((error) => this.showMessage('error', error, ""))
             return
         }
-        
+
         this.setCurrentPage(this.state.currentPage + 1)
     }
 
@@ -141,12 +145,14 @@ class Settings extends Component {
         });
     }
 
-    save = () => {
+    save = async () => {
         let [success, errors] = this.storeSettings()
-        if (success)
-            this.toast.current.show({ severity: 'info', summary: JSON.stringify(this.state.selectedOutputAnalysers), detail: 'Run configuration saved!' });
-        else
+        if (success) {
+            await this.configurationService.saveRunConfiguration(this.storedSettings.flatMap((item) => item))
+            this.toast.current.show({ severity: 'info', summary: JSON.stringify(this.storedSettings), detail: 'Run configuration saved!' });
+        } else {
             errors.forEach((error) => this.showMessage('error', error, ""))
+        }
     }
 
     delete = () => {
