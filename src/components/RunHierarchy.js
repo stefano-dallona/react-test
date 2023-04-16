@@ -34,6 +34,10 @@ class RunHierarchy extends Component {
         let baseUrl = "http://localhost:5000"
         this.configurationService = new ConfigurationService(baseUrl)
 
+        this.progressBarRefs = new Map()
+
+        this.onExecutionCompleted = props.onExecutionCompleted || this.executionCompletedDefaultHandler
+
         this.state = {
             runId: props.runId,
             filename: props.filename,
@@ -44,15 +48,27 @@ class RunHierarchy extends Component {
 
     componentDidMount() {
         this.loadData()
+        //setTimeout(() => { this.updateProgress(this.hierarchy.uuid, 50) }, 3000)
     }
 
     async loadData() {
-        //let data = await HierarchyService.getTreeNodes();
         this.hierarchy = await trackPromise(this.configurationService.getRunHierarchy(this.state.runId, this.state.filename));
-        this.setTreeData([this.hierarchy]);
+        this.setData([this.hierarchy]);
     }
 
-    setTreeData(data) {
+    setRunId(runId) {
+        this.setState({
+            runId: runId
+        })
+    }
+
+    setFilename(filename) {
+        this.setState({
+            filename: filename
+        }, this.loadData)
+    }
+
+    setData(data) {
         this.setState({
             data: data
         });
@@ -77,13 +93,49 @@ class RunHierarchy extends Component {
         return [nodes, links]
     }
 
-    handleButtonClick() {
-        let data = cloneDeep(this.state.data)
-        data[0].label = "Document Root"
-        data[0].children = data[0].children.slice(1)
-        this.setState({
-            data: data
-        });
+    updateProgress(nodeId, progress) {
+        let progressBarRef = this.progressBarRefs.get(nodeId)
+        if (progressBarRef && progressBarRef.current) {
+            progressBarRef.current.setCurrentPercentage(progress)
+        }
+    }
+
+    resetProgressBars(percentage = 0) {
+        this.progressBarRefs.forEach((progressBar, nodeId) => {
+            if (progressBar.current) {
+                progressBar.current.setCurrentPercentage(percentage)
+            }
+            localStorage.setItem(nodeId, percentage)
+        })
+    }
+
+    startListeningForExecutionEvents() {
+        let progressCallback = async function (e) {
+            let message = JSON.parse(e.data)
+            this.updateProgress(message.nodeid, message.currentPercentage)
+            localStorage.setItem(message.nodeid, message.currentPercentage)
+
+            if (message.nodetype == "RunExecution" && message.nodeid == this.state.runId) {
+                this.resetProgressBars(100)
+                this.configurationService.stopListeningForExecutionEvents();
+            }
+            if (message.nodetype == "ECCTestbench") {
+                this.updateProgress(message.nodeid, message.currentPercentage)
+                localStorage.setItem(message.nodeid, message.currentPercentage)
+                let run = await this.configurationService.getRun(this.state.runId)
+                let selectedInputFiles = run.selected_input_files
+                let newFileIndex = Math.min(selectedInputFiles.length - 1, Math.ceil(selectedInputFiles.length * (message.currentPercentage / 100.0)))
+                if (this.state.filename != selectedInputFiles[newFileIndex]) {
+                    this.setFilename(selectedInputFiles[newFileIndex])
+                } else {
+                    this.resetProgressBars(100)
+                }
+            }
+        }
+        this.configurationService.startListeningForExecutionEvents(this.state.runId, this.state.runId, progressCallback.bind(this))
+    }
+
+    executionCompletedDefaultHandler() {
     }
 
     render() {
@@ -97,6 +149,12 @@ class RunHierarchy extends Component {
                     width="100%"
                     height="500"
                 >
+                    <g>
+                        {
+                            (this.progressBarRefs.has(this.state.runId) || this.progressBarRefs.set(this.state.runId, React.createRef())) &&
+                            <ProgressSpinner ref={this.progressBarRefs.get(this.state.runId)} key={`pb-${this.state.runId}`} nodeId={this.state.runId} x={150} y={80} r={30} percentage={0} />
+                        }
+                    </g>
                     <g transform={`translate(${window.innerWidth / 2}, 50)`}>
                         {links.map((link, i) => {
                             return (
@@ -105,12 +163,16 @@ class RunHierarchy extends Component {
                         })}
                         {nodes.map((node, i) => {
                             return (
-                                <Node key={node.key} label={node.data.name} transform={`translate(${node.x}, ${node.y})`} />
+                                <Node key={node.key} nodeId={node.id} label={node.data.name} transform={`translate(${node.x}, ${node.y})`} />
                             )
                         })}
                         {nodes.map((node, i) => {
+                            if (!this.progressBarRefs.has(node.data.uuid)) {
+                                this.progressBarRefs.set(node.data.uuid, React.createRef())
+                            }
+                            this.updateProgress(node.data.uuid, 0)
                             return (
-                                <ProgressSpinner key={`pb-${node.key}`} x={node.x} y={node.y} percentage={0} />
+                                <ProgressSpinner ref={this.progressBarRefs.get(node.data.uuid)} key={`pb-${node.key}`} nodeId={node.data.uuid} x={node.x} y={node.y} percentage={0} />
                             )
                         })}
                     </g>

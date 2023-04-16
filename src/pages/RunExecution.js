@@ -2,7 +2,7 @@ import "primereact/resources/primereact.min.css";
 import "primeicons/primeicons.css";
 import 'primeflex/primeflex.css';
 
-import React, { Component } from 'react';
+import React, { Component, useRef } from 'react';
 
 import { Panel } from 'primereact/panel';
 import { Toolbar } from 'primereact/toolbar';
@@ -17,6 +17,7 @@ import { ConfigurationService } from "../services/testbench-configuration-servic
 export const RunExecution = (props) => {
     let navigate = useNavigate()
     let { runId } = useParams()
+    let runHierarchy = useRef()
 
     const analyse = () => {
         navigate(`/run/${runId}/analysis`)
@@ -26,6 +27,7 @@ export const RunExecution = (props) => {
         let baseUrl = "http://localhost:5000"
         let configurationService = new ConfigurationService(baseUrl)
         configurationService.launchRunExecution(runId)
+        runHierarchy.current.startListeningForExecutionEvents()
     }
 
     const startContent = (
@@ -41,7 +43,7 @@ export const RunExecution = (props) => {
         runId ? (
             <div id="runAnalysis" className="card p-fluid">
                 <Panel header="Run Hierarchy">
-                    <RunHierarchy runId={runId} filename={""} />
+                    <RunHierarchy ref={runHierarchy} runId={runId} filename={""} />
                 </Panel>
                 <Toolbar start={startContent} />
             </div>
