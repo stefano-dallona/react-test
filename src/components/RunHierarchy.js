@@ -10,6 +10,8 @@ import Link from './Link'
 import ProgressSpinner from './ProgressSpinner'
 import { ConfigurationService } from '../services/testbench-configuration-service';
 
+var d3 = require("d3")
+
 /*
 const RunHierarchy = () => {
     const [nodes, setNodes] = useState([]);
@@ -51,6 +53,7 @@ class RunHierarchy extends Component {
 
     componentDidMount() {
         this.loadData()
+        this.initZoom()
         //setTimeout(() => { this.updateProgress(this.hierarchy.uuid, 50) }, 3000)
     }
 
@@ -147,6 +150,16 @@ class RunHierarchy extends Component {
     executionCompletedDefaultHandler() {
     }
 
+
+    handleZoom() {
+        d3.select('#hierarchy').attr('transform', d3.event.transform.toString());
+    }
+
+    initZoom() {
+        let zoom = d3.zoom().on('zoom', this.handleZoom);
+        d3.select('svg').call(zoom);
+    }
+
     render() {
         this.nodes.forEach((node, i) => { node.key = "node-" + i })
         this.links.forEach((link, i) => { link.key = "link-" + i })
@@ -163,7 +176,7 @@ class RunHierarchy extends Component {
                             <ProgressSpinner ref={this.progressBarRefs.get(this.state.runId)} key={`pb-${this.state.runId}`} nodeId={this.state.runId} x={150} y={80} r={30} />
                         }
                     </g>
-                    <g transform={`translate(${window.innerWidth / 2}, 50)`}>
+                    <g id="hierarchy" transform={`translate(${window.innerWidth / 2}, 50)`}>
                         {this.links.map((link, i) => {
                             return (
                                 <Link key={link.key} source={link.source} target={link.target} />
@@ -176,7 +189,7 @@ class RunHierarchy extends Component {
                         })}
                         {this.nodes.map((node, i) => {
                             return (
-                                <ProgressSpinner ref={this.progressBarRefs.get(node.data.uuid)} key={`pb-${node.key}`} nodeId={node.data.uuid} x={node.x} y={node.y} percentage={localStorage.getItem(node.data.uuid) || 0}/>
+                                <ProgressSpinner ref={this.progressBarRefs.get(node.data.uuid)} key={`pb-${node.key}`} nodeId={node.data.uuid} x={node.x} y={node.y} percentage={localStorage.getItem(node.data.uuid) || 0} />
                             )
                         })}
                     </g>
