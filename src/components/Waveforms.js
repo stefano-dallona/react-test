@@ -82,6 +82,9 @@ class Waveforms extends Component {
             this.loadBuffers();
             this.loadLossSimulation()
         });
+        if (this.spectrogram.current) {
+            this.spectrogram.current.setFilename(this.state.filename)
+        }
     }
 
     componentDidMount() {
