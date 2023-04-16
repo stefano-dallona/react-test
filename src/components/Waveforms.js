@@ -172,10 +172,14 @@ class Waveforms extends Component {
     playInterval(start, duration) {
         this.audioContext.resume()
         this.audioSource = this.audioContext.createBufferSource();
-        this.audioSource.buffer = this.bufferLoader.buffersList[this.state.audioFileToPlay];
+        this.audioSource.buffer = this.buffersList[this.state.audioFileToPlay];
         this.audioSource.connect(this.audioContext.destination);
         this.audioSource.start(0, start, duration);
-        this.model.playing = true
+        this.playing = true
+    }
+
+    playZoomedInterval() {
+        this.playInterval(Math.floor(-this.timeline.timeContext.offset), Math.ceil(this.timeline.timeContext.visibleDuration))
     }
 
     updateCursor() {
@@ -405,7 +409,7 @@ class Waveforms extends Component {
                     <Button icon="pi pi-pause" onClick={this.pauseSound.bind(this)} className="mr-2">Pause</Button>
                     <Button icon="pi pi-step-backward" className="mr-2">Previous Loss</Button>
                     <Button icon="pi pi-step-forward" className="mr-2">Next Loss</Button>
-                    <Button icon="pi pi-arrows-h" onClick={this.playInterval} className="mr-2">Play Zoomed</Button>
+                    <Button icon="pi pi-arrows-h" onClick={this.playZoomedInterval.bind(this)} className="mr-2">Play Zoomed</Button>
                 </div>
             </React.Fragment>
         );
