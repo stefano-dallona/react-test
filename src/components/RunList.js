@@ -51,6 +51,7 @@ class RunList extends Component {
 
     async loadData() {
         let data = await trackPromise(this.configurationService.findAllRuns());
+        data.forEach((row) => { row.input_files = row.selected_input_files.join(",") })
         this.setData(data);
     }
 
@@ -59,10 +60,9 @@ class RunList extends Component {
             <div id="runList">
                 <DataTable stripedRows value={this.state.data} selectionMode="single" selection={this.state.selectedRun} onSelectionChange={(e) => this.setSelectedRun(e.value)}>
                     <Column field="run_id" header="Run ID"></Column>
-                    <Column field="seed" header="Seed"></Column>
-                    <Column field="files" header="Files"></Column>
-                    <Column field="createdOn" header="Created On"></Column>
-                    <Column field="createdBy" header="Created By"></Column>
+                    <Column field="input_files" header="Files"></Column>
+                    <Column field="created_on" header="Created On"></Column>
+                    <Column field="creator" header="Creator"></Column>
                 </DataTable>
                 <Paginator rows={10} totalRecords={this.state.data.length} onPageChange={null}></Paginator>
             </div>

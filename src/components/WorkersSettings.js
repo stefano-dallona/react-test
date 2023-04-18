@@ -129,7 +129,7 @@ class WorkersSettings extends Component {
                 editor = this.numberEditor(setting)
                 break;
             case "float":
-                editor = this.numberEditor(setting)
+                editor = this.numberEditor(setting, true)
                 break;
             case "select":
                 editor = this.sinleSelectEditor(setting)
@@ -143,8 +143,8 @@ class WorkersSettings extends Component {
         return editor;
     };
 
-    numberEditor = (setting) => {
-        return <InputNumber key={setting.property} type="text" value={setting.value} onChange={(e) => this.setPropertyValue(setting, e.value)} />;
+    numberEditor = (setting, decimal = false) => {
+        return <InputNumber key={setting.property} value={setting.value} maxFractionDigits={decimal ? 5 : 0} onChange={(e) => this.setPropertyValue(setting, e.value)} />;
     };
 
     textEditor = (setting) => {

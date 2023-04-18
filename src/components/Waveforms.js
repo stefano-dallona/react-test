@@ -36,6 +36,7 @@ class Waveforms extends Component {
         this.buffersList = []
         this.colors = []
         this.layersMap = new Map()
+        this.inputFiles = []
 
         let baseUrl = "http://localhost:5000"
         this.configurationService = new ConfigurationService(baseUrl)
@@ -46,10 +47,10 @@ class Waveforms extends Component {
         this.state = {
             runId: props.runId || "",
             filename: props.filename || "",
-            audioFiles: ["Blues_Bass.wav", "Blues_Guitar.wav"],
+            audioFiles: [],
             channels: ["0", "1"],
             selectedAudioFiles: [],
-            selectedChannel: null,
+            selectedChannel: "0",
             selectedLossSimulations: [],
             audioFileToPlay: 0,
             buffersListReady: false,
@@ -63,10 +64,19 @@ class Waveforms extends Component {
         })
     }
 
-    setFilename(filename) {
+    async setFilename(filename) {
+        this.setState({
+            selectedAudioFiles: [],
+            selectedChannel: "0",
+            selectedLossSimulations: [],
+            audioFileToPlay: 0,
+            buffersListReady: false,
+            lossSimulationsReady: false
+        }, this.reloadData.bind(this))
+        
         this.setState({
             filename: filename
-        }, this.reloadData)
+        })
     }
 
     setSelectedChannel(selectedChannel) {
@@ -75,20 +85,20 @@ class Waveforms extends Component {
         })
     }
 
-    reloadData = () => {
+    reloadData = async () => {
         this.clearWaveforms()
         this.initColorsPalette()
-        this.loadHierarchy().then(() => {
-            this.loadBuffers();
-            this.loadLossSimulation()
-        });
+        await this.loadHierarchy()
+        this.loadBuffers()
+        await this.loadLossSimulation()
         if (this.spectrogram.current) {
             this.spectrogram.current.setFilename(this.state.filename)
         }
     }
 
-    componentDidMount() {
-        this.reloadData()
+    async componentDidMount() {
+        await this.loadInputFiles()
+        this.setFilename(this.inputFiles[0])
     }
 
     setAudioFiles(audioFiles) {
@@ -97,12 +107,13 @@ class Waveforms extends Component {
             let parent = this.findParent(this.hierarchy, file)
             file.label = file.name + (parent ? " - " + parent.name : "")
         });
+        //this.setSelectedAudioFiles(audioFiles)
     }
 
     setLossSimulationFiles(lossSimulationFiles) {
         this.lossSimulationFiles = lossSimulationFiles
         this.setState({
-            selectedLossSimulations: this.lossSimulationFiles.map((file, index) => file.uuid),
+            selectedLossSimulations: this.lossSimulationFiles[0].uuid,
             lossSimulationsReady: true
         });
     }
@@ -206,6 +217,11 @@ class Waveforms extends Component {
         }
     }
 
+    async loadInputFiles() {
+        let run = await trackPromise(this.configurationService.getRun(this.state.runId));
+        this.inputFiles = run.selected_input_files
+    }
+
     async loadHierarchy() {
         this.hierarchy = await trackPromise(this.configurationService.getRunHierarchy(this.state.runId, this.state.filename));
     }
@@ -305,9 +321,14 @@ class Waveforms extends Component {
 
     clearWaveforms() {
         if (this.waveuiEl) {
-            this.waveuiEl.lastElementChild.remove()
+            let lastChild = this.waveuiEl.lastElementChild
+            if (lastChild.id != "pnl-displayedAudioFiles") {
+                lastChild.remove()
+            }
+            this.audioContext = new AudioContext()
             this.timeline = null
             this.waveformTrack = null
+            this.cursorLayer = null
         }
         if (this.spectrogram.current) {
             //this.spectrogram.current
@@ -383,7 +404,7 @@ class Waveforms extends Component {
             })
 
         this.lossSimulationFiles.forEach((file, index) => {
-            if (this.state.selectedLossSimulations.indexOf(file.uuid) != -1) {
+            if (this.state.selectedLossSimulations == file.uuid) {
                 if (this.waveformTrack.layers.indexOf(this.layersMap.get(file)) == -1)
                     this.waveformTrack.add(this.layersMap.get(file))
             } else {
@@ -427,25 +448,56 @@ class Waveforms extends Component {
                         ref={(c) => {
                             this.waveuiEl = c;
                         }}>
-                        <div className="flex-auto">
+                        <div id="pnl-selectedAudioFile" className="flex-auto">
                             <label htmlFor='selectedAudioFile' style={{ color: 'white' }}>Audio File</label>
-                            <Dropdown inputId='selectedAudioFile' id='selectedAudioFile' value={this.state.filename} onChange={(e) => { this.setFilename(e.value) }} options={this.state.audioFiles}
-                                placeholder="Select audio file" className="w-full md:w-20rem" />
+                            <Dropdown inputId='selectedAudioFile'
+                                id='selectedAudioFile'
+                                value={this.state.filename}
+                                onClick={(e) => { false && e.stopPropagation() }}
+                                onChange={(e) => { this.setFilename(e.value) }}
+                                options={this.inputFiles}
+                                placeholder="Select audio file"
+                                className="w-full md:w-20rem" />
                         </div>
-                        <div className="flex-auto">
+                        <div id="pnl-selectedChannel" className="flex-auto">
                             <label htmlFor='selectedChannel' style={{ color: 'white' }}>Channel</label>
-                            <Dropdown inputId='selectedChannel' id='selectedChannel' value={this.state.selectedChannel} onChange={(e) => { this.setSelectedChannel(e.value) }} options={this.state.channels}
-                                placeholder="Select channel" className="w-full md:w-20rem" />
+                            <Dropdown inputId='selectedChannel'
+                                id='selectedChannel'
+                                value={this.state.selectedChannel}
+                                onClick={(e) => { false && e.stopPropagation() }}
+                                onChange={(e) => { this.setSelectedChannel(e.value) }}
+                                options={this.state.channels}
+                                placeholder="Select channel"
+                                className="w-full md:w-20rem" />
                         </div>
-                        <div className="flex-auto">
+                        <div id="pnl-displayedLossSimulations" className="flex-auto">
                             <label htmlFor='displayedLossSimulations' style={{ color: 'white' }}>Displayed loss simulations</label>
-                            <Dropdown inputId='displayedLossSimulations' id='displayedLossSimulations' value={this.state.selectedLossSimulations} onChange={(e) => this.setSelectedLossSimulations(e.value)} options={this.lossSimulationFiles} optionLabel="name" optionValue='uuid' display="chip"
-                                placeholder="Select loss simulations" className="w-full md:w-20rem" />
+                            <Dropdown inputId='displayedLossSimulations'
+                                id='displayedLossSimulations'
+                                value={this.state.selectedLossSimulations}
+                                onClick={(e) => { false && e.stopPropagation() }}
+                                onChange={(e) => { this.setSelectedLossSimulations(e.value) }}
+                                options={this.lossSimulationFiles}
+                                optionLabel="name"
+                                optionValue='uuid'
+                                display="chip"
+                                placeholder="Select loss simulations"
+                                className="w-full md:w-20rem" />
                         </div>
-                        <div className="flex-auto">
+                        <div id="pnl-displayedAudioFiles" className="flex-auto">
                             <label htmlFor='displayedAudioFiles' style={{ color: 'white' }}>Displayed audio files</label>
-                            <MultiSelect inputId='displayedAudioFiles' id='displayedAudioFiles' value={this.state.selectedAudioFiles} onChange={(e) => this.setSelectedAudioFiles(e.value)} options={this.audioFiles} optionLabel="label" optionValue='uuid' display="chip"
-                                placeholder="Select audio files" maxSelectedLabels={3} className="w-full md:w-20rem" />
+                            <MultiSelect inputId='displayedAudioFiles'
+                                id='displayedAudioFiles'
+                                value={this.state.selectedAudioFiles}
+                                onClick={(e) => { false && e.stopPropagation() }}
+                                onChange={(e) => { this.setSelectedAudioFiles(e.value) }}
+                                options={this.audioFiles}
+                                optionLabel="label"
+                                optionValue='uuid'
+                                display="chip"
+                                placeholder="Select audio files"
+                                maxSelectedLabels={3}
+                                className="w-full md:w-20rem" />
                         </div>
                         {this.waveuiEl && this.state.lossSimulationsReady && this.state.buffersListReady && this.renderAll(waveformTrackId)}
                     </div>
