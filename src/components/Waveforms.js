@@ -73,7 +73,7 @@ class Waveforms extends Component {
             buffersListReady: false,
             lossSimulationsReady: false
         }, this.reloadData.bind(this))
-        
+
         this.setState({
             filename: filename
         })
@@ -144,21 +144,41 @@ class Waveforms extends Component {
         });
     }
 
+    giveFocusToStopButton() {
+        document.getElementById("btn-stop").focus()
+    }
+
     playSound(delay, offset, duration) {
-        this.startTime = this.audioContext.currentTime
-        this.startOffset = 0
         if (!this.playing) {
-            this.audioContext.resume()
+            this.audioContext = new AudioContext()
+            this.startTime = this.audioContext.currentTime
+            this.startOffset = 0
             this.audioSource = this.audioContext.createBufferSource();
             this.audioSource.buffer = this.buffersList[this.state.audioFileToPlay];
             this.audioSource.connect(this.audioContext.destination);
             this.audioSource.start(delay ? delay : 0, offset ? offset : 0, duration ? duration : this.audioSource.buffer.duration);
             this.playing = true
             console.log("source.buffer.duration:" + this.audioSource.buffer.duration);
+            this.updateCursor()()
         } else {
             console.log("Already playing ...")
         }
-        this.updateCursor()()
+        this.giveFocusToStopButton()
+    }
+
+    stopSound() {
+        if (this.playing) {
+            this.audioSource.stop()
+            this.audioSource.disconnect(this.audioContext.destination)
+            this.audioContext.close()
+            this.audioContext = new AudioContext()
+            this.audioContext.suspend()
+        }
+        this.startTime = this.audioContext.currentTime
+        this.startOffset = 0
+        this.setCursorPosition(this.startOffset)
+        this.playing = false
+        this.giveFocusToStopButton()
     }
 
     pauseSound() {
@@ -167,6 +187,7 @@ class Waveforms extends Component {
             this.audioSource.disconnect(this.audioContext.destination)
             this.audioContext.suspend()
             this.startOffset = this.audioContext.currentTime
+            this.updateCursor()()
             this.playing = false
         } else {
             this.audioContext.resume()
@@ -175,37 +196,56 @@ class Waveforms extends Component {
             this.audioSource.connect(this.audioContext.destination);
             this.audioSource.start(0, this.startOffset);
             this.playing = true
+            this.updateCursor()()
         }
-
-        this.updateCursor()()
+        this.giveFocusToStopButton()
     }
 
     playInterval(start, duration) {
-        this.audioContext.resume()
+        if (this.playing) return
+
+        console.log(`playInterval: start: ${start}s, duration: ${duration}s)`)
+        this.audioContext = new AudioContext()
+        this.startTime = this.audioContext.currentTime
         this.audioSource = this.audioContext.createBufferSource();
         this.audioSource.buffer = this.buffersList[this.state.audioFileToPlay];
         this.audioSource.connect(this.audioContext.destination);
         this.audioSource.start(0, start, duration);
+        setTimeout(() => { this.stopSound(); console.log(`playing: ${this.playing}`) }, (duration) * 1000)
         this.playing = true
+        this.updateCursor()()
     }
 
     playZoomedInterval() {
-        this.playInterval(Math.floor(-this.timeline.timeContext.offset), Math.ceil(this.timeline.timeContext.visibleDuration))
+        if (!this.timeline || !this.buffersList) return
+        let start = Math.floor(-this.timeline.timeContext.offset)
+        let duration = Math.ceil(this.timeline.timeContext.visibleDuration)
+        if (Math.abs(start) == 0 && duration == Math.ceil(this.buffersList[0].duration)) {
+            return
+        }
+        this.playInterval(start, duration)
+        this.giveFocusToStopButton()
+    }
+
+    setCursorPosition(position) {
+        if (this.cursorLayer) {
+            this.cursorLayer.currentPosition = position
+            console.log("cursor position: " + position)
+            this.cursorLayer.update();
+        }
     }
 
     updateCursor() {
         const _view = this
         // listen for time passing...
         return function loop() {
-          if (_view.cursorLayer) {
-            let offset = _view.audioContext.currentTime - _view.startTime
+            if (!_view.playing) return
+            let offset = -_view.timeline.timeContext.offset + (_view.audioContext.currentTime - _view.startTime)
             let position = offset < _view.buffersList[0].duration ? offset : 0
-            _view.cursorLayer.currentPosition = position
-            _view.cursorLayer.update();
-          }
-          window.requestAnimationFrame(loop);
+            _view.setCursorPosition.bind(_view)(position)
+            window.requestAnimationFrame(loop);
         };
-      }
+    }
 
     initColorsPalette() {
         while (this.colors.length < 100) {
@@ -426,11 +466,42 @@ class Waveforms extends Component {
         const startContent = (
             <React.Fragment>
                 <div className="card flex">
-                    <SplitButton label="Play" icon="pi pi-play" model={this.getPlayableFilesButtons()} onClick={() => this.playSound.bind(this)(0, 0)} className="mr-2"></SplitButton>
-                    <Button icon="pi pi-pause" onClick={this.pauseSound.bind(this)} className="mr-2">Pause</Button>
-                    <Button icon="pi pi-step-backward" className="mr-2">Previous Loss</Button>
-                    <Button icon="pi pi-step-forward" className="mr-2">Next Loss</Button>
-                    <Button icon="pi pi-arrows-h" onClick={this.playZoomedInterval.bind(this)} className="mr-2">Play Zoomed</Button>
+                    <SplitButton
+                        icon="pi pi-play"
+                        label="Play"
+                        model={this.getPlayableFilesButtons()}
+                        onClick={() => this.playSound.bind(this)(0, 0)}
+                        className="mr-2"
+                        disabled={false} ></SplitButton>
+                    <Button
+                        id="btn-stop"
+                        icon="pi pi-stop"
+                        label="Stop"
+                        onClick={this.stopSound.bind(this)}
+                        className="mr-2"
+                        disabled={false} ></Button>
+                    <Button
+                        icon="pi pi-pause"
+                        label="Pause"
+                        onClick={this.pauseSound.bind(this)}
+                        className="mr-2"
+                        disabled={false} ></Button>
+                    <Button
+                        icon="pi pi-arrows-h"
+                        label="Play Zoomed"
+                        onClick={this.playZoomedInterval.bind(this)}
+                        className="mr-2"
+                        disabled={false}></Button>
+                    <Button
+                        icon="pi pi-step-backward"
+                        label="Previous Loss"
+                        className="mr-2"
+                        disabled={true} ></Button>
+                    <Button
+                        icon="pi pi-step-forward"
+                        label="Next Loss"
+                        className="mr-2"
+                        disabled={true} ></Button>
                 </div>
             </React.Fragment>
         );
