@@ -4,9 +4,10 @@ import { SplitButton } from "primereact/splitbutton"
 import { Button } from "primereact/button"
 import { Toolbar } from "primereact/toolbar"
 
-export const AudioPlayer = (props) => {
+export const AudioPlayer = React.forwardRef((props, ref) => {
     let [playing, setPlaying] = useState(false)
-    let [bufferToPlay, setBufferToPlay] = useState(0)
+    let [bufferToPlay, setBufferToPlay]  = useState(0)
+    const audioFilesRef = useRef(props.audioFiles)
     const buffersListRef = useRef(props.buffersList)
     const timelineRef = useRef(props.timeline)
     const cursorLayerRef = useRef(props.cursorLayer)
@@ -88,11 +89,18 @@ export const AudioPlayer = (props) => {
         giveFocusToStopButton()
     }
 
+    const getPlayableFilesButtons = () => {
+        return audioFilesRef.current.map((file, i) => {
+            return { label: file.label, icon: (bufferToPlay == i) ? "pi pi-check" : "", command: () => { setBufferToPlay(i) } }
+        });
+    }
+
     const setCursorPosition = (position) => {
-        if (cursorLayerRef.current) {
-            cursorLayerRef.current.currentPosition = position
+        let cursorLayer = cursorLayerRef.current()
+        if (cursorLayer) {
+            cursorLayer.currentPosition = position
             console.log("cursor position: " + position)
-            cursorLayerRef.current.update();
+            cursorLayer.update();
         }
     }
 
@@ -111,29 +119,33 @@ export const AudioPlayer = (props) => {
                 <SplitButton
                     icon="pi pi-play"
                     label="Play"
-                    model={[]}
+                    model={getPlayableFilesButtons()}
                     onClick={ () => { play() }}
                     className="mr-2"
-                    disabled={playing} ></SplitButton>
+                    disabled={playing}
+                    style={{height: "50px"}}></SplitButton>
                 <Button
                     icon="pi pi-pause"
                     label="Pause"
                     onClick={pause}
                     className="mr-2"
-                    disabled={!playing} ></Button>
+                    disabled={!playing}
+                    style={{height: "50px"}}></Button>
                 <Button
                     icon="pi pi-stop"
                     id="AudioPlayer:btn-stop"
                     label="Stop"
                     onClick={stop}
                     className="mr-2"
-                    disabled={!playing} ></Button>
+                    disabled={!playing}
+                    style={{height: "50px"}}></Button>
                 <Button
                     icon="pi pi-arrows-h"
                     label="Play Zoomed"
                     onClick={playZoomedInterval}
                     className="mr-2"
-                    disabled={playing}></Button>
+                    disabled={playing}
+                    style={{height: "50px"}}></Button>
             </React.Fragment>
         )
     }
@@ -144,4 +156,4 @@ export const AudioPlayer = (props) => {
         </div>
     )
 
-}
+})

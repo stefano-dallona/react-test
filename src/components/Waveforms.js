@@ -19,6 +19,7 @@ import { trackPromise } from 'react-promise-tracker';
 
 import Spectrogram from './Spectrogram';
 import SamplesVisualizer from './SamplesVisualizer';
+import { AudioPlayer } from './AudioPlayer';
 
 var wavesUI = require('waves-ui');
 
@@ -28,6 +29,7 @@ class Waveforms extends Component {
 
         this.samplesVisualizer = React.createRef();
         this.spectrogram = React.createRef();
+        this.audioPlayer = React.createRef();
 
         this.audioContext = new AudioContext()
 
@@ -138,6 +140,12 @@ class Waveforms extends Component {
         });
     }
 
+    setCursorLayerReferenceOnAudioPlayer() {
+        if (this.audioPlayer.current) {
+            this.audioPlayer.current.cursorLayerRef.current = this.cursorLayer
+        }
+    }
+
     setAudioFileToPlay(audioFileToPlay) {
         this.setState({
             audioFileToPlay: audioFileToPlay
@@ -226,6 +234,10 @@ class Waveforms extends Component {
         }
         this.playInterval(start, duration)
         this.giveFocusToStopButton()
+    }
+
+    getCursorLayer() {
+        return this.cursorLayer
     }
 
     setCursorPosition(position) {
@@ -573,9 +585,16 @@ class Waveforms extends Component {
                         </div>
                         {this.waveuiEl && this.state.lossSimulationsReady && this.state.buffersListReady && this.renderAll(waveformTrackId)}
                     </div>
-                    <div className="card">
-                        <Toolbar start={startContent} end={endContent} />
-                    </div>
+                    {false && (
+                    <Toolbar start={startContent} end={endContent} />
+                    )}
+                    {this.state.buffersListReady && (
+                        <AudioPlayer ref={this}
+                            audioFiles={this.audioFiles}
+                            buffersList={this.buffersList}
+                            timeline={this.timeline}
+                            cursorLayer={this.getCursorLayer.bind(this)} />
+                    )}
                 </AccordionTab>
                 <AccordionTab header="Samples">
                     {this.waveuiEl && this.state.lossSimulationsReady && this.state.buffersListReady && (
