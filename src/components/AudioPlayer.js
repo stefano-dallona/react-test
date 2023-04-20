@@ -57,6 +57,14 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
         giveFocusToStopButton()
     }
 
+    const onZoomOut = () => {
+        if (playingZoomedSectionRef.current) {
+            stop(true)
+        }
+    }
+
+    ref.current = onZoomOut
+
     const stop = (force = false) => {
         if (!playing && !force) return
 

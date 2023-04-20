@@ -29,7 +29,7 @@ class Waveforms extends Component {
 
         this.samplesVisualizer = React.createRef();
         this.spectrogram = React.createRef();
-        this.audioPlayer = React.createRef();
+        this.audioPlayerOnZoomOut = React.createRef();
 
         this.audioContext = new AudioContext()
 
@@ -45,6 +45,8 @@ class Waveforms extends Component {
         this.analysisService = new AnalysisService(baseUrl)
 
         this.segmentEventHandler = props.segmentEventHandler
+
+        document.addEventListener("keydown", this.onKeyDownHandler.bind(this))
 
         this.state = {
             runId: props.runId || "",
@@ -138,12 +140,6 @@ class Waveforms extends Component {
         this.setState({
             selectedLossSimulations: lossSimulations
         });
-    }
-
-    setCursorLayerReferenceOnAudioPlayer() {
-        if (this.audioPlayer.current) {
-            this.audioPlayer.current.cursorLayerRef.current = this.cursorLayer
-        }
     }
 
     setAudioFileToPlay(audioFileToPlay) {
@@ -479,6 +475,18 @@ class Waveforms extends Component {
         this.renderLossSimulations(waveformTrackId)
     }
 
+    onKeyDownHandler(event) {
+        switch (event.keyCode) {
+            case 32:    //SPACE
+                console.log("zoom out")
+                let onZoomOutHandler = this.audioPlayerOnZoomOut.current
+                onZoomOutHandler()
+                break;
+            default:
+                break;
+        }
+    }
+
     render() {
         const startContent = (
             <React.Fragment>
@@ -590,10 +598,10 @@ class Waveforms extends Component {
                         {this.waveuiEl && this.state.lossSimulationsReady && this.state.buffersListReady && this.renderAll(waveformTrackId)}
                     </div>
                     {false && (
-                    <Toolbar start={startContent} end={endContent} />
+                        <Toolbar start={startContent} end={endContent} />
                     )}
                     {this.state.buffersListReady && (
-                        <AudioPlayer ref={this}
+                        <AudioPlayer ref={this.audioPlayerOnZoomOut}
                             audioFiles={this.audioFiles}
                             buffersList={this.buffersList}
                             timeline={this.getTimeline.bind(this)}
