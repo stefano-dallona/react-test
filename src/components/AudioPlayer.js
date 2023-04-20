@@ -78,8 +78,9 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
     const playZoomedInterval = () => {
         if (playing) return
 
-        let start = Math.floor(-timelineRef.current.timeContext.offset)
-        let duration = Math.ceil(timelineRef.current.timeContext.visibleDuration)
+        let timeline = timelineRef.current()
+        let start = Math.floor(-timeline.timeContext.offset)
+        let duration = Math.ceil(timeline.timeContext.visibleDuration)
         if (Math.abs(start) == 0 && duration == Math.ceil(buffersListRef.current[bufferToPlay].duration)) {
             return
         }
@@ -111,7 +112,8 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
 
     const updateCursor = () => {
         return function loop() {
-            let offset = (playingZoomedSectionRef.current ? -timelineRef.current.timeContext.offset : 0) + (audioContextRef.current.currentTime - startTimeRef.current)
+            let timeline = timelineRef.current()
+            let offset = (playingZoomedSectionRef.current ? -timeline.timeContext.offset : 0) + (audioContextRef.current.currentTime - startTimeRef.current)
             let position = offset < buffersListRef.current[bufferToPlay].duration ? offset : 0
             setCursorPosition(position)
             cursorAnimationRef.current = window.requestAnimationFrame(loop);

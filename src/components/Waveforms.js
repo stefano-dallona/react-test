@@ -240,6 +240,10 @@ class Waveforms extends Component {
         return this.cursorLayer
     }
 
+    getTimeline() {
+        return this.timeline
+    }
+
     setCursorPosition(position) {
         if (this.cursorLayer) {
             this.cursorLayer.currentPosition = position
@@ -592,7 +596,7 @@ class Waveforms extends Component {
                         <AudioPlayer ref={this}
                             audioFiles={this.audioFiles}
                             buffersList={this.buffersList}
-                            timeline={this.timeline}
+                            timeline={this.getTimeline.bind(this)}
                             cursorLayer={this.getCursorLayer.bind(this)} />
                     )}
                 </AccordionTab>
