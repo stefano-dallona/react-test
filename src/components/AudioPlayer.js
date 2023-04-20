@@ -89,9 +89,14 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
         giveFocusToStopButton()
     }
 
+    const changeBufferToPlay = (index) => {
+        stop(true)
+        setBufferToPlay(index)
+    }
+
     const getPlayableFilesButtons = () => {
         return audioFilesRef.current.map((file, i) => {
-            return { label: file.label, icon: (bufferToPlay == i) ? "pi pi-check" : "", command: () => { setBufferToPlay(i) } }
+            return { label: file.label, icon: (bufferToPlay == i) ? "pi pi-check" : "", command: () => { changeBufferToPlay(i) } }
         });
     }
 
