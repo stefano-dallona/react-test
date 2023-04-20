@@ -153,6 +153,8 @@ class Waveforms extends Component {
             this.audioContext = new AudioContext()
             this.startTime = this.audioContext.currentTime
             this.startOffset = 0
+            this.playStartTime = null
+            this.playEndTime = null
             this.audioSource = this.audioContext.createBufferSource();
             this.audioSource.buffer = this.buffersList[this.state.audioFileToPlay];
             this.audioSource.connect(this.audioContext.destination);
@@ -174,8 +176,10 @@ class Waveforms extends Component {
             this.audioContext = new AudioContext()
             this.audioContext.suspend()
         }
+
         this.startTime = this.audioContext.currentTime
         this.startOffset = 0
+        this.playEndTime = null
         this.setCursorPosition(this.startOffset)
         this.playing = false
         this.giveFocusToStopButton()
@@ -183,18 +187,13 @@ class Waveforms extends Component {
 
     pauseSound() {
         if (this.playing) {
-            this.audioSource.stop()
-            this.audioSource.disconnect(this.audioContext.destination)
             this.audioContext.suspend()
-            this.startOffset = this.audioContext.currentTime
+            this.startOffset = this.audioContext.currentTime - this.timeline.timeContext.offset
             this.updateCursor()()
             this.playing = false
         } else {
+            if (this.startOffset == 0) return
             this.audioContext.resume()
-            this.audioSource = this.audioContext.createBufferSource();
-            this.audioSource.buffer = this.buffersList[this.state.audioFileToPlay];
-            this.audioSource.connect(this.audioContext.destination);
-            this.audioSource.start(0, this.startOffset);
             this.playing = true
             this.updateCursor()()
         }
@@ -211,7 +210,9 @@ class Waveforms extends Component {
         this.audioSource.buffer = this.buffersList[this.state.audioFileToPlay];
         this.audioSource.connect(this.audioContext.destination);
         this.audioSource.start(0, start, duration);
-        setTimeout(() => { this.stopSound(); console.log(`playing: ${this.playing}`) }, (duration) * 1000)
+        this.audioSource.addEventListener('ended', this.stopSound.bind(this))
+        this.playStartTime = start
+        this.playEndTime = start + duration
         this.playing = true
         this.updateCursor()()
     }
@@ -240,7 +241,7 @@ class Waveforms extends Component {
         // listen for time passing...
         return function loop() {
             if (!_view.playing) return
-            let offset = -_view.timeline.timeContext.offset + (_view.audioContext.currentTime - _view.startTime)
+            let offset = (_view.playStartTime ? -_view.timeline.timeContext.offset : 0) + (_view.audioContext.currentTime - _view.startTime)
             let position = offset < _view.buffersList[0].duration ? offset : 0
             _view.setCursorPosition.bind(_view)(position)
             window.requestAnimationFrame(loop);
