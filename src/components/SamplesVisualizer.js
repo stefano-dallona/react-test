@@ -138,15 +138,17 @@ class SamplesVisualizer extends Component {
 
 
             legendGroup.append('text')
+                .attr('id', 'legend-' + lineId)
                 .attr('text-anchor', 'middle')
                 .attr('font-family', 'sans-serif')
                 .style('cursor', 'pointer')
                 .attr('font-size', '12px')
                 .attr('fill', 'white')
                 .attr("transform", "translate(" + ((width / 2 + marginLegend) / 1.3) + "," + (margin.top) + ")")
-                .text("X  " + legendText)
+                .text(legendText)
                 .on("click", function () {
-                    var display = d3.select("." + lineId).style("display") != "none" ? 'none' : '';
+                    var display = (d3.select("." + lineId).style("display") != "none") ? 'none' : '';
+                    d3.select("#legend-" + lineId).style("text-decoration", (display == 'none') ? "line-through" : '');
                     d3.select("." + lineId)
                         .transition()
                         .duration(500)

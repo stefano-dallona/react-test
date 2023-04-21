@@ -11,6 +11,7 @@ import { Toolbar } from 'primereact/toolbar';
 import { Button } from 'primereact/button';
 import { SplitButton } from 'primereact/splitbutton';
 import { Dropdown } from 'primereact/dropdown';
+import { Dialog } from 'primereact/dialog'
 
 import { ConfigurationService } from '../services/testbench-configuration-service';
 import { AnalysisService } from '../services/testbench-analysis-service';
@@ -20,6 +21,8 @@ import { trackPromise } from 'react-promise-tracker';
 import Spectrogram from './Spectrogram';
 import SamplesVisualizer from './SamplesVisualizer';
 import { AudioPlayer } from './AudioPlayer';
+import { MetricsVisualizer } from './MetricsVisualizer';
+import { CirclePicker, CompactPicker, SwatchesPicker, TwitterPicker } from 'react-color';
 
 var wavesUI = require('waves-ui');
 
@@ -81,6 +84,9 @@ class Waveforms extends Component {
         this.setState({
             filename: filename
         })
+
+        let onZoomOutHandler = this.audioPlayerOnZoomOut.current
+        if (onZoomOutHandler) onZoomOutHandler(true)
     }
 
     setSelectedChannel(selectedChannel) {
@@ -375,7 +381,7 @@ class Waveforms extends Component {
     clearWaveforms() {
         if (this.waveuiEl) {
             let lastChild = this.waveuiEl.lastElementChild
-            if (lastChild.id != "pnl-displayedAudioFiles") {
+            if (lastChild) {
                 lastChild.remove()
             }
             this.audioContext = new AudioContext()
@@ -487,6 +493,26 @@ class Waveforms extends Component {
         }
     }
 
+    getAudioFileColor(fileId) {
+        let file = this.audioFiles.find((f) => f.uuid == fileId)
+        let index = this.audioFiles.indexOf(file)
+        return index > 0 ? this.colors[index] : null
+    }
+
+    getAudioFileTemplate(option) {
+        let _this = this
+        return (
+            <div className="flex align-items-center">
+                <button className="mr-2" onClick={(e) => { e.preventDefault(); e.stopPropagation() }} style={{ width: "20px", height: "20px", backgroundColor: _this.getAudioFileColor(option.uuid) }}></button>
+                <div>{option.name}</div>
+            </div>
+        );
+    }
+
+    showColorPicker() {
+
+    }
+
     render() {
         const startContent = (
             <React.Fragment>
@@ -540,12 +566,9 @@ class Waveforms extends Component {
         return (
             <Accordion multiple activeIndex={[0, 1, 2]}>
                 <AccordionTab header="Waveform">
-                    <div id="runWaveforms" className="card flex flex-wrap gap-3 p-fluid"
-                        ref={(c) => {
-                            this.waveuiEl = c;
-                        }}>
+                    <div className="card flex flex-wrap gap-3 p-fluid mb-6">
                         <div id="pnl-selectedAudioFile" className="flex-auto">
-                            <label htmlFor='selectedAudioFile' style={{ color: 'white' }}>Audio File</label>
+                            <label htmlFor='selectedAudioFile' className="font-bold block ml-2 mb-2" style={{ color: 'white' }}>Audio File</label>
                             <Dropdown inputId='selectedAudioFile'
                                 id='selectedAudioFile'
                                 value={this.state.filename}
@@ -556,7 +579,7 @@ class Waveforms extends Component {
                                 className="w-full md:w-20rem" />
                         </div>
                         <div id="pnl-selectedChannel" className="flex-auto">
-                            <label htmlFor='selectedChannel' style={{ color: 'white' }}>Channel</label>
+                            <label htmlFor='selectedChannel' className="font-bold block ml-2 mb-2" style={{ color: 'white' }}>Channel</label>
                             <Dropdown inputId='selectedChannel'
                                 id='selectedChannel'
                                 value={this.state.selectedChannel}
@@ -567,7 +590,7 @@ class Waveforms extends Component {
                                 className="w-full md:w-20rem" />
                         </div>
                         <div id="pnl-displayedLossSimulations" className="flex-auto">
-                            <label htmlFor='displayedLossSimulations' style={{ color: 'white' }}>Displayed loss simulations</label>
+                            <label htmlFor='displayedLossSimulations' className="font-bold block ml-2 mb-2" style={{ color: 'white' }}>Displayed loss simulations</label>
                             <Dropdown inputId='displayedLossSimulations'
                                 id='displayedLossSimulations'
                                 value={this.state.selectedLossSimulations}
@@ -581,7 +604,7 @@ class Waveforms extends Component {
                                 className="w-full md:w-20rem" />
                         </div>
                         <div id="pnl-displayedAudioFiles" className="flex-auto">
-                            <label htmlFor='displayedAudioFiles' style={{ color: 'white' }}>Displayed audio files</label>
+                            <label htmlFor='displayedAudioFiles' className="font-bold block ml-2 mb-2" style={{ color: 'white' }}>Displayed audio files</label>
                             <MultiSelect inputId='displayedAudioFiles'
                                 id='displayedAudioFiles'
                                 value={this.state.selectedAudioFiles}
@@ -593,8 +616,22 @@ class Waveforms extends Component {
                                 display="chip"
                                 placeholder="Select audio files"
                                 maxSelectedLabels={3}
-                                className="w-full md:w-20rem" />
+                                className="w-full md:w-20rem"
+                                itemTemplate={this.getAudioFileTemplate.bind(this)} />
                         </div>
+                        {false && (
+                            <Dialog header="Pick a color" visible={true} style={{ width: '500px', height: '500px' }} onHide={() => { }}>
+                                <CirclePicker width='500' circleSize={40} circleSpacing={20} colors={this.colors} />
+                            </Dialog>
+                        )}
+
+                    </div>
+                    <div id="runWaveforms"
+                        ref={(c) => {
+                            this.waveuiEl = c;
+                        }}
+                        className="block mb-2"
+                        style={{ height: "250px" }}>
                         {this.waveuiEl && this.state.lossSimulationsReady && this.state.buffersListReady && this.renderAll(waveformTrackId)}
                     </div>
                     {false && (
@@ -612,6 +649,9 @@ class Waveforms extends Component {
                     {this.waveuiEl && this.state.lossSimulationsReady && this.state.buffersListReady && (
                         <SamplesVisualizer ref={this.samplesVisualizer} runId={this.props.runId} />
                     )}
+                </AccordionTab>
+                <AccordionTab header="Metrics">
+                    <MetricsVisualizer></MetricsVisualizer>
                 </AccordionTab>
                 <AccordionTab header="Spectrogram">
                     <Spectrogram ref={this.spectrogram} runId={this.state.runId} filename={this.state.filename}></Spectrogram>

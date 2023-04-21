@@ -7,8 +7,8 @@ import { Toolbar } from "primereact/toolbar"
 export const AudioPlayer = React.forwardRef((props, ref) => {
     let [playing, setPlaying] = useState(false)
     let [bufferToPlay, setBufferToPlay]  = useState(0)
-    const audioFilesRef = useRef(props.audioFiles)
-    const buffersListRef = useRef(props.buffersList)
+    const audioFilesRef = useRef(props.audioFiles || [])
+    const buffersListRef = useRef(props.buffersList || [])
     const timelineRef = useRef(props.timeline)
     const cursorLayerRef = useRef(props.cursorLayer)
     const audioContextRef = useRef(new AudioContext())
@@ -30,6 +30,7 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
 
     const play = (start, duration) => {
         if (playing) return
+        if (buffersListRef.current == null || buffersListRef.current.length == 0) return
         
         audioContextRef.current.resume()
 
@@ -50,6 +51,7 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
 
     const pause = () => {
         if (!playing) return
+        if (buffersListRef.current == null || buffersListRef.current.length == 0) return
 
         audioContextRef.current.suspend()
         window.cancelAnimationFrame(cursorAnimationRef.current);
@@ -57,8 +59,8 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
         giveFocusToStopButton()
     }
 
-    const onZoomOut = () => {
-        if (playingZoomedSectionRef.current) {
+    const onZoomOut = (force) => {
+        if (playingZoomedSectionRef.current || force) {
             stop(true)
         }
     }
@@ -67,6 +69,7 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
 
     const stop = (force = false) => {
         if (!playing && !force) return
+        if (buffersListRef.current == null || buffersListRef.current.length == 0) return
 
         if (audioSourceRef.current) {
             audioSourceRef.current.stop()
@@ -85,6 +88,7 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
 
     const playZoomedInterval = () => {
         if (playing) return
+        if (buffersListRef.current == null || buffersListRef.current.length == 0) return
 
         let timeline = timelineRef.current()
         let start = Math.floor(-timeline.timeContext.offset)
