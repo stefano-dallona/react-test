@@ -9,7 +9,7 @@ import { Toast } from 'primereact/toast';
 import InputFilesSelector from './InputFilesSelector';
 import WorkersSettings from './WorkersSettings';
 
-import defaultSettings from '../assets/settings.json';
+//import defaultSettings from '../assets/settings.json';
 import { ConfigurationService } from '../services/testbench-configuration-service';
 
 import cloneDeep from 'lodash/cloneDeep';
@@ -30,9 +30,9 @@ class Settings extends Component {
 
         this.paged = props.paged || true
 
-        this.pages = ["Input File Selection", "GlobalSettings", "PlsAlgorithm", "PlcAlgorithm", "OutputAnalyser"]
+        this.pages = ["InputFileSelection", "GlobalSettings", "PacketLossSimulator", "PLCAlgorithm", "OutputAnalyser"]
 
-        this.defaultSettings = defaultSettings
+        this.defaultSettings = []
         this.storedSettings = []
         this.runId = null
 
@@ -43,8 +43,8 @@ class Settings extends Component {
         this.renderWorkerSettings = this.renderWorkerSettings.bind(this)
     }
 
-    componentDidMount() {
-
+    async componentDidMount() {
+        this.defaultSettings = await this.configurationService.getSettingsMetadata()
     }
 
     setCurrentPage(currentPage) {
@@ -79,7 +79,7 @@ class Settings extends Component {
             return errors
         }
 
-        if (this.getCurrentPageName() == "Input File Selection") {
+        if (this.getCurrentPageName() == "InputFileSelection") {
             let workerSettings = this.getPageSettings()
             if (workerSettings.settings.length == 0)
                 errors.push(`${this.getCurrentPageName()}: At least one audio file must be selected`)
