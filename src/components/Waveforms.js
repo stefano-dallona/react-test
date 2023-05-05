@@ -341,6 +341,7 @@ class Waveforms extends Component {
 
     findAudioFiles(rootNode, predicate) {
         const isAudioNode = (x) => { return x.type == "OriginalTrackNode" || x.type == "ReconstructedTrackNode" }
+        //const isAudioNode = (x) => { return x.type == "OriginalTrackNode" || (x.type == "ReconstructedTrackNode" && x.name == "ZerosPLC") }
         //const isAudioNode = (x) => { return x.type == "OriginalTrackNode" }
         const stopRecursion = (x) => { return x.type == "OutputAnalysisNode" }
         const audioFiles = this.mapTreeToList(rootNode, predicate ? predicate : isAudioNode, x => x, stopRecursion)
