@@ -34,6 +34,9 @@ class Waveforms extends Component {
     constructor(props) {
         super(props);
 
+        this.downsamplingEnabled = true
+        this.loadOnlyZoomedSection = true
+
         this.samplesVisualizer = React.createRef();
         this.spectrogram = React.createRef();
         this.audioPlayerOnZoomOut = React.createRef();
@@ -292,24 +295,25 @@ class Waveforms extends Component {
     async loadBuffers(channel = 0, offset = 0, numSamples = -1) {
         let audioFiles = this.findAudioFiles(this.hierarchy);
         this.setAudioFiles(audioFiles)
-        /*
-        let bufferLoader = new BufferLoader(
-            this.audioContext,
-            audioFiles.map((file) => {
-                return `${this.configurationService.baseUrl}/analysis/runs/${this.state.runId}/input-files/${file.uuid}/output-files/${file.uuid}`
-            }),
-            this.setBuffersList.bind(this)
-        );
-        bufferLoader.load();
-        */
-        let waveforms = await this.fetchWaveforms(channel, offset, numSamples)
-        this.setBuffersList(waveforms)
+        if (!this.downsamplingEnabled) {
+            let bufferLoader = new BufferLoader(
+                this.audioContext,
+                audioFiles.map((file) => {
+                    return `${this.configurationService.baseUrl}/analysis/runs/${this.state.runId}/input-files/${file.uuid}/output-files/${file.uuid}`
+                }),
+                this.setBuffersList.bind(this)
+            );
+            bufferLoader.load();
+        } else {
+            let waveforms = await this.fetchWaveforms(channel, offset, numSamples)
+            this.setBuffersList(waveforms)
+        }
     }
 
-    fetchWaveforms = async (channel, offset, numSamples) => { 
-        let waveforms = await trackPromise(Promise.all(this.audioFiles.map(async (file) => {
+    fetchWaveforms = async (channel, offset, numSamples) => {
+        let waveforms = await trackPromise(Promise.all(this.audioFiles.map(async (file, index) => {
             let $track = this.waveuiEl;
-            let maxSlices = Math.ceil($track.getBoundingClientRect().width);
+            let maxSlices = (this.loadOnlyZoomedSection) ? Math.ceil($track.getBoundingClientRect().width) : -1;
             let unitOfMeas = "samples"
             return this.analysisService.fetchWaveform(this.state.runId, file.uuid, file.uuid, channel, offset, numSamples, unitOfMeas, maxSlices)
         })))
@@ -317,10 +321,10 @@ class Waveforms extends Component {
         return waveforms
     }
 
-    updateWaveforms(channel, waveformsData) {
+    updateWaveforms(channel, waveforms) {
         this.audioFiles.map((file, index) => {
             let waveformLayer = this.layersMap.get(file)
-            let waveform = waveformsData[index]
+            let waveform = waveforms[index]
             let newData = waveform.getChannelData(channel)
             if (waveformLayer) {
                 waveformLayer.data = newData
@@ -442,10 +446,10 @@ class Waveforms extends Component {
             //this.timeline.state = new wavesUI.states.BrushZoomState(this.timeline);
             this.timeline.state = new BrushZoomState(this.timeline,
                 this.buffersList[0].sampleRate,
-                async (channel, offset, numSamples) => {
+                this.downsamplingEnabled ? async (channel, offset, numSamples) => {
                     let waveformsData = await this.fetchWaveforms.bind(this)(channel, offset, numSamples)
                     this.updateWaveforms(channel, waveformsData)
-                }
+                } : null
             );
             this.timeline.on('event', this.handleSegmentEvent().bind(this));
         }
@@ -467,7 +471,7 @@ class Waveforms extends Component {
                 });
         } else {
             this.audioFiles
-                .forEach((file, index) => {                
+                .forEach((file, index) => {
                     if (this.state.selectedAudioFiles.indexOf(file.uuid) != -1) {
                         if (this.waveformTrack.layers.indexOf(this.layersMap.get(file)) == -1) {
                             this.waveformTrack.add(this.layersMap.get(file))

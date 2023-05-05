@@ -14,6 +14,7 @@ export class AnalysisService {
         const waveformResponse = await fetch(`${this.baseUrl}/analysis/runs/${run_id}/input-files/${original_file_node_id}/output-files/${audio_file_node_id}/waveform?channel=${channel}&offset=${offset}&num_samples=${num_samples}&unit_of_meas=${unit_of_meas}&max_slices=${max_slices}`);
         const waveform = await waveformResponse.json();
         return {
+            uuid: waveform.uuid,
             duration: waveform.duration,
             sampleRate: waveform.sampleRate,
             originalSampleRate: waveform.originalSampleRate,

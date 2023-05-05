@@ -92,9 +92,11 @@ export default class BrushZoomState extends BaseState {
     this.timeline.offset -= minTime;
     this.timeline.zoom *= zoom;
 
-    await this.loadingFunction(this.channel, startSample, numSamples)
-
-    //this.tracks.update();
+    if (this.loadingFunction) {
+      await this.loadingFunction(this.channel, startSample, numSamples)
+    } else {
+      this.tracks.update();
+    }
   }
 
   onKeyDown(e) {
@@ -103,9 +105,11 @@ export default class BrushZoomState extends BaseState {
       this.timeline.offset = 0;
       this.timeline.zoom = 1;
       
-      this.loadingFunction(this.channel, 0, -1)
-
-      //this.tracks.update();
+      if (this.loadingFunction) {
+        this.loadingFunction(this.channel, 0, -1)
+      } else {
+        this.tracks.update();
+      }
     }
   }
 }
