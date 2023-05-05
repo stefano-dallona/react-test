@@ -24,7 +24,11 @@ import { AudioPlayer } from './AudioPlayer';
 import { MetricsVisualizer } from './MetricsVisualizer';
 import { CirclePicker, CompactPicker, SwatchesPicker, TwitterPicker } from 'react-color';
 
+import BrushZoomState from '../audio/brush-zoom'
+
+
 var wavesUI = require('waves-ui');
+
 
 class Waveforms extends Component {
     constructor(props) {
@@ -96,7 +100,7 @@ class Waveforms extends Component {
     }
 
     reloadData = async () => {
-        this.clearWaveforms()
+        this.clearTrack()
         this.initColorsPalette()
         await this.loadHierarchy()
         this.loadBuffers()
@@ -285,8 +289,10 @@ class Waveforms extends Component {
         this.hierarchy = await trackPromise(this.configurationService.getRunHierarchy(this.state.runId, this.state.filename));
     }
 
-    loadBuffers() {
+    async loadBuffers(channel = 0, offset = 0, numSamples = -1) {
         let audioFiles = this.findAudioFiles(this.hierarchy);
+        this.setAudioFiles(audioFiles)
+        /*
         let bufferLoader = new BufferLoader(
             this.audioContext,
             audioFiles.map((file) => {
@@ -294,8 +300,34 @@ class Waveforms extends Component {
             }),
             this.setBuffersList.bind(this)
         );
-        this.setAudioFiles(audioFiles)
         bufferLoader.load();
+        */
+        let waveforms = await this.fetchWaveforms(channel, offset, numSamples)
+        this.setBuffersList(waveforms)
+    }
+
+    fetchWaveforms = async (channel, offset, numSamples) => { 
+        let waveforms = await trackPromise(Promise.all(this.audioFiles.map(async (file) => {
+            let $track = this.waveuiEl;
+            let maxSlices = Math.ceil($track.getBoundingClientRect().width);
+            let unitOfMeas = "samples"
+            return this.analysisService.fetchWaveform(this.state.runId, file.uuid, file.uuid, channel, offset, numSamples, unitOfMeas, maxSlices)
+        })))
+
+        return waveforms
+    }
+
+    updateWaveforms(channel, waveformsData) {
+        this.audioFiles.map((file, index) => {
+            let waveformLayer = this.layersMap.get(file)
+            let waveform = waveformsData[index]
+            let newData = waveform.getChannelData(channel)
+            if (waveformLayer) {
+                waveformLayer.data = newData
+                waveformLayer.render()
+            }
+        })
+        this.waveformTrack.update()
     }
 
     async loadLossSimulation() {
@@ -308,7 +340,8 @@ class Waveforms extends Component {
     }
 
     findAudioFiles(rootNode, predicate) {
-        const isAudioNode = (x) => { return x.type == "OriginalTrackNode" || x.type == "ECCTrackNode" }
+        const isAudioNode = (x) => { return x.type == "OriginalTrackNode" || x.type == "ReconstructedTrackNode" }
+        //const isAudioNode = (x) => { return x.type == "OriginalTrackNode" }
         const stopRecursion = (x) => { return x.type == "OutputAnalysisNode" }
         const audioFiles = this.mapTreeToList(rootNode, predicate ? predicate : isAudioNode, x => x, stopRecursion)
         console.log("audioFiles:" + audioFiles + ", length: " + audioFiles.length)
@@ -378,7 +411,7 @@ class Waveforms extends Component {
         }.bind(this)
     }
 
-    clearWaveforms() {
+    clearTrack() {
         if (this.waveuiEl) {
             let lastChild = this.waveuiEl.lastElementChild
             if (lastChild) {
@@ -405,7 +438,14 @@ class Waveforms extends Component {
 
         if (!this.timeline) {
             this.timeline = new wavesUI.core.Timeline(pixelsPerSecond, width);
-            this.timeline.state = new wavesUI.states.BrushZoomState(this.timeline);
+            //this.timeline.state = new wavesUI.states.BrushZoomState(this.timeline);
+            this.timeline.state = new BrushZoomState(this.timeline,
+                this.buffersList[0].sampleRate,
+                async (channel, offset, numSamples) => {
+                    let waveformsData = await this.fetchWaveforms.bind(this)(channel, offset, numSamples)
+                    this.updateWaveforms(channel, waveformsData)
+                }
+            );
             this.timeline.on('event', this.handleSegmentEvent().bind(this));
         }
         if (!this.waveformTrack) {
@@ -419,18 +459,22 @@ class Waveforms extends Component {
                     });
                     return waveformLayer
                 }).forEach((waveformLayer, index) => {
-                    this.timeline.addLayer(waveformLayer, waveformTrackId);
-                    this.layersMap.set(this.audioFiles[index], waveformLayer);
+                    if (!this.layersMap.get(this.audioFiles[index])) {
+                        this.timeline.addLayer(waveformLayer, waveformTrackId);
+                        this.layersMap.set(this.audioFiles[index], waveformLayer);
+                    }
                 });
         } else {
             this.audioFiles
-                .forEach((file, index) => {
+                .forEach((file, index) => {                
                     if (this.state.selectedAudioFiles.indexOf(file.uuid) != -1) {
-                        if (this.waveformTrack.layers.indexOf(this.layersMap.get(file)) == -1)
+                        if (this.waveformTrack.layers.indexOf(this.layersMap.get(file)) == -1) {
                             this.waveformTrack.add(this.layersMap.get(file))
+                        }
                     } else {
-                        if (this.waveformTrack.layers.indexOf(this.layersMap.get(file)) != -1)
+                        if (this.waveformTrack.layers.indexOf(this.layersMap.get(file)) != -1) {
                             this.waveformTrack.remove(this.layersMap.get(file))
+                        }
                     }
                 });
         }
