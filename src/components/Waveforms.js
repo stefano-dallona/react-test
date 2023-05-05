@@ -36,6 +36,7 @@ class Waveforms extends Component {
 
         this.downsamplingEnabled = true
         this.loadOnlyZoomedSection = true
+        this.parallelWaveformLoading = false
 
         this.samplesVisualizer = React.createRef();
         this.spectrogram = React.createRef();
@@ -311,12 +312,24 @@ class Waveforms extends Component {
     }
 
     fetchWaveforms = async (channel, offset, numSamples) => {
-        let waveforms = await trackPromise(Promise.all(this.audioFiles.map(async (file, index) => {
-            let $track = this.waveuiEl;
-            let maxSlices = (this.loadOnlyZoomedSection) ? Math.ceil($track.getBoundingClientRect().width) : -1;
-            let unitOfMeas = "samples"
-            return this.analysisService.fetchWaveform(this.state.runId, file.uuid, file.uuid, channel, offset, numSamples, unitOfMeas, maxSlices)
-        })))
+        let waveforms = []
+
+        if (this.parallelWaveformLoading) {
+            waveforms = await trackPromise(Promise.all(this.audioFiles.map(async (file, index) => {
+                let $track = this.waveuiEl;
+                let maxSlices = (this.loadOnlyZoomedSection) ? Math.ceil($track.getBoundingClientRect().width) : -1;
+                let unitOfMeas = "samples"
+                return this.analysisService.fetchWaveform(this.state.runId, file.uuid, file.uuid, channel, offset, numSamples, unitOfMeas, maxSlices)
+            })))
+        } else {
+            for (const file of this.audioFiles) {
+                let $track = this.waveuiEl;
+                let maxSlices = (this.loadOnlyZoomedSection) ? Math.ceil($track.getBoundingClientRect().width) : -1;
+                let unitOfMeas = "samples"
+                let waveform = await trackPromise(this.analysisService.fetchWaveform(this.state.runId, file.uuid, file.uuid, channel, offset, numSamples, unitOfMeas, maxSlices))
+                waveforms.push(waveform)
+            }
+        }
 
         return waveforms
     }
