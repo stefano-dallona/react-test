@@ -29,6 +29,7 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
     const streamIdRef = useRef(null)
     const cursorAnimationRef = useRef(null)
     const playingZoomedSectionRef = useRef(false)
+    const maxLocalStorageItemSize = 300000
 
 
     //https://www.kianmusser.com/articles/react-where-put-websocket/
@@ -42,9 +43,15 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
         };
     }, []);
 
+    const getAudioContext = (sampleRate) => {
+        if (audioContextRef.current == null) {
+            audioContextRef.current = new AudioContext({ sampleRate: sampleRate })
+        }
+        return audioContextRef.current
+    }
+
     const handlePlayingEnd = () => {
         console.log('Your audio has finished playing');
-        audioSourceRef.current = null
         window.cancelAnimationFrame(cursorAnimationRef.current);
         setPlaying(false)
         playingZoomedSectionRef.current = false
@@ -113,10 +120,18 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
         startProgressMonitoring()
     };
 
-    const play = (resumeTime = 0) => {
+    const play = async (resumeTime = 0, duration = null, buffer) => {
         if (audioSourceRef.current) audioSourceRef.current.stop();
-        audioSourceRef.current = audioContextRef.current.createBufferSource();
-        audioSourceRef.current.buffer = audioBufferRef.current;
+        audioSourceRef.current = audioContextRef.current.createBufferSource()
+
+        if (buffer) {
+            audioSourceRef.current.buffer = await audioContextRef.current.decodeAudioData(buffer)
+            audioBufferRef.current = audioSourceRef.current.buffer
+            durationRef.current = audioSourceRef.current.buffer.duration
+        } else {
+            audioSourceRef.current.buffer = audioBufferRef.current
+        }
+
         audioSourceRef.current.connect(audioContextRef.current.destination);
         audioSourceRef.current.onended = (audioBufferRef.current.duration == durationRef.current) ? handlePlayingEnd : null
         startTimeRef.current = (resumeTime == 0) ? Date.now() : startTimeRef.current
@@ -126,36 +141,42 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
 
     const onPlayClick = (start, duration) => {
         if (playing) return
-        /*
-        if (buffersListRef.current == null || buffersListRef.current.length == 0) return
-
-        audioContextRef.current.resume()
-
-        if (audioSourceRef.current == null) {
-            audioSourceRef.current = audioContextRef.current.createBufferSource()
-            audioSourceRef.current.buffer = buffersListRef.current[bufferToPlay];
-            audioSourceRef.current.connect(audioContextRef.current.destination);
-            audioSourceRef.current.onended = handlePlayingEnd
-            audioSourceRef.current.start(0, start ? start : 0, duration ? duration : buffersListRef.current[bufferToPlay].duration)
-            startTimeRef.current = audioContextRef.current.currentTime
-            playingZoomedSectionRef.current = start ? true : false
-        }
-
-        setPlaying(true)
-        giveFocusToStopButton()
-        */
-        if (audioSourceRef.current && audioSourceRef.current.buffer) {
-            play()
-        } else {
-            requestStreaming()
-        }
+        requestStreaming()
         setPlaying(true)
         setProgress(0)
         //updateCursor()()
         giveFocusToStopButton()
     }
 
-    const requestStreaming = (track) => {
+    const cacheFile = (uuid, file) => {
+        localStorage.setItem("audio-" + uuid, file)
+    }
+
+    const retrieveFileFromCache = (uuid) => {
+        return new Promise(function(resolve, reject) {
+            let indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB || window.shimIndexedDB;
+            let open = indexedDB.open("PlC_TestBench_UI", 1);
+    
+            open.onsuccess = function () {
+                // Start a new transaction
+                var db = open.result;
+                var tx = db.transaction("audio_files", "readwrite");
+                var store = tx.objectStore("audio_files");
+    
+                var persistedAudioFile = store.get(uuid);
+    
+                persistedAudioFile.onsuccess = function () {
+                    resolve(persistedAudioFile.result);
+                };
+    
+                tx.oncomplete = function () {
+                    db.close();
+                };
+            }
+        })
+    }
+
+    const requestStreaming = async (track) => {
 
         function base64ToArrayBuffer(base64) {
             //var binary_string = window.atob(base64.replace("b'", "").replace("'", ""));
@@ -166,6 +187,60 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
                 bytes[i] = binary_string.charCodeAt(i);
             }
             return bytes.buffer;
+        }
+
+        function arrayBufferToBase64(buffer) {
+            var binary = '';
+            var bytes = new Uint8Array(buffer);
+            var len = bytes.byteLength;
+            for (var i = 0; i < len; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return window.btoa(binary);
+        }
+
+        const storeFileIntoLocalStorage = (uuid, header, buffer) => {
+            function chunkString(str, length) {
+                return str.match(new RegExp('.{1,' + length + '}', 'g'));
+            }
+
+            let bufferAsString = arrayBufferToBase64(buffer)
+            let audioFile = {
+                uuid: uuid,
+                header: {
+                    channels: header['channels'],
+                    sampleRate: header['sample_rate'],
+                    bitsPerSample: header['bits_per_sample']
+                },
+                data: bufferAsString
+            }
+
+            let indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB || window.shimIndexedDB;
+            let open = indexedDB.open("PlC_TestBench_UI", 1);
+
+            // Create the schema
+            open.onupgradeneeded = function () {
+                let db = open.result;
+                let store = db.createObjectStore("audio_files", { keyPath: "uuid" });
+            };
+
+            open.onsuccess = function () {
+                // Start a new transaction
+                var db = open.result;
+                var tx = db.transaction("audio_files", "readwrite");
+                var store = tx.objectStore("audio_files");
+                store.put(audioFile);
+
+                var persistedAudioFile = store.get(audioFile.uuid);
+
+                persistedAudioFile.onsuccess = function () {
+                    console.log(persistedAudioFile.result.header.sampleRate);
+                };
+
+                tx.oncomplete = function () {
+                    db.close();
+                };
+            }
         }
 
         const concat = (buffer1, buffer2) => {
@@ -226,56 +301,69 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
             return concat(header, data);
         };
 
-        socketRef.current.emit('track-play', {
-            run_id: props.runId,
-            original_file_node_id: bufferToPlay,
-            audio_file_node_id: bufferToPlay,
-            start_time: 0,
-            stop_time: null
-        });
+        let cachedFile = await retrieveFileFromCache(bufferToPlay)
 
-        socketRef.current.on('track-stream', async (args) => {
-
-            streamIdRef.current = args['stream_id']
-
-            socketRef.current.emit('track-ack', {
-                chunk_num: args['chunk_num']
+        if (cachedFile) {
+            getAudioContext(cachedFile.header.sampleRate)
+            let audioBuffer = withWaveHeader(
+                base64ToArrayBuffer(cachedFile.data),
+                cachedFile.header.channels,
+                cachedFile.header.sampleRate,
+                cachedFile.header.bitsPerSample
+            )
+            play(0, null, audioBuffer)
+        } else {
+            socketRef.current.emit('track-play', {
+                run_id: props.runId,
+                original_file_node_id: bufferToPlay,
+                audio_file_node_id: bufferToPlay,
+                start_time: 0,
+                stop_time: null
             });
 
-            if (audioContextRef.current == null) {
-                audioContextRef.current = new AudioContext({ sampleRate: args['sample_rate'] })
-            }
+            socketRef.current.on('track-stream', async (args) => {
 
-            let audioBufferChunk = await audioContextRef.current.decodeAudioData(
-                withWaveHeader(
-                    base64ToArrayBuffer(args['chunk']),
-                    args['channels'],
-                    args['sample_rate'],
-                    args['bits_per_sample']
-                )
-            );
-            audioBufferRef.current = (audioBufferRef.current)
-                ? appendBuffer(audioBufferRef.current, audioBufferChunk, audioContextRef.current)
-                : audioBufferChunk;
+                streamIdRef.current = args['stream_id']
 
-            let loadRate = audioBufferRef.current.length * 100.0 / args['n_frames']
-            durationRef.current = args['n_frames'] * 1.0 / args['sample_rate']
-            console.log(`loadRate:${loadRate}`)
-            setAudionState({ loadingProgress: loadRate })
+                socketRef.current.emit('track-ack', {
+                    chunk_num: args['chunk_num']
+                });
 
-            startLoadingMonitoring()
+                getAudioContext(args['sample_rate'])
 
-            if (args['last_chunk']) {
+                let audioBufferChunk = await audioContextRef.current.decodeAudioData(
+                    withWaveHeader(
+                        base64ToArrayBuffer(args['chunk']),
+                        args['channels'],
+                        args['sample_rate'],
+                        args['bits_per_sample']
+                    )
+                );
+                audioBufferRef.current = (audioBufferRef.current)
+                    ? appendBuffer(audioBufferRef.current, audioBufferChunk, audioContextRef.current)
+                    : audioBufferChunk;
+
+                let loadRate = audioBufferRef.current.length * 100.0 / args['n_frames']
+                durationRef.current = args['n_frames'] * 1.0 / args['sample_rate']
+                console.log(`loadRate:${loadRate}`)
+                setAudionState({ loadingProgress: loadRate })
+
+                startLoadingMonitoring()
+
+                if (args['last_chunk']) {
+                    stopLoadingMonitoring()
+                    playWhileLoadingDurationRef.current = Math.ceil(audioBufferRef.current.duration)
+                    const inSec = (Date.now() - startTimeRef.current) / 1000;
+                    play(inSec);
+
+                    cacheFile(bufferToPlay, storeFileIntoLocalStorage(bufferToPlay, args, audioBufferRef.current))
+                }
+            });
+
+            socketRef.current.on('track-stream-stopped', () => {
                 stopLoadingMonitoring()
-                playWhileLoadingDurationRef.current = Math.ceil(audioBufferRef.current.duration)
-                const inSec = (Date.now() - startTimeRef.current) / 1000;
-                play(inSec);
-            }
-        });
-
-        socketRef.current.on('track-stream-stopped', () => {
-            stopLoadingMonitoring()
-        })
+            })
+        }
     }
 
     const cancelStreaming = () => {
@@ -390,7 +478,7 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
                     onClick={pause}
                     className="mr-2"
                     disabled={!playing}
-                    style={{ height: "50px" }}></Button>
+                    style={{ height: "50px", display: "none" }}></Button>
                 <Button
                     icon="pi pi-stop"
                     id="AudioPlayer:btn-stop"
@@ -398,14 +486,14 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
                     onClick={stop}
                     className="mr-2"
                     disabled={!playing}
-                    style={{ height: "50px" }}></Button>
+                    style={{ height: "50px", display: "none" }}></Button>
                 <Button
                     icon="pi pi-arrows-h"
                     label="Play Zoomed"
                     onClick={playZoomedInterval}
                     className="mr-2"
                     disabled={playing}
-                    style={{ height: "50px" }}></Button>
+                    style={{ height: "50px", display: "none" }}></Button>
             </React.Fragment>
         )
     }
@@ -413,9 +501,9 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
     return (
         <div id="AudioPlayer">
             <div className="p-slider p-component mb-4 p-slider-horizontal">
-                <span className="p-slider-range" style={{width: audionState.loadingProgress + "%", backgroundColor: "orange"}}></span>
-                <span className="p-slider-range" style={{width: progress + "%"}}></span>
-                <span className="p-slider-handle" tabIndex="0" role="slider" aria-valuemin="0" aria-valuemax="100" aria-orientation="horizontal" style={{left: progress + "%"}}></span>
+                <span className="p-slider-range" style={{ width: audionState.loadingProgress + "%", backgroundColor: "orange" }}></span>
+                <span className="p-slider-range" style={{ width: progress + "%" }}></span>
+                <span className="p-slider-handle" tabIndex="0" role="slider" aria-valuemin="0" aria-valuemax="100" aria-orientation="horizontal" style={{ left: progress + "%" }}></span>
             </div>
             <Toolbar start={getButtons} />
         </div>
