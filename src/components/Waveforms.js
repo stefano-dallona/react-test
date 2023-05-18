@@ -50,6 +50,7 @@ class Waveforms extends Component {
         this.colors = []
         this.layersMap = new Map()
         this.inputFiles = []
+        this.waveformTrackId = 'waveform'
 
         let baseUrl = "http://localhost:5000"
         this.configurationService = new ConfigurationService(baseUrl)
@@ -62,7 +63,7 @@ class Waveforms extends Component {
         this.state = {
             runId: props.runId || "",
             filename: props.filename || "",
-            audioFiles: [],
+            //audioFiles: [],
             channels: ["0", "1"],
             selectedAudioFiles: [],
             selectedChannel: "0",
@@ -107,7 +108,6 @@ class Waveforms extends Component {
         this.clearTrack()
         this.initColorsPalette()
         await this.loadHierarchy()
-        this.loadBuffers()
         await this.loadLossSimulation()
         if (this.spectrogram.current) {
             this.spectrogram.current.setFilename(this.state.filename)
@@ -125,15 +125,17 @@ class Waveforms extends Component {
             let parent = this.findParent(this.hierarchy, file)
             file.label = file.name + (parent ? " - " + parent.name : "")
         });
+        this.loadBuffers()
         //this.setSelectedAudioFiles(audioFiles)
     }
 
     setLossSimulationFiles(lossSimulationFiles) {
         this.lossSimulationFiles = lossSimulationFiles
+        this.clearWaveforms()
         this.setState({
             selectedLossSimulations: this.lossSimulationFiles[0].uuid,
             lossSimulationsReady: true
-        });
+        }, this.refreshAudioFiles.bind(this));
     }
 
     setBuffersList(buffersList) {
@@ -151,9 +153,10 @@ class Waveforms extends Component {
     }
 
     setSelectedLossSimulations(lossSimulations) {
+        this.clearWaveforms()
         this.setState({
             selectedLossSimulations: lossSimulations
-        });
+        }, this.refreshAudioFiles.bind(this));
     }
 
     setAudioFileToPlay(audioFileToPlay) {
@@ -294,12 +297,10 @@ class Waveforms extends Component {
     }
 
     async loadBuffers(channel = 0, offset = 0, numSamples = -1) {
-        let audioFiles = this.findAudioFiles(this.hierarchy);
-        this.setAudioFiles(audioFiles)
         if (!this.downsamplingEnabled) {
             let bufferLoader = new BufferLoader(
                 this.audioContext,
-                audioFiles.map((file) => {
+                this.audioFiles.map((file) => {
                     return `${this.configurationService.baseUrl}/analysis/runs/${this.state.runId}/input-files/${file.uuid}/output-files/${file.uuid}`
                 }),
                 this.setBuffersList.bind(this)
@@ -308,6 +309,65 @@ class Waveforms extends Component {
         } else {
             let waveforms = await this.fetchWaveforms(channel, offset, numSamples)
             this.setBuffersList(waveforms)
+        }
+
+        let $track = this.waveuiEl;
+        let width = $track.getBoundingClientRect().width;
+        let height = 200;
+        let duration = this.buffersList.length > 0 ? this.buffersList[0].duration : 0;
+        let pixelsPerSecond = width / duration;
+
+        if (!this.timeline) {
+            this.timeline = new wavesUI.core.Timeline(pixelsPerSecond, width);
+            //this.timeline.state = new wavesUI.states.BrushZoomState(this.timeline);
+            this.timeline.state = new BrushZoomState(this.timeline,
+                this.buffersList[0].sampleRate,
+                this.downsamplingEnabled ? async (channel, offset, numSamples) => {
+                    let waveformsData = await this.fetchWaveforms.bind(this)(channel, offset, numSamples)
+                    this.updateWaveforms(channel, waveformsData)
+                } : null
+            );
+            this.timeline.on('event', this.handleSegmentEvent().bind(this));
+        }
+
+        if (!this.waveformTrack && this.timeline) {
+            this.waveformTrack = this.timeline.createTrack($track, height, this.waveformTrackId);
+            this.waveformTrack.render();
+        }
+
+        this.lossSimulations
+            .filter((lossSimulation, index) => this.layersMap.get(this.lossSimulationFiles[index]) == null)
+            .map((lossSimulation, index) => {
+                let lossSimulationLayer = new wavesUI.helpers.SegmentLayer(lossSimulation.lost_intervals, {
+                    height: 200,
+                    displayHandlers: false,
+                });
+                return lossSimulationLayer
+            }).forEach((lossSimulationLayer, index) => {
+                this.timeline.addLayer(lossSimulationLayer, this.waveformTrackId);
+                this.layersMap.set(this.lossSimulationFiles[index], lossSimulationLayer);
+            })
+
+        this.buffersList
+            .map((buffer, index) => {
+                let waveformLayer = new wavesUI.helpers.WaveformLayer(buffer, {
+                    height: 200,
+                    color: this.colors[index]
+                });
+                return waveformLayer
+            }).forEach((waveformLayer, index) => {
+                if (!this.layersMap.get(this.audioFiles[index])) {
+                    this.timeline.addLayer(waveformLayer, this.waveformTrackId);
+                    this.layersMap.set(this.audioFiles[index], waveformLayer);
+                }
+            });
+
+
+        if (!this.cursorLayer) {
+            this.cursorLayer = new wavesUI.helpers.CursorLayer({
+                height: height
+            });
+            this.timeline.addLayer(this.cursorLayer, this.waveformTrackId);
         }
     }
 
@@ -347,6 +407,14 @@ class Waveforms extends Component {
         this.waveformTrack.update()
     }
 
+    refreshAudioFiles() {
+        const parentIsSelectedLoss = (x) => {
+            return !x.parent_id || x.parent_id == this.state.selectedLossSimulations
+        }
+        let audioFiles = this.findAudioFiles(this.hierarchy, parentIsSelectedLoss);
+        this.setAudioFiles(audioFiles)
+    }
+
     async loadLossSimulation() {
         let lossSimulationFiles = this.findLossFiles(this.hierarchy);
         this.lossSimulations = await trackPromise(Promise.all(lossSimulationFiles.map(async (file) => {
@@ -361,7 +429,10 @@ class Waveforms extends Component {
         //const isAudioNode = (x) => { return x.type == "OriginalTrackNode" || (x.type == "ReconstructedTrackNode" && x.name == "ZerosPLC") }
         //const isAudioNode = (x) => { return x.type == "OriginalTrackNode" }
         const stopRecursion = (x) => { return x.type == "OutputAnalysisNode" }
-        const audioFiles = this.mapTreeToList(rootNode, predicate ? predicate : isAudioNode, x => x, stopRecursion)
+        const selectionPredicate = x => {
+            return isAudioNode(x) && ((predicate) ? predicate(x) : true)
+        }
+        const audioFiles = this.mapTreeToList(rootNode, selectionPredicate, x => x, stopRecursion)
         console.log("audioFiles:" + audioFiles + ", length: " + audioFiles.length)
         return audioFiles
     }
@@ -445,89 +516,51 @@ class Waveforms extends Component {
         }
     }
 
+    clearWaveforms() {
+        this.layersMap
+            .forEach((layer, file, layersMap) => {
+                if (this.waveformTrack && this.waveformTrack.layers) {
+                    if (this.waveformTrack.layers.indexOf(layer) != -1) {
+                        this.waveformTrack.remove(layer)
+                    }
+                }
+            });
+        this.layersMap.clear()
+    }
+
     renderWaveforms(waveformTrackId) {
         //if (!this.state.buffersListReady) return null;
-
         let $track = this.waveuiEl;
         let width = $track.getBoundingClientRect().width;
         let height = 200;
-        let duration = this.buffersList.length > 0 ? this.buffersList[0].duration : 0;
-        let pixelsPerSecond = width / duration;
 
-        if (!this.timeline) {
-            this.timeline = new wavesUI.core.Timeline(pixelsPerSecond, width);
-            //this.timeline.state = new wavesUI.states.BrushZoomState(this.timeline);
-            this.timeline.state = new BrushZoomState(this.timeline,
-                this.buffersList[0].sampleRate,
-                this.downsamplingEnabled ? async (channel, offset, numSamples) => {
-                    let waveformsData = await this.fetchWaveforms.bind(this)(channel, offset, numSamples)
-                    this.updateWaveforms(channel, waveformsData)
-                } : null
-            );
-            this.timeline.on('event', this.handleSegmentEvent().bind(this));
-        }
-        if (!this.waveformTrack) {
-            this.waveformTrack = this.timeline.createTrack($track, height, waveformTrackId);
-
-            this.buffersList
-                .map((buffer, index) => {
-                    let waveformLayer = new wavesUI.helpers.WaveformLayer(buffer, {
-                        height: 200,
-                        color: this.colors[index]
-                    });
-                    return waveformLayer
-                }).forEach((waveformLayer, index) => {
-                    if (!this.layersMap.get(this.audioFiles[index])) {
-                        this.timeline.addLayer(waveformLayer, waveformTrackId);
-                        this.layersMap.set(this.audioFiles[index], waveformLayer);
-                    }
-                });
-        } else {
-            this.audioFiles
-                .forEach((file, index) => {
-                    if (this.state.selectedAudioFiles.indexOf(file.uuid) != -1) {
-                        if (this.waveformTrack.layers.indexOf(this.layersMap.get(file)) == -1) {
+        this.audioFiles
+            .forEach((file, index) => {
+                if (this.state.selectedAudioFiles.indexOf(file.uuid) != -1) {
+                    if (this.waveformTrack.layers.indexOf(this.layersMap.get(file)) == -1) {
+                        if (this.layersMap.get(file)) {
                             this.waveformTrack.add(this.layersMap.get(file))
                         }
-                    } else {
-                        if (this.waveformTrack.layers.indexOf(this.layersMap.get(file)) != -1) {
-                            this.waveformTrack.remove(this.layersMap.get(file))
-                        }
                     }
-                });
-        }
+                } else {
+                    if (this.waveformTrack.layers.indexOf(this.layersMap.get(file)) != -1) {
+                        this.waveformTrack.remove(this.layersMap.get(file))
+                    }
+                }
+            });
 
         this.waveformTrack.render();
         this.waveformTrack.update();
-
-        if (!this.cursorLayer) {
-            this.cursorLayer = new wavesUI.helpers.CursorLayer({
-                height: height
-            });
-            this.timeline.addLayer(this.cursorLayer, waveformTrackId);
-        }
     }
 
     renderLossSimulations(waveformTrackId) {
         //if (!this.state.lossSimulationsReady) return null;
-
-        this.lossSimulations
-            .filter((lossSimulation, index) => this.layersMap.get(this.lossSimulationFiles[index]) == null)
-            .map((lossSimulation, index) => {
-                let lossSimulationLayer = new wavesUI.helpers.SegmentLayer(lossSimulation.lost_intervals, {
-                    height: 200,
-                    displayHandlers: false,
-                });
-                return lossSimulationLayer
-            }).forEach((lossSimulationLayer, index) => {
-                this.timeline.addLayer(lossSimulationLayer, waveformTrackId);
-                this.layersMap.set(this.lossSimulationFiles[index], lossSimulationLayer);
-            })
-
         this.lossSimulationFiles.forEach((file, index) => {
             if (this.state.selectedLossSimulations == file.uuid) {
                 if (this.waveformTrack.layers.indexOf(this.layersMap.get(file)) == -1)
-                    this.waveformTrack.add(this.layersMap.get(file))
+                    if (this.layersMap.get(file)) {
+                        this.waveformTrack.add(this.layersMap.get(file))
+                    }
             } else {
                 if (this.waveformTrack.layers.indexOf(this.layersMap.get(file)) != -1)
                     this.waveformTrack.remove(this.layersMap.get(file))
@@ -624,7 +657,6 @@ class Waveforms extends Component {
             </React.Fragment>
         );
 
-        let waveformTrackId = 'waveform';
         return (
             <Accordion multiple activeIndex={[0, 1, 2]}>
                 <AccordionTab header="Waveform">
@@ -694,7 +726,7 @@ class Waveforms extends Component {
                         }}
                         className="block mb-2"
                         style={{ height: "250px" }}>
-                        {this.waveuiEl && this.state.lossSimulationsReady && this.state.buffersListReady && this.renderAll(waveformTrackId)}
+                        {this.waveuiEl && this.state.lossSimulationsReady && this.state.buffersListReady && this.renderAll(this.waveformTrackId)}
                     </div>
                     {false && (
                         <Toolbar start={startContent} end={endContent} />

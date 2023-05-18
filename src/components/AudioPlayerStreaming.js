@@ -11,7 +11,7 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
     let [playing, setPlaying] = useState(false)
     let [audionState, setAudionState] = useState({ startedAt: null, loadingProgress: 0 })
     let [progress, setProgress] = useState(0)
-    let [bufferToPlay, setBufferToPlay] = useState(props.audioFiles && props.audioFiles[0].uuid || "")
+    let [bufferToPlay, setBufferToPlay] = useState((props.audioFiles.length > 0 && props.audioFiles[0].uuid) || "")
     const audioFilesRef = useRef(props.audioFiles || [])
     const buffersListRef = useRef(props.buffersList || [])
     const timelineRef = useRef(props.timeline)
@@ -412,10 +412,10 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
 
     return (
         <div id="AudioPlayer">
-            <div class="p-slider p-component mb-4 p-slider-horizontal">
-                <span class="p-slider-range" style={{width: audionState.loadingProgress + "%", backgroundColor: "orange"}}></span>
-                <span class="p-slider-range" style={{width: progress + "%"}}></span>
-                <span class="p-slider-handle" tabIndex="0" role="slider" aria-valuemin="0" aria-valuemax="100" aria-orientation="horizontal" style={{left: progress + "%"}}></span>
+            <div className="p-slider p-component mb-4 p-slider-horizontal">
+                <span className="p-slider-range" style={{width: audionState.loadingProgress + "%", backgroundColor: "orange"}}></span>
+                <span className="p-slider-range" style={{width: progress + "%"}}></span>
+                <span className="p-slider-handle" tabIndex="0" role="slider" aria-valuemin="0" aria-valuemax="100" aria-orientation="horizontal" style={{left: progress + "%"}}></span>
             </div>
             <Toolbar start={getButtons} />
         </div>
