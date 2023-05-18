@@ -20,7 +20,7 @@ import { trackPromise } from 'react-promise-tracker';
 
 import Spectrogram from './Spectrogram';
 import SamplesVisualizer from './SamplesVisualizer';
-import { AudioPlayer } from './AudioPlayer';
+import { AudioPlayer } from './AudioPlayerStreaming';
 import { MetricsVisualizer } from './MetricsVisualizer';
 import { CirclePicker, CompactPicker, SwatchesPicker, TwitterPicker } from 'react-color';
 
@@ -701,6 +701,7 @@ class Waveforms extends Component {
                     )}
                     {this.state.buffersListReady && (
                         <AudioPlayer ref={this.audioPlayerOnZoomOut}
+                            runId={this.state.runId}
                             audioFiles={this.audioFiles}
                             buffersList={this.buffersList}
                             timeline={this.getTimeline.bind(this)}
