@@ -732,7 +732,7 @@ class Waveforms extends Component {
                         ref={(c) => {
                             this.waveuiEl = c;
                         }}
-                        className="block mb-2"
+                        className="block mb-2 mr-4"
                         style={{ height: "250px" }}>
                         {this.waveuiEl && this.state.lossSimulationsReady && this.state.buffersListReady && this.renderAll(this.waveformTrackId)}
                     </div>

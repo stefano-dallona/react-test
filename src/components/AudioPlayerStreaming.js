@@ -28,7 +28,6 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
     const streamIdRef = useRef(null)
     const cursorAnimationRef = useRef(null)
     const playingZoomedSectionRef = useRef(false)
-    const maxLocalStorageItemSize = 300000
 
 
     //https://www.kianmusser.com/articles/react-where-put-websocket/
@@ -153,7 +152,7 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
         requestStreaming()
         setPlaying(true)
         setProgress(0)
-        //updateCursor()()
+        updateCursor()()
         giveFocusToStopButton()
     }
 
@@ -449,10 +448,10 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
 
     const updateCursor = () => {
         return function loop() {
-            let timeline = timelineRef.current()
-            let offset = (playingZoomedSectionRef.current ? -timeline.timeContext.offset : 0) + (audioContextRef.current.currentTime - startTimeRef.current)
-            let position = offset < buffersListRef.current[bufferToPlay].duration ? offset : 0
-            setCursorPosition(position)
+            if (audioContextRef.current && durationRef.current) {
+                const playbackTime = Math.min((Date.now() - startTimeRef.current) / 1000, audioBufferRef.current.duration)
+                setCursorPosition(playbackTime)
+            }
             cursorAnimationRef.current = window.requestAnimationFrame(loop);
         };
     }
