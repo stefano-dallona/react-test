@@ -36,7 +36,7 @@ class Waveforms extends Component {
 
         this.downsamplingEnabled = true
         this.loadOnlyZoomedSection = true
-        this.parallelWaveformLoading = false
+        this.parallelWaveformLoading = true
 
         this.samplesVisualizer = React.createRef();
         this.spectrogram = React.createRef();

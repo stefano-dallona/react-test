@@ -13,10 +13,30 @@ import withNavigation from "../components/withNavigation";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useRef } from "react";
 
+import { useState } from 'react';
+import { defaultValidator, QueryBuilder } from 'react-querybuilder';
+import 'react-querybuilder/dist/query-builder.scss';
+import '../css/querybuilder.css'
+
+const fields = [
+    { name: 'runId', label: 'Run ID' },
+    { name: 'creator', label: 'Creator' },
+];
+
+const initialQuery = {
+    combinator: 'and',
+    rules: [
+        { field: 'runId', operator: 'beginsWith', value: 'fc971184-1750-4a70-9621-6fec16a7a9a1' },
+        { field: 'creator', operator: 'in', value: 'Stefano Dallona, Luca Vignati' },
+    ],
+};
+
 export const RunHistory = (props) => {
     let navigate = useNavigate()
     let location = useLocation()
     let runList = useRef()
+
+    const [query, setQuery] = useState(initialQuery);
 
     const execute = () => {
         navigate(`/run/${runList.current.state.selectedRun.run_id}/execution`)
@@ -51,6 +71,13 @@ export const RunHistory = (props) => {
 
     return (
         <div id="runHistory" className="card p-fluid">
+            <Panel header="Search" toggleable collapsed={true}>
+                <QueryBuilder
+                    fields={fields}
+                    query={query}
+                    onQueryChange={q => setQuery(q)}
+                />
+            </Panel>
             <Panel header="Run List">
                 <RunList ref={runList} parentChangeHandler={onChange}></RunList>
             </Panel>
@@ -60,62 +87,3 @@ export const RunHistory = (props) => {
         </div>
     )
 }
-
-/*
-class RunHistory extends Component {
-
-    constructor(props) {
-        super(props);
-
-        this.state = {
-        };
-    }
-
-    componentDidMount() {
-
-    }
-
-    execute(e) {
-        e.preventDefault();
-        this.props.navigate({
-            pathname: '/run/execution',
-            state: {
-                runId: "1234"
-            },
-        });
-    }
-
-    analyse(e) {
-        e.preventDefault();
-        this.props.navigate({
-            pathname: '/run/analysis',
-            params: {
-                runId: "1234",
-                filename: "asdfsdfsd"
-            }
-        });
-    }
-
-    render() {
-        const startContent = (
-            <React.Fragment>
-                <Button icon="pi" className="mr-2" onClick={this.execute.bind(this)}>Execute</Button>
-                <Button icon="pi" className="mr-2" onClick={this.analyse.bind(this)}>Analyse</Button>
-
-                <i className="pi p-toolbar-separator mr-2" />
-            </React.Fragment>
-        );
-
-        return (
-            <div id="runHistory" className="card p-fluid">
-                <Panel header="Run List">
-                    <RunList></RunList>
-                </Panel>
-                <Toolbar start={startContent} />
-            </div>
-        )
-    }
-}
-
-export default withNavigation(RunHistory);
-*/

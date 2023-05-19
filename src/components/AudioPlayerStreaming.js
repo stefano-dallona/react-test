@@ -7,6 +7,8 @@ import { Slider } from "primereact/slider"
 
 import socketClient from 'socket.io-client';
 
+const crypto = require("crypto-js")
+
 export const AudioPlayer = React.forwardRef((props, ref) => {
     let [playing, setPlaying] = useState(false)
     let [audionState, setAudionState] = useState({ startedAt: null, loadingProgress: 0 })
@@ -28,6 +30,7 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
     const streamIdRef = useRef(null)
     const cursorAnimationRef = useRef(null)
     const playingZoomedSectionRef = useRef(false)
+    const secretKey = "1234"
 
 
     //https://www.kianmusser.com/articles/react-where-put-websocket/
@@ -156,23 +159,48 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
         giveFocusToStopButton()
     }
 
+    function detectBrowser() {
+
+        let userAgent = navigator.userAgent;
+        let browserName;
+
+        if (userAgent.match(/chrome|chromium|crios/i)) {
+            browserName = "chrome";
+        } else if (userAgent.match(/firefox|fxios/i)) {
+            browserName = "firefox";
+        } else if (userAgent.match(/safari/i)) {
+            browserName = "safari";
+        } else if (userAgent.match(/opr\//i)) {
+            browserName = "opera";
+        } else if (userAgent.match(/edg/i)) {
+            browserName = "edge";
+        } else {
+            browserName = "No browser detection";
+        }
+        return browserName
+    }
+
     const retrieveFileFromLocalStorage = (uuid) => {
-        return new Promise(function(resolve, reject) {
+        return new Promise(function (resolve, reject) {
             let indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB || window.shimIndexedDB;
-            let open = indexedDB.open("PlC_TestBench_UI", 1);
-    
+            let open = indexedDB.open("PlC_TestBench_UI_" + detectBrowser());
+
             open.onsuccess = function () {
                 // Start a new transaction
-                var db = open.result;
-                var tx = db.transaction("audio_files", "readwrite");
-                var store = tx.objectStore("audio_files");
-    
-                var persistedAudioFile = store.get(uuid);
-    
+                let db = open.result;
+                if (!db.objectStoreNames.contains("audio_files")) {
+                    resolve(null);
+                    return
+                }
+                let tx = db.transaction("audio_files", "readwrite");
+                let store = tx.objectStore("audio_files");
+
+                let persistedAudioFile = store.get(uuid);
+
                 persistedAudioFile.onsuccess = function () {
                     resolve(persistedAudioFile.result);
                 };
-    
+
                 tx.oncomplete = function () {
                     db.close();
                 };
@@ -192,31 +220,33 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
         }
 
         let indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB || window.shimIndexedDB;
-        let open = indexedDB.open("PlC_TestBench_UI", 1);
-
-        // Create the schema
-        open.onupgradeneeded = function () {
-            let db = open.result;
-            let store = db.createObjectStore("audio_files", { keyPath: "uuid" });
+        let request1 = indexedDB.open("PlC_TestBench_UI_" + detectBrowser());
+        let version = 1
+        request1.onsuccess = function (e) {
+            let db = e.target.result;
+            version = db.version;
+            db.close();
+        }
+        let request2 = indexedDB.open("PlC_TestBench_UI_" + detectBrowser(), ++version);
+        request2.onerror = function () { console.log("error"); };
+        request2.onblocked = function () { console.log("blocked"); };
+        request2.onupgradeneeded = function (e) {
+            let db = e.target.result;
+            if (!db.objectStoreNames.contains("audio_files")) {
+                let store = db.createObjectStore("audio_files", { keyPath: "uuid" });
+            }
         };
-
-        open.onsuccess = function () {
+        request2.onsuccess = function (e) {
             // Start a new transaction
-            var db = open.result;
-            var tx = db.transaction("audio_files", "readwrite");
-            var store = tx.objectStore("audio_files");
+            let db = e.target.result;
+            let tx = db.transaction("audio_files", "readwrite");
+            let store = tx.objectStore("audio_files");
             store.put(audioFile);
-
-            var persistedAudioFile = store.get(audioFile.uuid);
-
-            persistedAudioFile.onsuccess = function () {
-                console.log(persistedAudioFile.result.header.sampleRate);
-            };
 
             tx.oncomplete = function () {
                 db.close();
             };
-        }
+        };
     }
 
     const requestStreaming = async (track) => {
