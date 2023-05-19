@@ -12,7 +12,6 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
     let [audionState, setAudionState] = useState({ startedAt: null, loadingProgress: 0 })
     let [progress, setProgress] = useState(0)
     let [bufferToPlay, setBufferToPlay] = useState((props.audioFiles.length > 0 && props.audioFiles[0].uuid) || "")
-    const audioFilesRef = useRef(props.audioFiles || [])
     const buffersListRef = useRef(props.buffersList || [])
     const timelineRef = useRef(props.timeline)
     const cursorLayerRef = useRef(props.cursorLayer)
@@ -434,7 +433,7 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
     }
 
     const getPlayableFilesButtons = () => {
-        return audioFilesRef.current.map((file, i) => {
+        return props.audioFiles.map((file, i) => {
             return { label: file.label, icon: (bufferToPlay == file.uuid) ? "pi pi-check" : "", command: () => { changeBufferToPlay(file.uuid) } }
         });
     }

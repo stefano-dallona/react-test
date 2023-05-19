@@ -60,6 +60,8 @@ class Waveforms extends Component {
 
         document.addEventListener("keydown", this.onKeyDownHandler.bind(this))
 
+        this.selectedLossSimulation = null
+
         this.state = {
             runId: props.runId || "",
             filename: props.filename || "",
@@ -131,11 +133,13 @@ class Waveforms extends Component {
 
     setLossSimulationFiles(lossSimulationFiles) {
         this.lossSimulationFiles = lossSimulationFiles
+        this.selectedLossSimulation = this.lossSimulationFiles[0].uuid
         this.clearWaveforms()
+        this.refreshAudioFiles()
         this.setState({
             selectedLossSimulations: this.lossSimulationFiles[0].uuid,
             lossSimulationsReady: true
-        }, this.refreshAudioFiles.bind(this));
+        });
     }
 
     setBuffersList(buffersList) {
@@ -153,10 +157,13 @@ class Waveforms extends Component {
     }
 
     setSelectedLossSimulations(lossSimulations) {
+        this.selectedLossSimulation = lossSimulations
         this.clearWaveforms()
+        this.refreshAudioFiles()
         this.setState({
-            selectedLossSimulations: lossSimulations
-        }, this.refreshAudioFiles.bind(this));
+            selectedLossSimulations: lossSimulations,
+            selectedAudioFiles: this.audioFiles.map((x) => x.uuid)
+        });
     }
 
     setAudioFileToPlay(audioFileToPlay) {
@@ -409,7 +416,7 @@ class Waveforms extends Component {
 
     refreshAudioFiles() {
         const parentIsSelectedLoss = (x) => {
-            return !x.parent_id || x.parent_id == this.state.selectedLossSimulations
+            return !x.parent_id || x.parent_id == this.selectedLossSimulation
         }
         let audioFiles = this.findAudioFiles(this.hierarchy, parentIsSelectedLoss);
         this.setAudioFiles(audioFiles)
@@ -701,6 +708,7 @@ class Waveforms extends Component {
                             <label htmlFor='displayedAudioFiles' className="font-bold block ml-2 mb-2" style={{ color: 'white' }}>Displayed audio files</label>
                             <MultiSelect inputId='displayedAudioFiles'
                                 id='displayedAudioFiles'
+                                key='uuid'
                                 value={this.state.selectedAudioFiles}
                                 onClick={(e) => { false && e.stopPropagation() }}
                                 onChange={(e) => { this.setSelectedAudioFiles(e.value) }}
