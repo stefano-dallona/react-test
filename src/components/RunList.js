@@ -63,6 +63,7 @@ class RunList extends Component {
                     <Column field="input_files" header="Files"></Column>
                     <Column field="created_on" header="Created On"></Column>
                     <Column field="creator" header="Creator"></Column>
+                    <Column field="status" header="Status"></Column>
                 </DataTable>
                 <Paginator rows={10} totalRecords={this.state.data.length} onPageChange={null}></Paginator>
             </div>

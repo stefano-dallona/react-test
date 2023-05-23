@@ -133,7 +133,7 @@ class RunHierarchy extends Component {
                 this.configurationService.stopListeningForExecutionEvents();
                 this.onExecutionCompleted(this.state.runId)
             }
-            if (message.nodetype == "ECCTestbench") {
+            if (message.nodetype == "PLCTestbench") {
                 this.updateProgress(message.nodeid, message.currentPercentage)
                 localStorage.setItem(message.nodeid, message.currentPercentage)
                 let run = await this.configurationService.getRun(this.state.runId)
