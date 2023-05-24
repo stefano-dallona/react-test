@@ -38,7 +38,7 @@ const demoListValues = [
 ];
 const { simulateAsyncFetch } = QbUtils.Autocomplete;
 const simulatedAsyncFetch = simulateAsyncFetch(demoListValues, 3);
-
+/*
 const fields = {
     user: {
         label: "User",
@@ -364,6 +364,192 @@ const fields = {
             labelNo: "-"
         }
     },
+};
+*/
+const path = "C:\\Data\\personale\\Università\\2022-2023\\original_tracks\\"
+const fields = {
+    filename: {
+        label: "Input files",
+        type: "multiselect",
+        fieldSettings: {
+            showSearch: true,
+            listValues: [
+                { value: path + "Blues_Bass.wav", title: "Blues_Bass.wav" },
+                { value: path + "Blues_Guitar.wav", title: "Blues_Guitar.wav" }
+            ],
+            allowCustomValues: false
+        }
+    },
+    lostSamplesMasks: {
+        label: "PLS Algorithm",
+        type: "!group",
+        subfields: {
+            worker: {
+                type: "select",
+                fieldSettings: {
+                    listValues: ["BinomialPLS", "GilbertElliotPLS"],
+                },
+                valueSources: ["value"],
+            },
+            seed: {
+                type: "number",
+                valueSources: ["value"],
+            },
+            packet_size: {
+                type: "number",
+                valueSources: ["value"],
+            },
+            per: {
+                type: "number",
+                valueSources: ["value"],
+            },
+            p: {
+                type: "number",
+                valueSources: ["value"],
+            },
+            r: {
+                type: "number",
+                valueSources: ["value"],
+            },
+            max_frequency: {
+                type: "number",
+                valueSources: ["value"],
+            },
+            h: {
+                type: "number",
+                valueSources: ["value"],
+            },
+            k: {
+                type: "number",
+                valueSources: ["value"],
+            },
+            f_min: {
+                type: "number",
+                valueSources: ["value"],
+            },
+            beta: {
+                type: "number",
+                valueSources: ["value"],
+            },
+            n_m: {
+                type: "number",
+                valueSources: ["value"],
+            },
+            fade_in_length: {
+                type: "number",
+                valueSources: ["value"],
+            },
+            fade_out_length: {
+                type: "number",
+                valueSources: ["value"],
+            },
+            extraction_length: {
+                type: "number",
+                valueSources: ["value"],
+            }
+        }
+    },
+    lostSamplesMasks_reconstructedTracks: {
+        label: "PLC Algorithm",
+        type: "!group",
+        subfields: {
+            worker: {
+                type: "select",
+                fieldSettings: {
+                    listValues: ["ZerosPLC", "LastPacketPLC", "LowCostPLC", "DeepLearningPLC"],
+                },
+                valueSources: ["value"],
+            },
+            max_frequency: {
+                type: "number",
+                valueSources: ["value"],
+            },
+            f_min: {
+                type: "number",
+                valueSources: ["value"],
+            },
+            beta: {
+                type: "number",
+                valueSources: ["value"],
+            },
+            n_m: {
+                type: "number",
+                valueSources: ["value"],
+            },
+            fade_in_length: {
+                type: "number",
+                valueSources: ["value"],
+            },
+            fade_out_length: {
+                type: "number",
+                valueSources: ["value"],
+            },
+            extraction_length: {
+                type: "number",
+                valueSources: ["value"],
+            },
+            fs_dl: {
+                type: "number",
+                valueSources: ["value"],
+            },
+            context_length: {
+                type: "number",
+                valueSources: ["value"],
+            },
+            hop_size: {
+                type: "number",
+                valueSources: ["value"],
+            },
+            window_length: {
+                type: "number",
+                valueSources: ["value"],
+            },
+            lower_edge_hertz: {
+                type: "number",
+                valueSources: ["value"],
+            },
+            upper_edge_hertz: {
+                type: "number",
+                valueSources: ["value"],
+            },
+            num_mel_bins: {
+                type: "number",
+                valueSources: ["value"],
+            }
+        }
+    },
+    lostSamplesMasks_reconstructedTracks_outputAnalysis: {
+        label: "Output Analyser",
+        type: "!group",
+        subfields: {
+            worker: {
+                type: "select",
+                fieldSettings: {
+                    listValues: ["MSECalculator", "PEAQCalculator"],
+                },
+                valueSources: ["value"],
+            },
+            N: {
+                type: "number",
+                valueSources: ["value"],
+            },
+            hop: {
+                type: "number",
+                valueSources: ["value"],
+            },
+            amp_scale: {
+                type: "number",
+                valueSources: ["value"],
+            },
+            peaq_mode: {
+                type: "select",
+                fieldSettings: {
+                    listValues: ["nb", "basic"],
+                },
+                valueSources: ["value"],
+            }
+        }
+    }
 };
 
 const config = {
