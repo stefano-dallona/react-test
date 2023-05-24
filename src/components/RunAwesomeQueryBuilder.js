@@ -22,19 +22,8 @@ let initTree = checkTree(loadTree(initValue), InitialConfig);
 // You need to provide your own config. See below 'Config format'
 
 const demoListValues = [
-    { title: "A", value: "a" },
-    { title: "AA", value: "aa" },
-    { title: "AAA1", value: "aaa1" },
-    { title: "AAA2", value: "aaa2" },
-    { title: "B", value: "b" },
-    { title: "C", value: "c" },
-    { title: "D", value: "d" },
-    { title: "E", value: "e" },
-    { title: "F", value: "f" },
-    { title: "G", value: "g" },
-    { title: "H", value: "h" },
-    { title: "I", value: "i" },
-    { title: "J", value: "j" },
+    { title: "Luca Vignati", value: "luca.vignati@unitn.it" },
+    { title: "Stefano Dallona", value: "stefano.dallona@studenti.unitn.it" }
 ];
 const { simulateAsyncFetch } = QbUtils.Autocomplete;
 const simulatedAsyncFetch = simulateAsyncFetch(demoListValues, 3);
@@ -383,6 +372,39 @@ const fields = {
             allowCustomValues: false
         }
     },
+    status: {
+        label: "Status",
+        type: "select",
+        fieldSettings: {
+            listValues: ["CREATED", "RUNNING", "COMPLETED", "FAILED"],
+        },
+        valueSources: ["value"],
+    },
+    createdOn: {
+        label: "Created on",
+        type: "date",
+        valueSources: ["value"],
+        fieldSettings: {
+            dateFormat: "DD-MM-YYYY",
+            validateValue: (val, fieldSettings) => {
+                // example of date validation
+                const dateVal = moment(val, fieldSettings.valueFormat);
+                return dateVal.year() != (new Date().getFullYear()) ? "Please use current year" : null;
+            },
+        },
+    },
+    createdBy: {
+        label: "Created by",
+        type: "select",
+        valueSources: ["value"],
+        fieldSettings: {
+            asyncFetch: simulatedAsyncFetch,
+            useAsyncSearch: true,
+            useLoadMore: true,
+            forceAsyncSearch: false,
+            allowCustomValues: false
+        },
+    },
     lostSamplesMasks: {
         label: "PLS Algorithm",
         type: "!group",
@@ -540,24 +562,38 @@ const fields = {
                 },
                 valueSources: ["value"],
             },
-            N: {
-                type: "number",
-                valueSources: ["value"],
+            MSECalculator_Settings: {
+                label: "MSECalculator",
+                tooltip: "Group of fields",
+                type: "!struct",
+                subfields: {
+                    N: {
+                        type: "number",
+                        valueSources: ["value"],
+                    },
+                    hop: {
+                        type: "number",
+                        valueSources: ["value"],
+                    },
+                    amp_scale: {
+                        type: "number",
+                        valueSources: ["value"],
+                    }
+                }
             },
-            hop: {
-                type: "number",
-                valueSources: ["value"],
-            },
-            amp_scale: {
-                type: "number",
-                valueSources: ["value"],
-            },
-            peaq_mode: {
-                type: "select",
-                fieldSettings: {
-                    listValues: ["nb", "basic"],
-                },
-                valueSources: ["value"],
+            PEAQCalculator_Settings: {
+                label: "PEAQCalculator",
+                tooltip: "Group of fields",
+                type: "!struct",
+                subfields: {
+                    peaq_mode: {
+                        type: "select",
+                        fieldSettings: {
+                            listValues: ["nb", "basic"],
+                        },
+                        valueSources: ["value"],
+                    }
+                }
             }
         }
     }
