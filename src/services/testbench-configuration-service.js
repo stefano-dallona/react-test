@@ -15,7 +15,31 @@ export class ConfigurationService {
     }
 
     async findAllRuns() {
-        let requestUrl = `${this.baseUrl}/runs`
+        let queryString = `
+{
+    "$and":[
+        {
+            "filename": {
+            "$regex": ".*Musica.*"
+            },
+            "lostSamplesMasks.reconstructedTracks.outputAnalysis": {
+                "$elemMatch": {
+                    "filename": {
+                        "$regex": ".*MSECalculator.*"
+                    }
+                }
+            }
+        }
+    ]
+    }
+        `
+        let projectionString = `
+{ "_id": 1 }
+        `
+        let page = 0
+        let pageSize = 10
+        let pagination = `page=${page}&page_size=${pageSize}`
+        let requestUrl = `${this.baseUrl}/runs?query_string=${queryString}&projection_string=${projectionString}&${pagination}`
         let response = await fetch(requestUrl)
         let runs = await response.json()
         return runs

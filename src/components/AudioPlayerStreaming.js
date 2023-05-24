@@ -36,7 +36,8 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
     //https://www.kianmusser.com/articles/react-where-put-websocket/
     useEffect(() => {
         socketRef.current = socketClient(props.wsUrl || "http://localhost:5000", {
-            transports: ["websocket"]//, "polling"]
+            transports: ["websocket", "polling"]
+            //transports: ["polling", "websocket"]
         });
 
         return () => {
