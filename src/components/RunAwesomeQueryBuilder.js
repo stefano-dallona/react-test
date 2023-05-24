@@ -367,6 +367,9 @@ const fields = {
 };
 */
 const path = "C:\\Data\\personale\\Università\\2022-2023\\original_tracks\\"
+// Postprocessing of query (replace "_" with ".", replace *** \{"([^"_]+)_Settings\.([^"]+)" *** with *** {"worker":"\1","\2" ***)
+// {"lostSamplesMasks_reconstructedTracks":{"$elemMatch":{"LowCostPLC_Settings.max_frequency":1}}} =>
+// {"lostSamplesMasks.reconstructedTracks":{"$elemMatch":{"worker":"LowCostPLC", "max_frequency":4800}}}
 const fields = {
     filename: {
         label: "Input files",
@@ -391,61 +394,55 @@ const fields = {
                 },
                 valueSources: ["value"],
             },
-            seed: {
-                type: "number",
-                valueSources: ["value"],
+            BinomialPLS_Settings: {
+                label: "BinomialPLS",
+                tooltip: "Group of fields",
+                type: "!struct",
+                subfields: {
+                    seed: {
+                        type: "number",
+                        valueSources: ["value"],
+                    },
+                    packet_size: {
+                        type: "number",
+                        valueSources: ["value"],
+                    },
+                    per: {
+                        type: "number",
+                        valueSources: ["value"],
+                    }
+                }
             },
-            packet_size: {
-                type: "number",
-                valueSources: ["value"],
-            },
-            per: {
-                type: "number",
-                valueSources: ["value"],
-            },
-            p: {
-                type: "number",
-                valueSources: ["value"],
-            },
-            r: {
-                type: "number",
-                valueSources: ["value"],
-            },
-            max_frequency: {
-                type: "number",
-                valueSources: ["value"],
-            },
-            h: {
-                type: "number",
-                valueSources: ["value"],
-            },
-            k: {
-                type: "number",
-                valueSources: ["value"],
-            },
-            f_min: {
-                type: "number",
-                valueSources: ["value"],
-            },
-            beta: {
-                type: "number",
-                valueSources: ["value"],
-            },
-            n_m: {
-                type: "number",
-                valueSources: ["value"],
-            },
-            fade_in_length: {
-                type: "number",
-                valueSources: ["value"],
-            },
-            fade_out_length: {
-                type: "number",
-                valueSources: ["value"],
-            },
-            extraction_length: {
-                type: "number",
-                valueSources: ["value"],
+            GilbertElliotPLS_Settings: {
+                label: "GilbertElliotPLS",
+                tooltip: "Group of fields",
+                type: "!struct",
+                subfields: {
+                    seed: {
+                        type: "number",
+                        valueSources: ["value"],
+                    },
+                    packet_size: {
+                        type: "number",
+                        valueSources: ["value"],
+                    },
+                    p: {
+                        type: "number",
+                        valueSources: ["value"],
+                    },
+                    r: {
+                        type: "number",
+                        valueSources: ["value"],
+                    },
+                    h: {
+                        type: "number",
+                        valueSources: ["value"],
+                    },
+                    k: {
+                        type: "number",
+                        valueSources: ["value"],
+                    },
+                }
             }
         }
     },
@@ -460,61 +457,75 @@ const fields = {
                 },
                 valueSources: ["value"],
             },
-            max_frequency: {
-                type: "number",
-                valueSources: ["value"],
+            LowCostPLC_Settings: {
+                label: "LowCostPLC",
+                tooltip: "Group of fields",
+                type: "!struct",
+                subfields: {
+                    max_frequency: {
+                        type: "number",
+                        valueSources: ["value"],
+                    },
+                    f_min: {
+                        type: "number",
+                        valueSources: ["value"],
+                    },
+                    beta: {
+                        type: "number",
+                        valueSources: ["value"],
+                    },
+                    n_m: {
+                        type: "number",
+                        valueSources: ["value"],
+                    },
+                    fade_in_length: {
+                        type: "number",
+                        valueSources: ["value"],
+                    },
+                    fade_out_length: {
+                        type: "number",
+                        valueSources: ["value"],
+                    },
+                    extraction_length: {
+                        type: "number",
+                        valueSources: ["value"],
+                    }
+                }
             },
-            f_min: {
-                type: "number",
-                valueSources: ["value"],
-            },
-            beta: {
-                type: "number",
-                valueSources: ["value"],
-            },
-            n_m: {
-                type: "number",
-                valueSources: ["value"],
-            },
-            fade_in_length: {
-                type: "number",
-                valueSources: ["value"],
-            },
-            fade_out_length: {
-                type: "number",
-                valueSources: ["value"],
-            },
-            extraction_length: {
-                type: "number",
-                valueSources: ["value"],
-            },
-            fs_dl: {
-                type: "number",
-                valueSources: ["value"],
-            },
-            context_length: {
-                type: "number",
-                valueSources: ["value"],
-            },
-            hop_size: {
-                type: "number",
-                valueSources: ["value"],
-            },
-            window_length: {
-                type: "number",
-                valueSources: ["value"],
-            },
-            lower_edge_hertz: {
-                type: "number",
-                valueSources: ["value"],
-            },
-            upper_edge_hertz: {
-                type: "number",
-                valueSources: ["value"],
-            },
-            num_mel_bins: {
-                type: "number",
-                valueSources: ["value"],
+            'DeepLearningPLC_Settings': {
+                label: "DeepLearningPLC",
+                tooltip: "Group of fields",
+                type: "!struct",
+                subfields: {
+                    fs_dl: {
+                        type: "number",
+                        valueSources: ["value"],
+                    },
+                    context_length: {
+                        type: "number",
+                        valueSources: ["value"],
+                    },
+                    hop_size: {
+                        type: "number",
+                        valueSources: ["value"],
+                    },
+                    window_length: {
+                        type: "number",
+                        valueSources: ["value"],
+                    },
+                    lower_edge_hertz: {
+                        type: "number",
+                        valueSources: ["value"],
+                    },
+                    upper_edge_hertz: {
+                        type: "number",
+                        valueSources: ["value"],
+                    },
+                    num_mel_bins: {
+                        type: "number",
+                        valueSources: ["value"],
+                    }
+                }
             }
         }
     },

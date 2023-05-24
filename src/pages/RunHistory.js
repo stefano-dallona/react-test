@@ -55,9 +55,6 @@ export const RunHistory = (props) => {
     return (
         <div id="runHistory" className="card p-fluid">
             <Panel header="Search" toggleable collapsed={true}>
-                <RunQueryBuilder />
-            </Panel>
-            <Panel header="Search" toggleable collapsed={true}>
                 <RunAwesomeQueryBuilder />
             </Panel>
             <Panel header="Run List">
