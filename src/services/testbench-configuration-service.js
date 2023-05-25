@@ -14,35 +14,60 @@ export class ConfigurationService {
         this.baseUrl = baseUrl
     }
 
-    async findAllRuns() {
-        let queryString = `
-{
-    "$and":[
-        {
-            "filename": {
-            "$regex": ".*Musica.*"
-            },
-            "lostSamplesMasks.reconstructedTracks.outputAnalysis": {
-                "$elemMatch": {
-                    "filename": {
-                        "$regex": ".*MSECalculator.*"
-                    }
-                }
-            }
-        }
-    ]
-    }
-        `
-        let projectionString = `
-{ "_id": 1 }
-        `
-        let page = 0
-        let pageSize = 10
-        let pagination = `page=${page}&page_size=${pageSize}`
-        let requestUrl = `${this.baseUrl}/runs?query_string=${queryString}&projection_string=${projectionString}&${pagination}`
+    async findAllRuns(pagination={page: 0, pageSize: -1}) {
+        let requestUrl = `${this.baseUrl}/runs?${pagination}`
         let response = await fetch(requestUrl)
         let runs = await response.json()
         return runs
+    }
+
+    async findRunsByFilter(queryString, projectionString, pagination) {
+        queryString = {
+            "$and":[
+                {
+                    "filename": {
+                    "$regex": ".*Musica.*"
+                    },
+                    "lostSamplesMasks.reconstructedTracks.outputAnalysis": {
+                        "$elemMatch": {
+                            "filename": {
+                                "$regex": ".*MSECalculator.*"
+                            }
+                        }
+                    }
+                }
+            ]
+        }
+
+        projectionString = { "_id": 1 }
+
+        pagination = {
+            "page": 0,
+            "pageSize": 10
+        }
+
+        const request = {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                queryString: queryString,
+                projectionString: projectionString,
+                pagination: pagination
+            })
+        };
+        let response = await fetch(this.baseUrl + `/runs/searches`, request).catch((error) => {
+            console.log(error)
+        })
+        if (response.ok) {
+            let responseBody = await response.json()
+            console.log("responseBody: " + JSON.stringify(responseBody))
+            return responseBody
+        } else {
+            return null
+        }
     }
 
     async saveRunConfiguration(configuration) {

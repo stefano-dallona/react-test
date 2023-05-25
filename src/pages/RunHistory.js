@@ -16,10 +16,30 @@ import { useRef } from "react";
 import { RunQueryBuilder } from '../components/RunQueryBuilder'
 import RunAwesomeQueryBuilder from '../components/RunAwesomeQueryBuilder'
 
+import { ConfigurationService } from '../services/testbench-configuration-service'
+
 export const RunHistory = (props) => {
     let navigate = useNavigate()
     let location = useLocation()
     let runList = useRef()
+
+    const search = async (queryString) => {
+        console.log(`queryString:${queryString}`)
+        let baseUrl = "http://localhost:5000"
+        let configurationService = new ConfigurationService(baseUrl)
+        let projection = { "_id": 1 }
+        let pagination = {page: 0, pageSize: 10}
+        let runs = await configurationService.findRunsByFilter(queryString, projection, pagination)
+        return runs
+    }
+
+    const saveFilter = async (filterString, user, filterName) => {
+        console.log(`filterString:${filterString}, user:${user}, filterName:${filterName}`)
+    }
+
+    const loadSavedFilters = async (user) => {
+        console.log(`user:${user}`);
+    }
 
     const execute = () => {
         navigate(`/run/${runList.current.state.selectedRun.run_id}/execution`)
@@ -67,7 +87,10 @@ export const RunHistory = (props) => {
     return (
         <div id="runHistory" className="card p-fluid">
             <Panel header="Search" toggleable collapsed={true}>
-                <RunAwesomeQueryBuilder />
+                <RunAwesomeQueryBuilder
+                    searchHandler={search}
+                    saveFilterHandler={saveFilter}
+                    loadSavedFiltersHandler={loadSavedFilters}/>
             </Panel>
             <Panel header="Run List">
                 <RunList ref={runList} parentChangeHandler={onChange}></RunList>

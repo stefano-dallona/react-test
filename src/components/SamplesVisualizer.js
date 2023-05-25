@@ -125,7 +125,7 @@ class SamplesVisualizer extends Component {
 
             var legendGroup = svg.append("g");
 
-            legendGroup.append("rect")
+            let rect = legendGroup.append("rect")
                 .attr("width", chartConfig.lineLabel.width + 5)
                 .attr("height", chartConfig.lineLabel.height)
                 .attr("x", (width / 2 + marginLegend - 45) / 1.3)
@@ -136,8 +136,7 @@ class SamplesVisualizer extends Component {
                 .duration(600)
                 .style("opacity", 1)
 
-
-            legendGroup.append('text')
+            let textElement = legendGroup.append('text')
                 .attr('id', 'legend-' + lineId)
                 .attr('text-anchor', 'middle')
                 .attr('font-family', 'sans-serif')
@@ -154,6 +153,10 @@ class SamplesVisualizer extends Component {
                         .duration(500)
                         .style("display", display)
                 });
+            
+            rect[0][0].setAttribute("width", textElement[0][0].getBoundingClientRect().width)
+            rect[0][0].setAttribute("x", textElement[0][0].getBoundingClientRect().left - 16)
+            
             marginLegend += 100;
         }
 

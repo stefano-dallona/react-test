@@ -20,46 +20,46 @@ let initValue = loadedInitValue && Object.keys(loadedInitValue).length > 0 ? loa
 
 // You can load query value from your backend storage (for saving see `Query.onChange()`)
 initValue = {
-    "type":"group",
-    "id":"9a99988a-0123-4456-b89a-b1607f326fd8",
-    "children1":[
-       {
-          "type":"rule",
-          "id":"b9bbab8b-0123-4456-b89a-b188529aabe0",
-          "properties":{
-             "field":"filename",
-             "operator":"multiselect_contains",
-             "value":[
-                [
-                   "C:\\Data\\personale\\Università\\2022-2023\\original_tracks\\Blues_Bass.wav",
-                   "C:\\Data\\personale\\Università\\2022-2023\\original_tracks\\Blues_Guitar.wav"
+    "type": "group",
+    "id": "9a99988a-0123-4456-b89a-b1607f326fd8",
+    "children1": [
+        {
+            "type": "rule",
+            "id": "b9bbab8b-0123-4456-b89a-b188529aabe0",
+            "properties": {
+                "field": "filename",
+                "operator": "multiselect_contains",
+                "value": [
+                    [
+                        "C:\\Data\\personale\\Università\\2022-2023\\original_tracks\\Blues_Bass.wav",
+                        "C:\\Data\\personale\\Università\\2022-2023\\original_tracks\\Blues_Guitar.wav"
+                    ]
+                ],
+                "valueSrc": [
+                    "value"
+                ],
+                "valueType": [
+                    "multiselect"
+                ],
+                "asyncListValues": [
+                    {
+                        "value": "C:\\Data\\personale\\Università\\2022-2023\\original_tracks\\Blues_Bass.wav",
+                        "title": "Blues_Bass.wav"
+                    },
+                    {
+                        "title": "Blues_Guitar.wav",
+                        "value": "C:\\Data\\personale\\Università\\2022-2023\\original_tracks\\Blues_Guitar.wav"
+                    }
                 ]
-             ],
-             "valueSrc":[
-                "value"
-             ],
-             "valueType":[
-                "multiselect"
-             ],
-             "asyncListValues":[
-                {
-                   "value":"C:\\Data\\personale\\Università\\2022-2023\\original_tracks\\Blues_Bass.wav",
-                   "title":"Blues_Bass.wav"
-                },
-                {
-                   "title":"Blues_Guitar.wav",
-                   "value":"C:\\Data\\personale\\Università\\2022-2023\\original_tracks\\Blues_Guitar.wav"
-                }
-             ]
-          }
-       }
+            }
+        }
     ],
-    "properties":{
-       "conjunction":"AND",
-       "not":false
+    "properties": {
+        "conjunction": "AND",
+        "not": false
     }
- }
- //``
+}
+//``
 
 
 // You need to provide your own config. See below 'Config format'
@@ -656,10 +656,20 @@ let initTree = checkTree(loadTree(initValue), config);
 
 
 class RunAwesomeQueryBuilder extends Component {
-    state = {
-        tree: initTree,
-        config: config
-    };
+
+    constructor(props) {
+        super(props)
+        this.searchHandler = props.searchHandler
+        this.saveFilterHandler = props.saveFilterHandler
+        this.loadSavedFiltersHandler = props.loadSavedFiltersHandler
+
+        this.state = {
+            tree: initTree,
+            config: config
+        };
+    }
+
+
 
     onChange = (immutableTree, config) => {
         // Tip: for better performance you can apply `throttle` - see `examples/demo`
@@ -678,16 +688,21 @@ class RunAwesomeQueryBuilder extends Component {
                 tooltip="Search"
                 tooltipOptions={{ position: 'top' }}
                 className="mr-2"
-                onClick={null}></Button>
+                onClick={() => { this.searchHandler(JSON.stringify(QbUtils.mongodbFormat(this.state.tree, config))) }}></Button>
             <Button
                 rounded
                 icon="pi pi-bookmark"
                 tooltip="Save Filter"
                 tooltipOptions={{ position: 'top' }}
                 className="mr-2"
-                onClick={null}></Button>
-            <Dropdown value={null} onChange={(e) => {}} options={[]} optionLabel="name" 
-                placeholder="Select a saved filter" className="w-full md:w-14rem" />
+                onClick={() => { this.saveFilterHandler(JSON.stringify(this.state.tree), "", "") }}></Button>
+            <Dropdown
+                value={this.loadSavedFiltersHandler("")}
+                onChange={(e) => { if (e.value) this.setState({ tree: e.value }) }}
+                options={[]}
+                optionLabel="name"
+                placeholder="Select a saved filter"
+                className="w-full md:w-14rem" />
             <i className="pi p-toolbar-separator mr-2" />
         </React.Fragment>
     )
@@ -701,10 +716,12 @@ class RunAwesomeQueryBuilder extends Component {
     )
 
     renderResult = ({ tree: immutableTree, config }) => (
-        <div className="query-builder-result">
-            <div>MongoDb query: <pre>{JSON.stringify(QbUtils.mongodbFormat(immutableTree, config))}</pre></div>
-            <div>Tree: <pre>{JSON.stringify(QbUtils.getTree(immutableTree))}</pre></div>
-        </div>
+        false && (
+            <div className="query-builder-result">
+                <div>MongoDb query: <pre>{JSON.stringify(QbUtils.mongodbFormat(immutableTree, config))}</pre></div>
+                <div>Tree: <pre>{JSON.stringify(QbUtils.getTree(immutableTree))}</pre></div>
+            </div>
+        )
     )
 
     render = () => (
