@@ -545,7 +545,7 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
 
     return (
         <div id="AudioPlayer">
-            <div className="p-slider p-component mb-4 p-slider-horizontal">
+            <div className="p-slider p-component mb-4 mt-4 p-slider-horizontal">
                 <span className="p-slider-range" style={{ width: audionState.loadingProgress + "%", backgroundColor: "orange" }}></span>
                 <span className="p-slider-range" style={{ width: progress + "%" }}></span>
                 <span className="p-slider-handle" tabIndex="0" role="slider" aria-valuemin="0" aria-valuemax="100" aria-orientation="horizontal" style={{ left: progress + "%" }}></span>

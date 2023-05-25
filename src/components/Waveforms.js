@@ -622,45 +622,86 @@ class Waveforms extends Component {
                     <SplitButton
                         rounded
                         icon="pi pi-play"
-                        label="Play"
+                        tooltip="Play"
                         model={this.getPlayableFilesButtons()}
                         onClick={() => this.playSound.bind(this)(0, 0)}
                         className="mr-2"
-                        disabled={false} ></SplitButton>
+                        disabled={false}
+                        visible={false} ></SplitButton>
                     <Button
                         rounded 
                         id="btn-stop"
                         icon="pi pi-stop"
-                        label="Stop"
+                        tooltip="Stop"
                         onClick={this.stopSound.bind(this)}
                         className="mr-2"
-                        disabled={false} ></Button>
+                        disabled={false}
+                        visible={false} ></Button>
                     <Button
                         rounded 
                         icon="pi pi-pause"
-                        label="Pause"
+                        tooltip="Pause"
                         onClick={this.pauseSound.bind(this)}
                         className="mr-2"
-                        disabled={false} ></Button>
+                        disabled={false}
+                        visible={false} ></Button>
+                    <Button
+                        rounded
+                        icon="pi pi-search-plus"
+                        tooltip="Zoom In"
+                        tooltipOptions={{ position: 'top' }}
+                        className="mr-2"
+                        disabled={false}
+                        visible={true}  ></Button>
+                    <Button
+                        rounded
+                        icon="pi pi-search-minus"
+                        tooltip="Zoom Out"
+                        tooltipOptions={{ position: 'top' }}
+                        className="mr-2"
+                        disabled={false}
+                        visible={true}  ></Button>
                     <Button
                         rounded
                         icon="pi pi-arrows-h"
-                        label="Play Zoomed"
+                        tooltip="Play Zoomed"
+                        tooltipOptions={{ position: 'top' }}
                         onClick={this.playZoomedInterval.bind(this)}
                         className="mr-2"
-                        disabled={false}></Button>
+                        disabled={false}
+                        visible={false} ></Button>
+                    <Button
+                        rounded
+                        icon="pi pi-caret-left"
+                        tooltip="Move Left"
+                        tooltipOptions={{ position: 'top' }}
+                        className="mr-2"
+                        disabled={false}
+                        visible={true}  ></Button>
+                    <Button
+                        rounded
+                        icon="pi pi-caret-right"
+                        tooltip="Move Right"
+                        tooltipOptions={{ position: 'top' }}
+                        className="mr-2"
+                        disabled={false}
+                        visible={true}  ></Button>
                     <Button
                         rounded
                         icon="pi pi-step-backward"
-                        label="Previous Loss"
+                        tooltip="Previous Loss"
+                        tooltipOptions={{ position: 'top' }}
                         className="mr-2"
-                        disabled={true} ></Button>
+                        disabled={false}
+                        visible={true}  ></Button>
                     <Button
                         rounded
                         icon="pi pi-step-forward"
-                        label="Next Loss"
+                        tooltip="Next Loss"
+                        tooltipOptions={{ position: 'top' }}
                         className="mr-2"
-                        disabled={true} ></Button>
+                        disabled={false}
+                        visible={true} ></Button>
                 </div>
             </React.Fragment>
         );
@@ -742,7 +783,7 @@ class Waveforms extends Component {
                         style={{ height: "250px" }}>
                         {this.waveuiEl && this.state.lossSimulationsReady && this.state.buffersListReady && this.renderAll(this.waveformTrackId)}
                     </div>
-                    {false && (
+                    {true && (
                         <Toolbar start={startContent} end={endContent} />
                     )}
                     {this.state.buffersListReady && (
