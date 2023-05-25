@@ -12,11 +12,49 @@ import moment from "moment";
 const { elasticSearchFormat, queryBuilderFormat, jsonLogicFormat, queryString, _mongodbFormat, _sqlFormat, _spelFormat, getTree, checkTree, loadTree, uuid, loadFromJsonLogic, loadFromSpel, isValidTree } = QbUtils;
 const emptyInitValue = { "id": QbUtils.uuid(), "type": "group" };
 let initValue = loadedInitValue && Object.keys(loadedInitValue).length > 0 ? loadedInitValue : emptyInitValue;
-const initLogic = loadedInitLogic && Object.keys(loadedInitLogic).length > 0 ? loadedInitLogic : undefined;
-const InitialConfig = MuiConfig;
-let initTree = checkTree(loadTree(initValue), InitialConfig);
-//let initTree = checkTree(loadFromJsonLogic(initLogic, InitialConfig), InitialConfig);
-// <<<
+
+// You can load query value from your backend storage (for saving see `Query.onChange()`)
+initValue = {
+    "type":"group",
+    "id":"9a99988a-0123-4456-b89a-b1607f326fd8",
+    "children1":[
+       {
+          "type":"rule",
+          "id":"b9bbab8b-0123-4456-b89a-b188529aabe0",
+          "properties":{
+             "field":"filename",
+             "operator":"multiselect_contains",
+             "value":[
+                [
+                   "C:\\Data\\personale\\Università\\2022-2023\\original_tracks\\Blues_Bass.wav",
+                   "C:\\Data\\personale\\Università\\2022-2023\\original_tracks\\Blues_Guitar.wav"
+                ]
+             ],
+             "valueSrc":[
+                "value"
+             ],
+             "valueType":[
+                "multiselect"
+             ],
+             "asyncListValues":[
+                {
+                   "value":"C:\\Data\\personale\\Università\\2022-2023\\original_tracks\\Blues_Bass.wav",
+                   "title":"Blues_Bass.wav"
+                },
+                {
+                   "title":"Blues_Guitar.wav",
+                   "value":"C:\\Data\\personale\\Università\\2022-2023\\original_tracks\\Blues_Guitar.wav"
+                }
+             ]
+          }
+       }
+    ],
+    "properties":{
+       "conjunction":"AND",
+       "not":false
+    }
+ }
+ //``
 
 
 // You need to provide your own config. See below 'Config format'
@@ -599,13 +637,17 @@ const fields = {
     }
 };
 
+const initLogic = loadedInitLogic && Object.keys(loadedInitLogic).length > 0 ? loadedInitLogic : undefined;
+const InitialConfig = MuiConfig;
+
 const config = {
     ...InitialConfig,
     fields: fields
 };
 
-// You can load query value from your backend storage (for saving see `Query.onChange()`)
-const queryValue = emptyInitValue
+let initTree = checkTree(loadTree(initValue), config);
+//let initTree = checkTree(loadFromJsonLogic(initLogic, config), config);
+// <<<
 
 
 class RunAwesomeQueryBuilder extends Component {
@@ -637,6 +679,7 @@ class RunAwesomeQueryBuilder extends Component {
     renderResult = ({ tree: immutableTree, config }) => (
         <div className="query-builder-result">
             <div>MongoDb query: <pre>{JSON.stringify(QbUtils.mongodbFormat(immutableTree, config))}</pre></div>
+            <div>Tree: <pre>{JSON.stringify(QbUtils.getTree(immutableTree))}</pre></div>
         </div>
     )
 
