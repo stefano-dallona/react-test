@@ -55,6 +55,39 @@ class RunList extends Component {
         this.setData(data);
     }
 
+    getStatusIcon = (status) => {
+        switch (status) {
+            case 'CREATED':
+                return null;
+
+            case 'RUNNING':
+                return (
+                    <i className="pi pi-spin pi-spinner" style={{ fontSize: '1rem' }}></i>
+                );
+
+            case 'COMPLETED':
+                return (
+                    <i className="pi pi-check" style={{ color: 'white', fontSize: '1rem' }}></i>
+                );
+
+            case 'FAILED':
+                return (
+                    <i className="pi pi-times" style={{ color: 'red', fontSize: '1rem' }}></i>
+                );
+
+            default:
+                return null;
+        }
+    };
+
+    statusBodyTemplate = (rowData) => {
+        return (
+            <div className="flex align-items-center gap-2">
+                {this.getStatusIcon(rowData.status)}
+            </div>
+        );
+    };
+
     render() {
         return (
             <div id="runList">
@@ -63,7 +96,7 @@ class RunList extends Component {
                     <Column field="input_files" header="Files"></Column>
                     <Column field="created_on" header="Created On"></Column>
                     <Column field="creator" header="Creator"></Column>
-                    <Column field="status" header="Status"></Column>
+                    <Column field="status" header="Status" body={this.statusBodyTemplate}></Column>
                 </DataTable>
                 <Paginator rows={10} totalRecords={this.state.data.length} onPageChange={null}></Paginator>
             </div>

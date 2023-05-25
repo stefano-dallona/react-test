@@ -620,6 +620,7 @@ class Waveforms extends Component {
             <React.Fragment>
                 <div className="card flex">
                     <SplitButton
+                        rounded
                         icon="pi pi-play"
                         label="Play"
                         model={this.getPlayableFilesButtons()}
@@ -627,6 +628,7 @@ class Waveforms extends Component {
                         className="mr-2"
                         disabled={false} ></SplitButton>
                     <Button
+                        rounded 
                         id="btn-stop"
                         icon="pi pi-stop"
                         label="Stop"
@@ -634,23 +636,27 @@ class Waveforms extends Component {
                         className="mr-2"
                         disabled={false} ></Button>
                     <Button
+                        rounded 
                         icon="pi pi-pause"
                         label="Pause"
                         onClick={this.pauseSound.bind(this)}
                         className="mr-2"
                         disabled={false} ></Button>
                     <Button
+                        rounded
                         icon="pi pi-arrows-h"
                         label="Play Zoomed"
                         onClick={this.playZoomedInterval.bind(this)}
                         className="mr-2"
                         disabled={false}></Button>
                     <Button
+                        rounded
                         icon="pi pi-step-backward"
                         label="Previous Loss"
                         className="mr-2"
                         disabled={true} ></Button>
                     <Button
+                        rounded
                         icon="pi pi-step-forward"
                         label="Next Loss"
                         className="mr-2"

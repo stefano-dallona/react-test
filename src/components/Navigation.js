@@ -3,6 +3,7 @@ import { React, useState } from 'react';
 import { Menubar } from 'primereact/menubar';
 import { Sidebar } from 'primereact/sidebar';
 import { Button } from 'primereact/button';
+import { Badge } from 'primereact/badge';
 
 
 const Navigation = () => {
@@ -37,7 +38,23 @@ const Navigation = () => {
     ]
 
     const end = <>
-        <Button icon="pi pi-sign-out"></Button>
+        <Button
+            rounded
+            tooltip="Notifications"
+            tooltipOptions={{ position: 'top' }}
+            icon="pi pi-bell"
+            className="mr-2"
+            style={{height: 39}}>
+            <Badge
+                value="2"
+                severity="info"></Badge>
+        </Button>
+        <Button
+            rounded
+            tooltip="Log out"
+            tooltipOptions={{ position: 'top' }}
+            icon="pi pi-sign-out"
+            className="mr-2"></Button>
     </>
 
     return (

@@ -14,6 +14,7 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
     let [audionState, setAudionState] = useState({ startedAt: null, loadingProgress: 0 })
     let [progress, setProgress] = useState(0)
     let [bufferToPlay, setBufferToPlay] = useState((props.audioFiles.length > 0 && props.audioFiles[0].uuid) || "")
+    let [volume, setVolume] = useState(0)
     const buffersListRef = useRef(props.buffersList || [])
     const timelineRef = useRef(props.timeline)
     const cursorLayerRef = useRef(props.cursorLayer)
@@ -491,35 +492,53 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
         return (
             <React.Fragment>
                 <SplitButton
+                    rounded
                     icon="pi pi-play"
-                    label="Play"
+                    tooltip="Play"
+                    tooltipOptions={{ position: 'top' }}
                     model={getPlayableFilesButtons()}
                     onClick={onPlayClick}
                     className="mr-2"
                     disabled={playing}
                     style={{ height: "50px" }}></SplitButton>
                 <Button
+                    rounded
                     icon="pi pi-pause"
-                    label="Pause"
+                    tooltip="Pause"
+                    tooltipOptions={{ position: 'top' }}
                     onClick={pause}
                     className="mr-2"
                     disabled={!playing}
                     style={{ height: "50px", display: "none" }}></Button>
                 <Button
+                    rounded
                     icon="pi pi-stop"
                     id="AudioPlayer:btn-stop"
-                    label="Stop"
+                    tooltip="Stop"
+                    tooltipOptions={{ position: 'top' }}
                     onClick={stop}
                     className="mr-2"
                     disabled={!playing}
                     style={{ height: "50px", display: "none" }}></Button>
                 <Button
+                    rounded
                     icon="pi pi-arrows-h"
-                    label="Play Zoomed"
+                    tooltip="Play Zoomed"
+                    tooltipOptions={{ position: 'top' }}
                     onClick={playZoomedInterval}
-                    className="mr-2"
+                    className="mr-8"
                     disabled={playing}
                     style={{ height: "50px", display: "none" }}></Button>
+                <Button
+                    rounded
+                    tooltip="Volume"
+                    tooltipOptions={{ position: 'top' }}
+                    style={{ height: "50px", width: "200px"}}>
+                    <i className="pi pi-volume-down mr-4" style={{ fontSize: "1.0rem" }}></i>
+                    <Slider value={volume} onChange={(e) => setVolume(e.value)} className="" min={0} max={100} style={{ width: "100%" }}></Slider>
+                    <i className="pi pi-volume-up ml-4" style={{ fontSize: "1.2rem" }}></i>
+                </Button>
+
             </React.Fragment>
         )
     }

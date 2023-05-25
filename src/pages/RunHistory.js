@@ -45,8 +45,20 @@ export const RunHistory = (props) => {
 
     const startContent = (
         <React.Fragment>
-            <Button icon="pi" className="mr-2" onClick={execute}>Execute</Button>
-            <Button icon="pi" className="mr-2" onClick={analyse}>Analyse</Button>
+            <Button
+                rounded
+                icon="pi pi-cog"
+                tooltip="Execute"
+                tooltipOptions={{ position: 'top' }}
+                className="mr-2"
+                onClick={execute}></Button>
+            <Button
+                rounded
+                icon="pi pi-chart-bar"
+                tooltip="Analyse"
+                tooltipOptions={{ position: 'top' }}
+                className="mr-2"
+                onClick={analyse}></Button>
 
             <i className="pi p-toolbar-separator mr-2" />
         </React.Fragment>

@@ -9,6 +9,11 @@ import loadedInitLogic from '../assets/query-builder-init-logic'
 
 import moment from "moment";
 
+import { Toolbar } from 'primereact/toolbar';
+import { Button } from 'primereact/button';
+import { Dropdown } from 'primereact/dropdown';
+import { Tooltip } from 'primereact/tooltip';
+
 const { elasticSearchFormat, queryBuilderFormat, jsonLogicFormat, queryString, _mongodbFormat, _sqlFormat, _spelFormat, getTree, checkTree, loadTree, uuid, loadFromJsonLogic, loadFromSpel, isValidTree } = QbUtils;
 const emptyInitValue = { "id": QbUtils.uuid(), "type": "group" };
 let initValue = loadedInitValue && Object.keys(loadedInitValue).length > 0 ? loadedInitValue : emptyInitValue;
@@ -656,16 +661,23 @@ class RunAwesomeQueryBuilder extends Component {
         config: config
     };
 
-    render = () => (
-        <div>
-            <Query
-                {...config}
-                value={this.state.tree}
-                onChange={this.onChange}
-                renderBuilder={this.renderBuilder}
-            />
-            {this.renderResult(this.state)}
-        </div>
+    onChange = (immutableTree, config) => {
+        // Tip: for better performance you can apply `throttle` - see `examples/demo`
+        this.setState({ tree: immutableTree, config: config });
+
+        const jsonTree = QbUtils.getTree(immutableTree);
+        console.log(jsonTree);
+        // `jsonTree` can be saved to backend, and later loaded to `queryValue`
+    }
+
+    toolbarStartContent = (props) => (
+        <React.Fragment>
+            <Button rounded icon="pi pi-search" tooltip="Search" tooltipOptions={{ position: 'top' }} className="mr-2" onClick={null}></Button>
+            <Button rounded icon="pi pi-bookmark" tooltip="Save filter" tooltipOptions={{ position: 'top' }} className="mr-2" onClick={null}></Button>
+            <Dropdown value={null} onChange={(e) => {}} options={[]} optionLabel="name" 
+                placeholder="Select a saved filter" className="w-full md:w-14rem" />
+            <i className="pi p-toolbar-separator mr-2" />
+        </React.Fragment>
     )
 
     renderBuilder = (props) => (
@@ -683,13 +695,17 @@ class RunAwesomeQueryBuilder extends Component {
         </div>
     )
 
-    onChange = (immutableTree, config) => {
-        // Tip: for better performance you can apply `throttle` - see `examples/demo`
-        this.setState({ tree: immutableTree, config: config });
-
-        const jsonTree = QbUtils.getTree(immutableTree);
-        console.log(jsonTree);
-        // `jsonTree` can be saved to backend, and later loaded to `queryValue`
-    }
+    render = () => (
+        <div>
+            <Query
+                {...config}
+                value={this.state.tree}
+                onChange={this.onChange}
+                renderBuilder={this.renderBuilder}
+            />
+            {this.renderResult(this.state)}
+            <Toolbar start={this.toolbarStartContent} />
+        </div>
+    )
 }
 export default RunAwesomeQueryBuilder;

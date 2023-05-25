@@ -49,8 +49,22 @@ export const RunExecution = (props) => {
 
     const startContent = (
         <React.Fragment>
-            <Button icon="pi" className="mr-2" onClick={execute} disabled={executionInProgress}>Execute</Button>
-            <Button icon="pi" className="mr-2" onClick={analyse} disabled={executionInProgress}>Analyse</Button>
+            <Button
+                rounded
+                icon="pi pi-cog"
+                tooltip="Execute"
+                tooltipOptions={{ position: 'top' }}
+                className="mr-2"
+                onClick={execute}
+                disabled={executionInProgress}></Button>
+            <Button
+                rounded
+                icon="pi pi-chart-bar"
+                tooltip="Analyse"
+                tooltipOptions={{ position: 'top' }}
+                className="mr-2"
+                onClick={analyse}
+                disabled={executionInProgress}></Button>
 
             <i className="pi p-toolbar-separator mr-2" />
         </React.Fragment>

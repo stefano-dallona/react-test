@@ -136,31 +136,35 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
         return (
             <React.Fragment>
                 <SplitButton
+                    rounded
                     icon="pi pi-play"
-                    label="Play"
+                    tooltip="Play"
                     model={getPlayableFilesButtons()}
                     onClick={ () => { play() }}
                     className="mr-2"
                     disabled={playing}
                     style={{height: "50px"}}></SplitButton>
                 <Button
+                    rounded
                     icon="pi pi-pause"
-                    label="Pause"
+                    tooltip="Pause"
                     onClick={pause}
                     className="mr-2"
                     disabled={!playing}
                     style={{height: "50px"}}></Button>
                 <Button
+                    rounded
                     icon="pi pi-stop"
                     id="AudioPlayer:btn-stop"
-                    label="Stop"
+                    tooltip="Stop"
                     onClick={stop}
                     className="mr-2"
                     disabled={!playing}
                     style={{height: "50px"}}></Button>
                 <Button
+                    rounded
                     icon="pi pi-arrows-h"
-                    label="Play Zoomed"
+                    tooltip="Play Zoomed"
                     onClick={playZoomedInterval}
                     className="mr-2"
                     disabled={playing}
