@@ -169,10 +169,30 @@ class Settings extends Component {
 
     getToolBarButtons = () => {
         return (<React.Fragment>
-            <Button label="<&nbsp;Previous" icon="pi" className='mr-2' onClick={this.previousPage}></Button>
-            <Button label="Next >" icon="pi" className='mr-2' onClick={this.nextPage}></Button>
+            <Button
+                rounded
+                icon="pi pi-angle-left"
+                tooltip="Previous"
+                tooltipOptions={{ position: 'top' }}
+                className='mr-2'
+                onClick={this.previousPage}
+                disabled={this.isFirstPage()}></Button>
+            <Button
+                rounded
+                icon="pi pi-angle-right"
+                tooltip="Next"
+                tooltipOptions={{ position: 'top' }}
+                className='mr-2'
+                onClick={this.nextPage}
+                disabled={this.isLastPage()}></Button>
             {this.isLastPage() && (
-                <Button label="Save" icon="pi pi-save" className='mr-2' onClick={this.save}></Button>
+                <Button
+                    rounded
+                    icon="pi pi-save"
+                    tooltip="Save"
+                    tooltipOptions={{ position: 'top' }}
+                    className='mr-2'
+                    onClick={this.save}></Button>
             )}
         </React.Fragment>
         )

@@ -673,7 +673,7 @@ class RunAwesomeQueryBuilder extends Component {
     toolbarStartContent = (props) => (
         <React.Fragment>
             <Button rounded icon="pi pi-search" tooltip="Search" tooltipOptions={{ position: 'top' }} className="mr-2" onClick={null}></Button>
-            <Button rounded icon="pi pi-bookmark" tooltip="Save filter" tooltipOptions={{ position: 'top' }} className="mr-2" onClick={null}></Button>
+            <Button rounded icon="pi pi-bookmark" tooltip="Save Filter" tooltipOptions={{ position: 'top' }} className="mr-2" onClick={null}></Button>
             <Dropdown value={null} onChange={(e) => {}} options={[]} optionLabel="name" 
                 placeholder="Select a saved filter" className="w-full md:w-14rem" />
             <i className="pi p-toolbar-separator mr-2" />

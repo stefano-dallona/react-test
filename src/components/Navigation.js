@@ -40,6 +40,12 @@ const Navigation = () => {
     const end = <>
         <Button
             rounded
+            tooltip="User Profile"
+            tooltipOptions={{ position: 'top' }}
+            icon="pi pi-user"
+            className="mr-2"></Button>
+        <Button
+            rounded
             tooltip="Notifications"
             tooltipOptions={{ position: 'top' }}
             icon="pi pi-bell"
@@ -53,7 +59,7 @@ const Navigation = () => {
             rounded
             tooltip="Log out"
             tooltipOptions={{ position: 'top' }}
-            icon="pi pi-sign-out"
+            icon="pi pi-fw pi-power-off"
             className="mr-2"></Button>
     </>
 

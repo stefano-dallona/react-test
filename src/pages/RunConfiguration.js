@@ -7,6 +7,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { trackPromise } from 'react-promise-tracker';
 
 import Settings from '../components/Settings';
+import '../css/picklist.css';
 
 
 export const RunConfiguration = (props) => {
