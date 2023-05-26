@@ -13,8 +13,7 @@ class RunList extends Component {
     constructor(props) {
         super(props);
 
-        this.baseUrl = 'http://localhost:5000'
-        this.configurationService = new ConfigurationService(this.baseUrl)
+        this.servicesContainer = props.servicesContainer
 
         this.state = {
             data: [],
@@ -50,7 +49,7 @@ class RunList extends Component {
     }
 
     async loadData() {
-        let data = await trackPromise(this.configurationService.findAllRuns());
+        let data = await trackPromise(this.servicesContainer.configurationService.findAllRuns());
         data.forEach((row) => { row.input_files = row.selected_input_files.join(",") })
         this.setData(data);
     }

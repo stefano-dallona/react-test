@@ -13,8 +13,6 @@ import { SplitButton } from 'primereact/splitbutton';
 import { Dropdown } from 'primereact/dropdown';
 import { Dialog } from 'primereact/dialog'
 
-import { ConfigurationService } from '../services/testbench-configuration-service';
-import { AnalysisService } from '../services/testbench-analysis-service';
 import { BufferLoader } from '../audio/bufferloader';
 import { trackPromise } from 'react-promise-tracker';
 
@@ -25,7 +23,6 @@ import { MetricsVisualizer } from './MetricsVisualizer';
 import { CirclePicker, CompactPicker, SwatchesPicker, TwitterPicker } from 'react-color';
 
 import BrushZoomState from '../audio/brush-zoom'
-
 
 var wavesUI = require('waves-ui');
 
@@ -52,9 +49,7 @@ class Waveforms extends Component {
         this.inputFiles = []
         this.waveformTrackId = 'waveform'
 
-        let baseUrl = "http://localhost:5000"
-        this.configurationService = new ConfigurationService(baseUrl)
-        this.analysisService = new AnalysisService(baseUrl)
+        this.servicesContainer = props.servicesContainer
 
         this.segmentEventHandler = props.segmentEventHandler
 
@@ -295,12 +290,12 @@ class Waveforms extends Component {
     }
 
     async loadInputFiles() {
-        let run = await trackPromise(this.configurationService.getRun(this.state.runId));
+        let run = await trackPromise(this.servicesContainer.configurationService.getRun(this.state.runId));
         this.inputFiles = run.selected_input_files
     }
 
     async loadHierarchy() {
-        this.hierarchy = await trackPromise(this.configurationService.getRunHierarchy(this.state.runId, this.state.filename));
+        this.hierarchy = await trackPromise(this.servicesContainer.configurationService.getRunHierarchy(this.state.runId, this.state.filename));
     }
 
     async loadBuffers(channel = 0, offset = 0, numSamples = -1) {
@@ -308,7 +303,7 @@ class Waveforms extends Component {
             let bufferLoader = new BufferLoader(
                 this.audioContext,
                 this.audioFiles.map((file) => {
-                    return `${this.configurationService.baseUrl}/analysis/runs/${this.state.runId}/input-files/${file.uuid}/output-files/${file.uuid}`
+                    return `${this.servicesContainer.baseUrl}/analysis/runs/${this.state.runId}/input-files/${file.uuid}/output-files/${file.uuid}`
                 }),
                 this.setBuffersList.bind(this)
             );
@@ -386,14 +381,14 @@ class Waveforms extends Component {
                 let $track = this.waveuiEl;
                 let maxSlices = (this.loadOnlyZoomedSection) ? Math.ceil($track.getBoundingClientRect().width) : -1;
                 let unitOfMeas = "samples"
-                return this.analysisService.fetchWaveform(this.state.runId, file.uuid, file.uuid, channel, offset, numSamples, unitOfMeas, maxSlices)
+                return this.servicesContainer.analysisService.fetchWaveform(this.state.runId, file.uuid, file.uuid, channel, offset, numSamples, unitOfMeas, maxSlices)
             })))
         } else {
             for (const file of this.audioFiles) {
                 let $track = this.waveuiEl;
                 let maxSlices = (this.loadOnlyZoomedSection) ? Math.ceil($track.getBoundingClientRect().width) : -1;
                 let unitOfMeas = "samples"
-                let waveform = await trackPromise(this.analysisService.fetchWaveform(this.state.runId, file.uuid, file.uuid, channel, offset, numSamples, unitOfMeas, maxSlices))
+                let waveform = await trackPromise(this.servicesContainer.analysisService.fetchWaveform(this.state.runId, file.uuid, file.uuid, channel, offset, numSamples, unitOfMeas, maxSlices))
                 waveforms.push(waveform)
             }
         }
@@ -425,7 +420,7 @@ class Waveforms extends Component {
     async loadLossSimulation() {
         let lossSimulationFiles = this.findLossFiles(this.hierarchy);
         this.lossSimulations = await trackPromise(Promise.all(lossSimulationFiles.map(async (file) => {
-            return await this.analysisService.fetchLostSamples(this.state.runId,
+            return await this.servicesContainer.analysisService.fetchLostSamples(this.state.runId,
                 this.hierarchy.uuid, file.uuid, "seconds")
         })));
         this.setLossSimulationFiles(lossSimulationFiles);
@@ -787,7 +782,9 @@ class Waveforms extends Component {
                         <Toolbar start={startContent} end={endContent} />
                     )}
                     {this.state.buffersListReady && (
-                        <AudioPlayer ref={this.audioPlayerOnZoomOut}
+                        <AudioPlayer
+                            servicesContainer={this.servicesContainer}
+                            ref={this.audioPlayerOnZoomOut}
                             runId={this.state.runId}
                             audioFiles={this.audioFiles}
                             buffersList={this.buffersList}
@@ -797,14 +794,14 @@ class Waveforms extends Component {
                 </AccordionTab>
                 <AccordionTab header="Samples">
                     {this.waveuiEl && this.state.lossSimulationsReady && this.state.buffersListReady && (
-                        <SamplesVisualizer ref={this.samplesVisualizer} runId={this.props.runId} />
+                        <SamplesVisualizer servicesContainer={this.servicesContainer} ref={this.samplesVisualizer} runId={this.props.runId} />
                     )}
                 </AccordionTab>
                 <AccordionTab header="Metrics">
-                    <MetricsVisualizer></MetricsVisualizer>
+                    <MetricsVisualizer servicesContainer={this.servicesContainer} ></MetricsVisualizer>
                 </AccordionTab>
                 <AccordionTab header="Spectrogram">
-                    <Spectrogram ref={this.spectrogram} runId={this.state.runId} filename={this.state.filename}></Spectrogram>
+                    <Spectrogram servicesContainer={this.servicesContainer} ref={this.spectrogram} runId={this.state.runId} filename={this.state.filename}></Spectrogram>
                 </AccordionTab>
             </Accordion>
         )

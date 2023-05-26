@@ -10,8 +10,8 @@ export default class Spectrogram extends React.Component {
 
         this.wavesurfer = React.createRef()
 
-        let baseUrl = "http://localhost:5000"
-        this.configurationService = new ConfigurationService(baseUrl)
+        this.servicesContainer = props.servicesContainer
+
         this.hierarchy = null
 
         this.state = {
@@ -66,9 +66,9 @@ export default class Spectrogram extends React.Component {
     }
 
     async loadHierarchy() {
-        this.hierarchy = await this.configurationService.getRunHierarchy(this.state.runId, this.state.filename);
+        this.hierarchy = await this.servicesContainer.configurationService.getRunHierarchy(this.state.runId, this.state.filename);
         this.setState({
-            audioFile: `${this.configurationService.baseUrl}/analysis/runs/${this.state.runId}/input-files/${this.hierarchy.uuid}/output-files/${this.hierarchy.uuid}`
+            audioFile: `${this.servicesContainer.baseUrl}/analysis/runs/${this.state.runId}/input-files/${this.hierarchy.uuid}/output-files/${this.hierarchy.uuid}`
         }, this.resize.bind(this))
     }
 

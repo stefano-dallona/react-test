@@ -13,9 +13,7 @@ class SamplesVisualizer extends Component {
 
         this.runId = props.runId || ""
 
-        let baseUrl = "http://localhost:5000"
-        this.configurationService = new ConfigurationService(baseUrl)
-        this.analysisService = new AnalysisService(baseUrl)
+        this.servicesContainer = props.servicesContainer
 
         this.state = {
             isReady: false
@@ -31,7 +29,7 @@ class SamplesVisualizer extends Component {
         const startat = offset - numsamples
         const nsamples = 3 * numsamples
         let samples = await trackPromise(Promise.all(audioFiles.map(async (file) => {
-            return await this.analysisService.fetchSamplesFromFile(this.runId, audioFiles.uuid, file.uuid, channel, startat, nsamples, unitOfMeas)
+            return await this.servicesContainer.analysisService.fetchSamplesFromFile(this.runId, audioFiles.uuid, file.uuid, channel, startat, nsamples, unitOfMeas)
         })));
         this.audioFiles = audioFiles;
         this.samples = samples;

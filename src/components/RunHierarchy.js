@@ -33,8 +33,7 @@ class RunHierarchy extends Component {
     constructor(props) {
         super(props);
 
-        let baseUrl = "http://localhost:5000"
-        this.configurationService = new ConfigurationService(baseUrl)
+        this.servicesContainer = props.servicesContainer
 
         this.progressBarRefs = new Map()
 
@@ -58,7 +57,7 @@ class RunHierarchy extends Component {
     }
 
     async loadData() {
-        this.hierarchy = await trackPromise(this.configurationService.getRunHierarchy(this.state.runId, this.state.filename));
+        this.hierarchy = await trackPromise(this.servicesContainer.configurationService.getRunHierarchy(this.state.runId, this.state.filename));
         let data = [this.hierarchy]
         let [nodes, links] = this.generateTree(data)
         this.nodes = nodes
@@ -130,13 +129,13 @@ class RunHierarchy extends Component {
 
             if (message.nodetype == "RunExecution" && message.nodeid == this.state.runId) {
                 this.resetProgressBars(100)
-                this.configurationService.stopListeningForExecutionEvents();
+                this.servicesContainer.configurationService.stopListeningForExecutionEvents();
                 this.onExecutionCompleted(this.state.runId)
             }
             if (message.nodetype == "PLCTestbench") {
                 this.updateProgress(message.nodeid, message.currentPercentage)
                 localStorage.setItem(message.nodeid, message.currentPercentage)
-                let run = await this.configurationService.getRun(this.state.runId)
+                let run = await this.servicesContainer.configurationService.getRun(this.state.runId)
                 let selectedInputFiles = run.selected_input_files
                 let newFileIndex = Math.min(selectedInputFiles.length - 1, Math.ceil(selectedInputFiles.length * (message.currentPercentage / 100.0)))
                 if (this.state.filename != selectedInputFiles[newFileIndex]) {
@@ -144,7 +143,7 @@ class RunHierarchy extends Component {
                 }
             }
         }
-        this.configurationService.startListeningForExecutionEvents(this.state.runId, this.state.runId, progressCallback.bind(this))
+        this.servicesContainer.configurationService.startListeningForExecutionEvents(this.state.runId, this.state.runId, progressCallback.bind(this))
     }
 
     executionCompletedDefaultHandler() {

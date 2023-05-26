@@ -669,8 +669,6 @@ class RunAwesomeQueryBuilder extends Component {
         };
     }
 
-
-
     onChange = (immutableTree, config) => {
         // Tip: for better performance you can apply `throttle` - see `examples/demo`
         this.setState({ tree: immutableTree, config: config });
@@ -688,7 +686,7 @@ class RunAwesomeQueryBuilder extends Component {
                 tooltip="Search"
                 tooltipOptions={{ position: 'top' }}
                 className="mr-2"
-                onClick={() => { this.searchHandler(JSON.stringify(QbUtils.mongodbFormat(this.state.tree, config))) }}></Button>
+                onClick={() => { this.searchHandler(this.getMongoDbQuery(this.state.tree)) }}></Button>
             <Button
                 rounded
                 icon="pi pi-bookmark"
@@ -715,10 +713,22 @@ class RunAwesomeQueryBuilder extends Component {
         </div>
     )
 
+    getMongoDbQuery = (tree) => {
+        return this.queryPostProcessing(JSON.stringify(QbUtils.mongodbFormat(tree, config)))
+    }
+
+    queryPostProcessing = (queryString) => {
+        let modifiedQueryString = queryString
+            .replace(/\{"([^"_]+)_Settings\.([^"]+)"/gm, "{\"worker\":\"$1\",\"$2\"")
+            .replace("_", ".")
+        // \{"([^"_]+)_Settings\.([^"]+)"  => {"worker":"\1","\2"
+        return modifiedQueryString
+    }
+
     renderResult = ({ tree: immutableTree, config }) => (
         false && (
             <div className="query-builder-result">
-                <div>MongoDb query: <pre>{JSON.stringify(QbUtils.mongodbFormat(immutableTree, config))}</pre></div>
+                <div>MongoDb query: <pre>{this.getMongoDbQuery(immutableTree)}</pre></div>
                 <div>Tree: <pre>{JSON.stringify(QbUtils.getTree(immutableTree))}</pre></div>
             </div>
         )

@@ -32,11 +32,12 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
     const cursorAnimationRef = useRef(null)
     const playingZoomedSectionRef = useRef(false)
     const secretKey = "1234"
+    const wsUrl = props.servicesContainer.baseUrl
 
 
     //https://www.kianmusser.com/articles/react-where-put-websocket/
     useEffect(() => {
-        socketRef.current = socketClient(props.wsUrl || "http://localhost:5000", {
+        socketRef.current = socketClient(wsUrl, {
             transports: ["websocket", "polling"]
             //transports: ["polling", "websocket"]
         });

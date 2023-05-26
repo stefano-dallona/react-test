@@ -10,7 +10,6 @@ import InputFilesSelector from './InputFilesSelector';
 import WorkersSettings from './WorkersSettings';
 
 //import defaultSettings from '../assets/settings.json';
-import { ConfigurationService } from '../services/testbench-configuration-service';
 
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -25,8 +24,7 @@ class Settings extends Component {
 
         this.execute = props.execute
 
-        let baseUrl = "http://localhost:5000"
-        this.configurationService = new ConfigurationService(baseUrl)
+        this.servicesContainer = props.servicesContainer
 
         this.paged = props.paged || true
 
@@ -44,7 +42,7 @@ class Settings extends Component {
     }
 
     async componentDidMount() {
-        this.defaultSettings = await this.configurationService.getSettingsMetadata()
+        this.defaultSettings = await this.servicesContainer.configurationService.getSettingsMetadata()
     }
 
     setCurrentPage(currentPage) {
@@ -152,7 +150,7 @@ class Settings extends Component {
     save = async () => {
         let [success, errors] = this.storeSettings()
         if (success) {
-            this.runId = await this.configurationService.saveRunConfiguration(this.storedSettings.flatMap((item) => item))
+            this.runId = await this.servicesContainer.configurationService.saveRunConfiguration(this.storedSettings.flatMap((item) => item))
             let details = "" //JSON.stringify(this.storedSettings)
             this.toast.current.show({ severity: 'info', summary: `Run configuration saved!\nUUID:${this.runId}`, detail: details });
             if (this.execute) {
@@ -217,7 +215,7 @@ class Settings extends Component {
                 <Toast ref={this.toast} />
                 {(!this.paged || this.state.currentPage == 0) && (
                     <Panel header={this.paged ? this.getProgress() : null} toggleable={this.toggleable} >
-                        <InputFilesSelector ref={this.inputFilesSelector}></InputFilesSelector>
+                        <InputFilesSelector servicesContainer={this.servicesContainer} ref={this.inputFilesSelector}></InputFilesSelector>
                     </Panel>
                 )}
                 {this.pages.slice(1).filter((workerType, index) => !this.paged || this.state.currentPage == index + 1).map((workerType) => {

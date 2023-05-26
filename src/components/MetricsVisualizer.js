@@ -7,6 +7,8 @@ import { Panel } from 'primereact/panel'
 import { ConfigurationService } from '../services/testbench-configuration-service';
 import { AnalysisService } from '../services/testbench-analysis-service';
 
+import { useContainer } from "../components/ServicesContextProvider"
+
 var d3 = require('d3v3');
 
 //https://d3-graph-gallery.com/graph/barplot_grouped_basicWide.html
@@ -16,11 +18,11 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
     let [metrics, setMetrics] = useState([])
     let [chartOptions, setChartOptions] = useState({})
     let [colorsMap, setColorsMap] = useState(new Map())
+    let servicesContainer = useContainer()
 
     useEffect(() => {
-        let baseUrl = "http://localhost:5000"
         /*
-        new AnalysisService(baseUrl).fetchMetricsFromFile().then((metrics) => {
+        servicesContainer.analysisService.fetchMetricsFromFile().then((metrics) => {
             setMetrics(metrics)
         })
         */

@@ -9,6 +9,10 @@
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
+    "@types/jest": "^29.5.1",
+    "@types/node": "^20.2.4",
+    "@types/react": "^17.0.60",
+    "@types/react-dom": "^18.2.4",
     "bootstrap": "^5.2.3",
     "bootstrap-icons": "^1.10.5",
     "chart.js": "^4.2.1",
@@ -33,6 +37,7 @@
     "react-transition-group": "^4.4.5",
     "sass": "^1.62.1",
     "socket.io-client": "^4.6.1",
+    "typescript": "^5.0.4",
     "waves-audio": "github:wavesjs/waves-audio",
     "waves-ui": "github:wavesjs/waves-ui",
     "web-vitals": "^2.1.4"

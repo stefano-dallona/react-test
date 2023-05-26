@@ -2,34 +2,32 @@ import "primereact/resources/primereact.min.css";
 import "primeicons/primeicons.css";
 import 'primeflex/primeflex.css';
 
-import React, { Component } from 'react';
+import React from 'react';
 
 import { Panel } from 'primereact/panel';
 import { Toolbar } from 'primereact/toolbar';
 import { Button } from 'primereact/button';
 
 import RunList from '../components/RunList';
-import withNavigation from "../components/withNavigation";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useRef } from "react";
 
-import { RunQueryBuilder } from '../components/RunQueryBuilder'
 import RunAwesomeQueryBuilder from '../components/RunAwesomeQueryBuilder'
+import { useContainer } from "../components/ServicesContextProvider"
 
-import { ConfigurationService } from '../services/testbench-configuration-service'
+import '../css/querybuilder.css';
 
 export const RunHistory = (props) => {
     let navigate = useNavigate()
     let location = useLocation()
     let runList = useRef()
+    let servicesContainer = useContainer()
 
     const search = async (queryString) => {
         console.log(`queryString:${queryString}`)
-        let baseUrl = "http://localhost:5000"
-        let configurationService = new ConfigurationService(baseUrl)
         let projection = { "_id": 1 }
         let pagination = {page: 0, pageSize: 10}
-        let runs = await configurationService.findRunsByFilter(queryString, projection, pagination)
+        let runs = await servicesContainer.configurationService.findRunsByFilter(queryString, projection, pagination)
         return runs
     }
 
@@ -93,7 +91,7 @@ export const RunHistory = (props) => {
                     loadSavedFiltersHandler={loadSavedFilters}/>
             </Panel>
             <Panel header="Run List">
-                <RunList ref={runList} parentChangeHandler={onChange}></RunList>
+                <RunList servicesContainer={servicesContainer} ref={runList} parentChangeHandler={onChange}></RunList>
             </Panel>
             {(!location.state || !location.state.nextPage) && (
                 <Toolbar start={startContent} />
