@@ -74,3 +74,6 @@ https://www.notion.so/Introduction-9f133eeef32d4a4f9220cd6d6feaaef7
 
 # Nice architectural example
 https://martinfowler.com/articles/modularizing-react-apps.html
+
+# Enable typescript on existing project
+npm install --save --force typescript @types/node @types/react @types/react-dom @types/jest
