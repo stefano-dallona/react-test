@@ -2,7 +2,7 @@ import { AnalysisService } from "./testbench-analysis-service";
 import { ConfigurationService } from "./testbench-configuration-service";
 
 
-let baseUrl = "http://localhost:5000"
+let baseUrl = "https://localhost:5000"
 
 export const container = {
   baseUrl: baseUrl,

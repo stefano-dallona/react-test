@@ -77,3 +77,13 @@ https://martinfowler.com/articles/modularizing-react-apps.html
 
 # Enable typescript on existing project
 npm install --save --force typescript @types/node @types/react @types/react-dom @types/jest
+
+# React Google login
+https://blog.logrocket.com/guide-adding-google-login-react-app/
+
+# Starting with HTTPS
+SSL_CRT_FILE=<path-to-crt-file>
+SSL_KEY_FILE=<path-to-key-file>
+set HTTPS=true && npm start
+($env:HTTPS = "true") -and (npm start)
+HTTPS=true npm start

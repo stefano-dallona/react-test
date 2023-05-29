@@ -15,8 +15,10 @@ export class ConfigurationService {
     }
 
     async findAllRuns(pagination={page: 0, pageSize: -1}) {
-        let requestUrl = `${this.baseUrl}/runs?${pagination}`
-        let response = await fetch(requestUrl)
+        let requestUrl = `${this.baseUrl}/runs?page=${pagination.page}&page_size=${pagination.pageSize}`
+        let response = await fetch(requestUrl, {
+            headers: { 'Authorization': `${localStorage.getItem('jwt_token')}` }
+        })
         let runs = await response.json()
         return runs
     }
