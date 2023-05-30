@@ -106,12 +106,24 @@ const Navigation = (props) => {
                 <GoogleLogin size='small' width='20' type='icon' shape='circle' theme='filled_blue' onSuccess={responseMessage} onError={errorMessage} />
             </Button>
         )}
-        <Button
-            rounded
-            tooltip={getCurrentUser()["name"] + "\n User Profile "}
-            tooltipOptions={{ position: 'top' }}
-            icon="pi pi-user"
-            className="mr-2"></Button>
+        {localStorage.getItem('user') && (
+            <Button
+                rounded
+                tooltip={getCurrentUser()["name"] + "\n User Profile "}
+                tooltipOptions={{ position: 'top' }}
+                className="mr-2"
+                style={{ padding: 0, borderRadius: "50%" }}>
+                <img
+                    rounded
+                    className='custom-target-icon'
+                    size='small'
+                    alt={localStorage.getItem('user').picture}
+                    style={{ height: 37, borderRadius: "50%" }}
+                    src={JSON.parse(localStorage.getItem('user')).picture}
+                    onClick={() => { window.location.href = '/userprofile' }}
+                />
+            </Button>
+        )}
         <Button
             rounded
             tooltip="Notifications"

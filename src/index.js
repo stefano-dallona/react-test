@@ -14,6 +14,7 @@ import { RunHistory } from './pages/RunHistory';
 import { RunConfiguration } from './pages/RunConfiguration';
 import { RunExecution } from './pages/RunExecution';
 import { RunAnalysis } from './pages/RunAnalysis';
+import { UserProfile } from './pages/UserProfile';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
@@ -27,6 +28,7 @@ root.render(
           <Route path='/run/:runId/execution' element={<RunExecution />} />
           <Route path='/run/analysis' element={<RunAnalysis />} />
           <Route path='/run/:runId/analysis' element={<RunAnalysis />} />
+          <Route path='/userprofile' element={<UserProfile />} />
         </Routes>
       </BrowserRouter>
   </GoogleOAuthProvider>
