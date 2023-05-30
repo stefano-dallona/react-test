@@ -38,6 +38,7 @@ function App() {
 
   useEffect(() => {
     testConnectivity()
+    window.globalToast = toast
   })
 
 

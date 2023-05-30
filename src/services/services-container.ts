@@ -40,6 +40,10 @@ class AxiosClient {
           if (window.document.location.href != baseUrl.replace("5000", "3000") + "/") {
             window.document.location.href = baseUrl.replace("5000", "3000")
           }
+        } else {
+          if (window["globalToast"]) {
+            window["globalToast"].current.show({ severity: "error", summary: error.message, detail: "" });
+          }
         }
       }
     )
@@ -66,41 +70,6 @@ class AxiosClient {
 const createAxiosClient = (options = {}) => {
   return new AxiosClient(options);
 }
-/*
-const createAxiosClient = (options = {}) => {
-  const client = axios.create(options);
-
-  client.interceptors.request.use(
-    (config) => {
-      let jwt_token = localStorage.getItem("jwt_token")
-      if (jwt_token) {
-        config.headers.Authorization = jwt_token;
-      }
-      return config;
-    },
-    (error) => {
-      return Promise.reject(error);
-    }
-  );
-
-  client.interceptors.response.use(
-    (response) => {
-      // Any status code that lie within the range of 2xx cause this function to trigger
-      // Do something with response data
-      return response;
-    },
-    (error) => {
-      if (error.response?.status === 401) {
-        if (window.document.location.href != baseUrl.replace("5000", "3000") + "/") {
-          window.document.location.href = baseUrl.replace("5000", "3000")
-        }
-      }
-    }
-  )
-
-  return client
-}
-*/
 export const container = {
   baseUrl: baseUrl,
   testConnectivity: async () => {

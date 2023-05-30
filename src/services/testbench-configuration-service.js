@@ -19,15 +19,15 @@ export class ConfigurationService {
 
     async findAllRuns(pagination={page: 0, pageSize: -1}) {
         let requestUrl = `${this.baseUrl}/runs?page=${pagination.page}&page_size=${pagination.pageSize}`
-        
+        /*
         let response = await fetch(requestUrl, {
             headers: localStorage.getItem('jwt_token') ? { 'Authorization': `${localStorage.getItem('jwt_token')}` } : {}
         })
         let runs = await response.json()
-        /*
+        */
         let response = await this.axiosClient.get(requestUrl);
         let runs = response.data
-        */
+        
         return runs
     }
 
