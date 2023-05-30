@@ -1,18 +1,29 @@
 export class AnalysisService {
 
-    constructor(baseUrl) {
+    constructor(baseUrl, axiosClient) {
         this.baseUrl = baseUrl;
+        this.axiosClient = axiosClient
     }
 
     async fetchLostSamples(run_id, original_file_node_id, loss_simulation_node_id, unit_of_meas) {
-        const lostPacketsResponse = await fetch(`${this.baseUrl}/analysis/runs/${run_id}/input-files/${original_file_node_id}/loss-simulations/${loss_simulation_node_id}?unit_of_meas=${unit_of_meas}`);
-        const lostPacketsJson = await lostPacketsResponse.json();
+        let requestUrl = `${this.baseUrl}/analysis/runs/${run_id}/input-files/${original_file_node_id}/loss-simulations/${loss_simulation_node_id}?unit_of_meas=${unit_of_meas}`
+        /*
+        const response = await fetch(requestUrl);
+        const lostPacketsJson = await response.json();
+        */
+        let response = await this.axiosClient.get(requestUrl)
+        let lostPacketsJson = response.data
         return lostPacketsJson;
     }
 
     async fetchWaveform(run_id, original_file_node_id, audio_file_node_id, channel, offset, num_samples, unit_of_meas, max_slices) {
-        const waveformResponse = await fetch(`${this.baseUrl}/analysis/runs/${run_id}/input-files/${original_file_node_id}/output-files/${audio_file_node_id}/waveform?channel=${channel}&offset=${offset}&num_samples=${num_samples}&unit_of_meas=${unit_of_meas}&max_slices=${max_slices}`);
-        const waveform = await waveformResponse.json();
+        let requestUrl = `${this.baseUrl}/analysis/runs/${run_id}/input-files/${original_file_node_id}/output-files/${audio_file_node_id}/waveform?channel=${channel}&offset=${offset}&num_samples=${num_samples}&unit_of_meas=${unit_of_meas}&max_slices=${max_slices}`
+        /*
+        const response = await fetch(requestUrl);
+        const waveform = await response.json();
+        */
+        let response = await this.axiosClient.get(requestUrl)
+        let waveform = response.data
         return {
             uuid: waveform.uuid,
             duration: waveform.duration,
@@ -30,14 +41,24 @@ export class AnalysisService {
     }
 
     async fetchSamplesFromFile(run_id, original_file_node_id, audio_file_node_id, channel, offset, num_samples, unit_of_meas) {
-        const samplesResponse = await fetch(`${this.baseUrl}/analysis/runs/${run_id}/input-files/${original_file_node_id}/output-files/${audio_file_node_id}/samples?channel=${channel}&offset=${offset}&num_samples=${num_samples}&unit_of_meas=${unit_of_meas}`);
+        let requestUrl = `${this.baseUrl}/analysis/runs/${run_id}/input-files/${original_file_node_id}/output-files/${audio_file_node_id}/samples?channel=${channel}&offset=${offset}&num_samples=${num_samples}&unit_of_meas=${unit_of_meas}`
+        /*
+        const samplesResponse = await fetch(requestUrl);
         const samplesJson = await samplesResponse.json();
+        */
+        let response = await this.axiosClient.get(requestUrl)
+        let samplesJson = response.data
         return samplesJson;
     }
 
     async fetchMetricsFromFile(run_id, original_file_node_id, audio_file_node_id, metric_node_id, channel, offset, num_samples, unit_of_meas) {
-        const metricsResponse = await fetch(`${this.baseUrl}/analysis/runs/${run_id}/input-files/${original_file_node_id}/output-files/${audio_file_node_id}/metrics/${metric_node_id}?channel=${channel}&offset=${offset}&num_samples=${num_samples}&unit_of_meas=${unit_of_meas}`)
+        let requestUrl = `${this.baseUrl}/analysis/runs/${run_id}/input-files/${original_file_node_id}/output-files/${audio_file_node_id}/metrics/${metric_node_id}?channel=${channel}&offset=${offset}&num_samples=${num_samples}&unit_of_meas=${unit_of_meas}`
+        /*
+        const metricsResponse = await fetch(requestUrl)
         const metricsJson = await metricsResponse.json();
+        */
+        let response = await this.axiosClient.get(requestUrl)
+        let metricsJson = response.data
         return metricsJson;
     }
     

@@ -41,7 +41,7 @@ const Navigation = (props) => {
     const logOut = () => {
         googleLogout();
         localStorage.removeItem('user')
-        localStorage.removeItem('token');
+        localStorage.removeItem('jwt_token');
         setProfile(null);
         window.location.href = "/"
     };
