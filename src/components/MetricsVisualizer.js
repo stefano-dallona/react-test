@@ -93,11 +93,11 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
             return servicesContainer.analysisService.fetchMetricsFromFile(runId, metric.parent_id, metric.parent_id, metric.uuid, metricCategory)
         })))
         let samplesNumber = metricsData.map(metric => metric.length)
-        let labels = [...Array(Math.max(...samplesNumber))].map((_, i) => i + 1)
+        let labels = category == "scalar" ? [1] : [...Array(Math.max(...samplesNumber))].map((_, i) => i + 1)
         let result = {}
         result[category] = {
             labels: labels,
-            datasets: metricsData.map((metric, index) => {
+            datasets: (category == "scalar") ? metricsData : metricsData.map((metric, index) => {
                 return {
                     label: metrics[index].path.slice(1).map((e) => e.name).join("-"),
                     backgroundColor: colors[index],
