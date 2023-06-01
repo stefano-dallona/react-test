@@ -56,6 +56,7 @@ class Waveforms extends Component {
         document.addEventListener("keydown", this.onKeyDownHandler.bind(this))
 
         this.selectedLossSimulation = null
+        this.selectedLoss = null
 
         this.state = {
             runId: props.runId || "",
@@ -515,17 +516,23 @@ class Waveforms extends Component {
             let segment = sourceLayer.getItemFromDOMElement(e.target);
             if (!segment) return;
 
-            let datum = sourceLayer.getDatumFromItem(segment);
-            console.log("datum: (x:" + datum.lossstart + ", width:" + datum.losswidth + ")")
+            let selectedLoss = sourceLayer.getDatumFromItem(segment);
+            console.log("selectedLoss: (x:" + selectedLoss.lossstart + ", width:" + selectedLoss.losswidth + ")")
 
             if (eventType == 'mouseover' || eventType == 'mouseout') {
-                datum.opacity = eventType === 'mouseover' ? 1 : 0.8;
+                selectedLoss.opacity = eventType === 'mouseover' ? 1 : 0.8;
                 sourceLayer.updateShapes();
             }
             if (eventType == 'click') {
+                if (this.selectedLoss && this.selectedLoss.color) {
+                    delete this.selectedLoss.color
+                }
+                this.selectedLoss = selectedLoss
+                this.selectedLoss.color = "orange"
+
                 sourceLayer.updateShapes();
-                this.samplesVisualizer.current.fetchSamples(this.audioFiles, this.colors, datum.start_sample, datum.num_samples);
-                if (this.segmentEventHandler) this.segmentEventHandler.apply(null, [datum])
+                this.samplesVisualizer.current.fetchSamples(this.audioFiles, this.colors, selectedLoss.start_sample, selectedLoss.num_samples);
+                if (this.segmentEventHandler) this.segmentEventHandler.apply(null, [selectedLoss])
             }
         }.bind(this)
     }
@@ -601,6 +608,67 @@ class Waveforms extends Component {
         this.waveformTrack.update();
     }
 
+    renderTrack(waveformTrackId) {
+        let $track = this.waveuiEl;
+        let width = $track.getBoundingClientRect().width;
+        let duration = this.buffersList.length > 0 ? this.buffersList[0].duration : 0;
+        let pixelsPerSecond = width / duration;
+        let height = 200;
+
+        if (!this.timeline) {
+            this.timeline = new wavesUI.core.Timeline(pixelsPerSecond, width);
+            //this.timeline.state = new wavesUI.states.BrushZoomState(this.timeline);
+            this.timeline.state = new BrushZoomState(this.timeline,
+                this.buffersList[0].sampleRate,
+                this.downsamplingEnabled ? async (channel, offset, numSamples) => {
+                    let waveformsData = await this.fetchWaveforms.bind(this)(channel, offset, numSamples)
+                    this.updateWaveforms(channel, waveformsData)
+                } : null
+            );
+            this.timeline.on('event', this.handleSegmentEvent().bind(this));
+        }
+
+        if (!this.waveformTrack && this.timeline) {
+            this.waveformTrack = this.timeline.createTrack($track, height, this.waveformTrackId);
+            this.waveformTrack.render();
+        }
+        
+        this.lossSimulations
+            .filter((lossSimulation, index) => this.layersMap.get(this.lossSimulationFiles[index]) == null)
+            .map((lossSimulation, index) => {
+                let lossSimulationLayer = new wavesUI.helpers.SegmentLayer(lossSimulation.lost_intervals, {
+                    height: 200,
+                    displayHandlers: false,
+                });
+                return lossSimulationLayer
+            }).forEach((lossSimulationLayer, index) => {
+                this.timeline.addLayer(lossSimulationLayer, this.waveformTrackId);
+                this.layersMap.set(this.lossSimulationFiles[index], lossSimulationLayer);
+            })
+
+        this.buffersList
+            .map((buffer, index) => {
+                let waveformLayer = new wavesUI.helpers.WaveformLayer(buffer, {
+                    height: 200,
+                    color: this.colors[index]
+                });
+                return waveformLayer
+            }).forEach((waveformLayer, index) => {
+                if (!this.layersMap.get(this.audioFiles[index])) {
+                    this.timeline.addLayer(waveformLayer, this.waveformTrackId);
+                    this.layersMap.set(this.audioFiles[index], waveformLayer);
+                }
+            });
+
+
+        if (!this.cursorLayer) {
+            this.cursorLayer = new wavesUI.helpers.CursorLayer({
+                height: height
+            });
+            this.timeline.addLayer(this.cursorLayer, this.waveformTrackId);
+        }
+    }
+
     renderAll(waveformTrackId) {
         this.renderWaveforms(waveformTrackId);
         this.renderLossSimulations(waveformTrackId)
@@ -632,6 +700,12 @@ class Waveforms extends Component {
                 <div>{option.name}</div>
             </div>
         );
+    }
+
+    setWaveformRef(c) {
+        if (c) {
+            this.waveuiEl = c;
+        }
     }
 
     showColorPicker() {
@@ -735,8 +809,12 @@ class Waveforms extends Component {
         );
 
         return (
-            <Accordion multiple activeIndex={[0, 1, 2]}>
-                <AccordionTab header="Waveform">
+            <Accordion multiple
+                activeIndex={[0, 1, 2]}
+                onTabClose={(e) => {if (e.index == 0) { this.clearWaveforms.bind(this)(); this.clearTrack.bind(this)(); }}}
+                onTabOpen={(e) => {if (e.index == 0) { setTimeout(this.renderTrack.bind(this), 1000) } else if (e.index == 1) {setTimeout(() => {this.samplesVisualizer.current.fetchSamples(this.audioFiles, this.colors, this.selectedLoss.start_sample, this.selectedLoss.num_samples)}, 1000)}}}
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                <AccordionTab header="Waveform" >
                     <div className="card flex flex-wrap gap-3 p-fluid mb-6">
                         <div id="pnl-selectedAudioFile" className="flex-auto">
                             <label htmlFor='selectedAudioFile' className="font-bold block ml-2 mb-2" style={{ color: 'white' }}>Audio File</label>
@@ -799,9 +877,7 @@ class Waveforms extends Component {
 
                     </div>
                     <div id="runWaveforms"
-                        ref={(c) => {
-                            this.waveuiEl = c;
-                        }}
+                        ref={this.setWaveformRef.bind(this)}
                         className="block mb-2 mr-4"
                         style={{ height: "250px" }}>
                         {this.waveuiEl && this.state.lossSimulationsReady && this.state.buffersListReady && this.renderAll(this.waveformTrackId)}
