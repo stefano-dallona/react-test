@@ -507,32 +507,53 @@ class Waveforms extends Component {
     }
 
     handleSegmentEvent() {
-        return function (e) {
-            let eventType = e.type;
 
+        const findSegmentAndLayerByEvent = (e) => {
             let segmentLayers = Array.from(this.layersMap).filter(([name, value]) => value instanceof wavesUI.helpers.SegmentLayer).map(([name, value]) => value)
             let sourceLayer = segmentLayers.find((layer) => layer.getItemFromDOMElement(e.target))
-            if (!sourceLayer) return;
+            if (!sourceLayer) return { "segment": null, "sourceLayer": null }
             let segment = sourceLayer.getItemFromDOMElement(e.target);
-            if (!segment) return;
+            return { "segment": segment, "sourceLayer": sourceLayer }
+        }
+        
+        const highlightSelectedSegment = (selectedLoss) => {
+            if (this.selectedLoss && this.selectedLoss.color) {
+                delete this.selectedLoss.color
+            }
+            this.selectedLoss = selectedLoss
+            this.selectedLoss.color = "orange"
+        }
 
-            let selectedLoss = sourceLayer.getDatumFromItem(segment);
-            console.log("selectedLoss: (x:" + selectedLoss.lossstart + ", width:" + selectedLoss.losswidth + ")")
-
+        const handleSegmentOvering = (eventType, selectedLoss, sourceLayer) => {
             if (eventType == 'mouseover' || eventType == 'mouseout') {
                 selectedLoss.opacity = eventType === 'mouseover' ? 1 : 0.8;
                 sourceLayer.updateShapes();
             }
-            if (eventType == 'click') {
-                if (this.selectedLoss && this.selectedLoss.color) {
-                    delete this.selectedLoss.color
-                }
-                this.selectedLoss = selectedLoss
-                this.selectedLoss.color = "orange"
+        }
 
-                sourceLayer.updateShapes();
-                this.samplesVisualizer.current.fetchSamples(this.audioFiles, this.colors, selectedLoss.start_sample, selectedLoss.num_samples);
-                if (this.segmentEventHandler) this.segmentEventHandler.apply(null, [selectedLoss])
+        const handleSegmentClick = (selectedLoss, sourceLayer) => {
+            highlightSelectedSegment(selectedLoss)
+
+            sourceLayer.updateShapes();
+            this.samplesVisualizer.current.fetchSamples(this.audioFiles, this.colors, selectedLoss.start_sample, selectedLoss.num_samples);
+            if (this.segmentEventHandler) {
+                this.segmentEventHandler.apply(null, [selectedLoss])
+            }
+        }
+
+        return function (e) {
+            let eventType = e.type;
+
+            const { segment, sourceLayer } = findSegmentAndLayerByEvent(e);
+            if (!segment || !sourceLayer) return;
+
+            let selectedLoss = sourceLayer.getDatumFromItem(segment);
+            console.log("selectedLoss: (x:" + selectedLoss.lossstart + ", width:" + selectedLoss.losswidth + ")")
+
+            if (eventType === 'mouseover' || eventType === 'mouseout') {
+                handleSegmentOvering(eventType, selectedLoss, sourceLayer)
+            } else if (eventType === 'click') {
+                handleSegmentClick(selectedLoss, sourceLayer)
             }
         }.bind(this)
     }
@@ -632,7 +653,7 @@ class Waveforms extends Component {
             this.waveformTrack = this.timeline.createTrack($track, height, this.waveformTrackId);
             this.waveformTrack.render();
         }
-        
+
         this.lossSimulations
             .filter((lossSimulation, index) => this.layersMap.get(this.lossSimulationFiles[index]) == null)
             .map((lossSimulation, index) => {
@@ -710,6 +731,50 @@ class Waveforms extends Component {
 
     showColorPicker() {
 
+    }
+
+    executeWithDelay(myFunction, delay) {
+        return new Promise(function (resolve, reject) {
+            try {
+                setTimeout(() => {
+                    try {
+                        myFunction()
+                        resolve()
+                    } catch (e) {
+                        reject(e)
+                    }
+                }, delay)
+            } catch (e) {
+                reject(e)
+            }
+        })
+    }
+
+    refreshSampleVisualizer() {
+        this.samplesVisualizer.current.fetchSamples(this.audioFiles, this.colors, this.selectedLoss.start_sample, this.selectedLoss.num_samples)
+    }
+
+    // FIXME - Temporary workaround. Find a way to rerender the nested component when the parent is ready
+    onAccordionTabStatusChange(status, tabIndex)  {
+        let delay = 1000
+        switch(status) {
+            case 'opened':
+                if (tabIndex === 0) {
+                    setTimeout(this.renderTrack.bind(this), delay)
+                }
+                else if (tabIndex === 1) {
+                    setTimeout(this.refreshSampleVisualizer.bind(this), delay)
+                } 
+                break
+            case 'closed':
+                if (tabIndex === 0) {
+                    this.clearWaveforms.bind(this)()
+                    this.clearTrack.bind(this)()
+                } 
+                break
+            default:
+  
+        }
     }
 
     render() {
@@ -811,8 +876,8 @@ class Waveforms extends Component {
         return (
             <Accordion multiple
                 activeIndex={[0, 1, 2]}
-                onTabClose={(e) => {if (e.index == 0) { this.clearWaveforms.bind(this)(); this.clearTrack.bind(this)(); }}}
-                onTabOpen={(e) => {if (e.index == 0) { setTimeout(this.renderTrack.bind(this), 1000) } else if (e.index == 1) {setTimeout(() => {this.samplesVisualizer.current.fetchSamples(this.audioFiles, this.colors, this.selectedLoss.start_sample, this.selectedLoss.num_samples)}, 1000)}}}
+                onTabClose={(e) => { this.onAccordionTabStatusChange('closed', e.index) }}
+                onTabOpen={(e) => { this.onAccordionTabStatusChange('opened', e.index) }}
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
                 <AccordionTab header="Waveform" >
                     <div className="card flex flex-wrap gap-3 p-fluid mb-6">
