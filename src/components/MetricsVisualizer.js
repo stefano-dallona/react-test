@@ -114,7 +114,7 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
                         }
                     }) : metricsData.flatMap((metric, index) => {
                         return {
-                            label: metrics[index].path.slice(1).map((e) => e.name).join("-"),
+                            label: metricsToLoad[index].path.slice(1).map((e) => e.name).join("-"),
                             backgroundColor: colors[index],
                             borderColor: colors[index],
                             fill: false,
