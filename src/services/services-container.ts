@@ -1,6 +1,8 @@
 import { Axios} from 'axios'
 import axios from 'axios'
 
+import { useGoogleLogin } from '@react-oauth/google';
+
 import { AnalysisService } from "./testbench-analysis-service";
 import { ConfigurationService } from "./testbench-configuration-service";
 
@@ -37,8 +39,15 @@ class AxiosClient {
       },
       (error) => {
         if (error.response?.status === 401) {
-          if (window.document.location.href != baseUrl.replace("5000", "3000") + "/") {
-            window.document.location.href = baseUrl.replace("5000", "3000")
+          let jwt_token = localStorage.getItem("jwt_token")
+          if (jwt_token) {
+            // try to refresh the token
+            
+          } else {
+            // or redirect to the landing page
+            if (window.document.location.href != baseUrl.replace("5000", "3000") + "/") {
+              window.document.location.href = baseUrl.replace("5000", "3000")
+            }
           }
         } else {
           if (window["globalToast"]) {

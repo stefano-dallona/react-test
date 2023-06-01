@@ -51,8 +51,8 @@ export class AnalysisService {
         return samplesJson;
     }
 
-    async fetchMetricsFromFile(run_id, original_file_node_id, audio_file_node_id, metric_node_id, channel, offset, num_samples, unit_of_meas) {
-        let requestUrl = `${this.baseUrl}/analysis/runs/${run_id}/input-files/${original_file_node_id}/output-files/${audio_file_node_id}/metrics/${metric_node_id}?channel=${channel}&offset=${offset}&num_samples=${num_samples}&unit_of_meas=${unit_of_meas}`
+    async fetchMetricsFromFile(run_id, original_file_node_id, audio_file_node_id, metric_node_id, category, channel, offset, num_samples, unit_of_meas) {
+        let requestUrl = `${this.baseUrl}/analysis/runs/${run_id}/input-files/${original_file_node_id}/output-files/${audio_file_node_id}/metrics/${metric_node_id}?channel=${channel}&offset=${offset}&num_samples=${num_samples}&unit_of_meas=${unit_of_meas}&category=${category}`
         /*
         const metricsResponse = await fetch(requestUrl)
         const metricsJson = await metricsResponse.json();
@@ -60,6 +60,15 @@ export class AnalysisService {
         let response = await this.axiosClient.get(requestUrl)
         let metricsJson = response.data
         return metricsJson;
+    }
+
+    async retrieveAudioFile(run_id, original_file_node_id, audio_file_node_id) {
+        let requestUrl = `${this.baseUrl}/analysis/runs/${run_id}/input-files/${original_file_node_id}/output-files/${audio_file_node_id}`
+        let response = await fetch(requestUrl, {
+            headers: { "Authorization" : localStorage.getItem("jwt_token") }
+        })
+        let audioFileArrayBuffer = await response.arrayBuffer()
+        return audioFileArrayBuffer;
     }
     
 }

@@ -3,7 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@dschoon/react-waves": "^4.0.3",
     "@react-awesome-query-builder/mui": "^6.2.0",
     "@react-oauth/google": "^0.11.0",
     "@react-querybuilder/bootstrap": "^6.3.0",
@@ -43,6 +42,7 @@
     "typescript": "^5.0.4",
     "waves-audio": "github:wavesjs/waves-audio",
     "waves-ui": "github:wavesjs/waves-ui",
+    "wavesurfer.js": "^6.6.3",
     "web-vitals": "^2.1.4"
   },
   "scripts": {

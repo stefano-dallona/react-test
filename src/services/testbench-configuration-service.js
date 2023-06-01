@@ -210,8 +210,8 @@ export class ConfigurationService {
         return ecc_algorithms
     }
 
-    async getOutputAnalysers() {
-        let requestUrl = this.baseUrl + "/output_analysers"
+    async getOutputAnalysers(category = null) {
+        let requestUrl = this.baseUrl + `/output_analysers?${category ? "category=" + category : ""}`
         /*
         let response = await fetch(requestUrl)
         let output_analysers = await response.json()

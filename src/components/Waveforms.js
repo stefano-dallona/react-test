@@ -16,7 +16,7 @@ import { Dialog } from 'primereact/dialog'
 import { BufferLoader } from '../audio/bufferloader';
 import { trackPromise } from 'react-promise-tracker';
 
-import Spectrogram from './Spectrogram';
+import AudioSpectrogram from './Spectrogram';
 import SamplesVisualizer from './SamplesVisualizer';
 import { AudioPlayer } from './AudioPlayerStreaming';
 import { MetricsVisualizer } from './MetricsVisualizer';
@@ -446,12 +446,40 @@ class Waveforms extends Component {
         return lossFiles
     }
 
+    findMetrics(rootNode, predicate) {
+        const isMetricNode = (x) => { return x.type == "OutputAnalysisNode" }
+        const metricNodes = this.mapTreeToList(rootNode, predicate ? predicate : isMetricNode, x => x)
+        console.log("metricNodes:" + metricNodes + ", length: " + metricNodes.length)
+        return metricNodes
+    }
+
     findParent(rootNode, childNode) {
         const isParentOfNode = (x) => {
             return x.children && x.children.find(c => c.uuid == childNode.uuid)
         }
         const result = this.mapTreeToList(rootNode, isParentOfNode, x => x)
         return result instanceof Array && result.length > 0 ? result[0] : null
+    }
+
+    findPath(rootNode, childNode, parents = []) {
+        const isParentOfNode = (x) => {
+            return x.children && x.children.find(c => c.uuid == childNode.uuid)
+        }
+        const result = this.mapTreeToList(rootNode, isParentOfNode, x => x)
+        let parent = result instanceof Array && result.length > 0 ? result[0] : null
+        if (parent) {
+            return this.findPath(rootNode, parent, [parent].concat(...parents))
+        } else {
+            return parents
+        }
+    }
+
+    getMetrics = () => {
+        let metrics = this.hierarchy ? this.findMetrics(this.hierarchy) : []
+        metrics.forEach((metricNode) => {
+            metricNode.path = this.findPath(this.hierarchy, metricNode)
+        })
+        return metrics
     }
 
     mapTreeToList(root, predicate = (x) => true, mapper = (x) => x, stopRecursion = (x) => false) {
@@ -624,7 +652,7 @@ class Waveforms extends Component {
                         disabled={false}
                         visible={false} ></SplitButton>
                     <Button
-                        rounded 
+                        rounded
                         id="btn-stop"
                         icon="pi pi-stop"
                         tooltip="Stop"
@@ -633,7 +661,7 @@ class Waveforms extends Component {
                         disabled={false}
                         visible={false} ></Button>
                     <Button
-                        rounded 
+                        rounded
                         icon="pi pi-pause"
                         tooltip="Pause"
                         onClick={this.pauseSound.bind(this)}
@@ -794,14 +822,27 @@ class Waveforms extends Component {
                 </AccordionTab>
                 <AccordionTab header="Samples">
                     {this.waveuiEl && this.state.lossSimulationsReady && this.state.buffersListReady && (
-                        <SamplesVisualizer servicesContainer={this.servicesContainer} ref={this.samplesVisualizer} runId={this.props.runId} />
+                        <SamplesVisualizer
+                            servicesContainer={this.servicesContainer}
+                            ref={this.samplesVisualizer}
+                            runId={this.props.runId} />
                     )}
                 </AccordionTab>
                 <AccordionTab header="Metrics">
-                    <MetricsVisualizer servicesContainer={this.servicesContainer} ></MetricsVisualizer>
+                    {this.state.buffersListReady && (
+                        <MetricsVisualizer runId={this.props.runId}
+                            colors={this.colors}
+                            metricsHandler={this.getMetrics.bind(this)}
+                            servicesContainer={this.servicesContainer} ></MetricsVisualizer>
+                    )}
                 </AccordionTab>
                 <AccordionTab header="Spectrogram">
-                    <Spectrogram servicesContainer={this.servicesContainer} ref={this.spectrogram} runId={this.state.runId} filename={this.state.filename}></Spectrogram>
+                    <AudioSpectrogram
+                        servicesContainer={this.servicesContainer}
+                        ref={this.spectrogram}
+                        runId={this.state.runId}
+                        nodeId={this.hierarchy}
+                        filename={this.state.filename}></AudioSpectrogram>
                 </AccordionTab>
             </Accordion>
         )

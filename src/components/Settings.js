@@ -187,6 +187,7 @@ class Settings extends Component {
                 <Button
                     rounded
                     icon="pi pi-save"
+                    severity='warning'
                     tooltip="Save"
                     tooltipOptions={{ position: 'top' }}
                     className='mr-2'

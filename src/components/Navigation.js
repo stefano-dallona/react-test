@@ -18,7 +18,7 @@ const Navigation = (props) => {
     const login = useGoogleLogin({
         onSuccess: (codeResponse) => {
             setUser(codeResponse)
-            localStorage.setItem('token', user.access_token);
+            localStorage.setItem('access_token', user.access_token);
         },
         onError: (error) => {
             console.log('Login Failed:', error)
@@ -139,6 +139,7 @@ const Navigation = (props) => {
             tooltip="Log out"
             tooltipOptions={{ position: 'top' }}
             icon="pi pi-fw pi-power-off"
+            severity='warning'
             className="mr-2"
             onClick={logOut}></Button>
     </>

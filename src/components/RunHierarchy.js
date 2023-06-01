@@ -5,6 +5,8 @@ import { tree as d3tree, hierarchy } from 'd3-hierarchy';
 import { select } from 'd3-selection';
 import { trackPromise } from 'react-promise-tracker';
 
+import { ContextMenu } from 'primereact/contextmenu';
+
 import Node from './Node'
 import Link from './Link'
 import ProgressSpinner from './ProgressSpinner'
@@ -32,6 +34,8 @@ const RunHierarchy = () => {
 class RunHierarchy extends Component {
     constructor(props) {
         super(props);
+
+        this.contextMenuRef = React.createRef(null)
 
         this.servicesContainer = props.servicesContainer
 
@@ -161,11 +165,18 @@ class RunHierarchy extends Component {
         d3.select('svg').call(zoom);
     }
 
+    getMenuItems() {
+        return [
+            { label: 'Delete', icon: 'pi pi-fw pi-trash', severity: 'warning', command: () => { alert("Delete !") } }
+        ]
+    }
+
     render() {
         this.nodes.forEach((node, i) => { node.key = "node-" + i })
         this.links.forEach((link, i) => { link.key = "link-" + i })
         return (
             <div className="runHierarchy">
+                <ContextMenu model={this.getMenuItems()} ref={this.contextMenuRef} />
                 <svg
                     className="hierarchy"
                     width="100%"
@@ -174,7 +185,15 @@ class RunHierarchy extends Component {
                     <g>
                         {
                             (this.progressBarRefs.has(this.state.runId) || this.progressBarRefs.set(this.state.runId, React.createRef())) &&
-                            <ProgressSpinner ref={this.progressBarRefs.get(this.state.runId)} key={`pb-${this.state.runId}`} nodeId={this.state.runId} x={150} y={80} r={30} />
+                            <ProgressSpinner
+                                ref={this.progressBarRefs.get(this.state.runId)}
+                                key={`pb-${this.state.runId}`}
+                                nodeId={this.state.runId}
+                                x={150}
+                                y={80}
+                                r={30}
+                                contextMenuRef={this.contextMenuRef}
+                                />
                         }
                     </g>
                     <g id="hierarchy" transform={`translate(${window.innerWidth / 2}, 50)`}>
@@ -190,7 +209,15 @@ class RunHierarchy extends Component {
                         })}
                         {this.nodes.map((node, i) => {
                             return (
-                                <ProgressSpinner ref={this.progressBarRefs.get(node.data.uuid)} key={`pb-${node.key}`} nodeId={node.data.uuid} x={node.x} y={node.y} percentage={localStorage.getItem(node.data.uuid) || 0} />
+                                <ProgressSpinner
+                                    ref={this.progressBarRefs.get(node.data.uuid)}
+                                    key={`pb-${node.key}`}
+                                    nodeId={node.data.uuid}
+                                    x={node.x}
+                                    y={node.y}
+                                    percentage={localStorage.getItem(node.data.uuid) || 0}
+                                    contextMenuRef={this.contextMenuRef}
+                                    />
                             )
                         })}
                     </g>

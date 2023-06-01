@@ -1,11 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { trackPromise } from 'react-promise-tracker';
 
 import { Chart } from 'primereact/chart'
 import { Panel } from 'primereact/panel'
-
-import { ConfigurationService } from '../services/testbench-configuration-service';
-import { AnalysisService } from '../services/testbench-analysis-service';
+import { Dropdown } from 'primereact/dropdown'
 
 import { useContainer } from "../components/ServicesContextProvider"
 
@@ -14,77 +12,25 @@ var d3 = require('d3v3');
 //https://d3-graph-gallery.com/graph/barplot_grouped_basicWide.html
 
 export const MetricsVisualizer = React.forwardRef((props, ref) => {
-    let [runId, setRunId] = useState([])
-    let [metrics, setMetrics] = useState([])
+    let [runId, setRunId] = useState(props.runId || [])
+    let [metricsMetadata, setMetricsMetadata] = useState([])
+    let [metricsData, setMetricsData] = useState([])
+    let [selectedLinearMetric, setSelectedLinearMetric] = useState(null)
+    let [selectedScalarMetric, setSelectedScalarMetric] = useState(null)
     let [chartOptions, setChartOptions] = useState({})
     let [colorsMap, setColorsMap] = useState(new Map())
     let servicesContainer = useContainer()
+    let metricsHandler = useRef(props.metricsHandler || (() => { return [] }))
+    let colors = props.colors
 
     useEffect(() => {
-        /*
-        servicesContainer.analysisService.fetchMetricsFromFile().then((metrics) => {
-            setMetrics(metrics)
-        })
-        */
-        const metrics = {
-            "linear": {
-                labels: ['1000000', '1500000', '2000000', '2500000', '3000000', '3500000', '4000000'],
-                datasets: [
-                    {
-                        label: 'Blues_Bass.wav',
-                        data: [65, 59, 80, 81, 56, 55, 40],
-                        fill: false,
-                        tension: 0.0,
-                        borderColor: "yellow"
-                    },
-                    {
-                        label: 'ZeroECC',
-                        data: [28, 48, 40, 19, 86, 27, 90],
-                        fill: false,
-                        borderDash: [5, 5],
-                        tension: 0.0,
-                        borderColor: "red"
-                    },
-                    {
-                        label: 'LastPacketECC',
-                        data: [12, 51, 62, 33, 21, 62, 45],
-                        borderColor: "orange",
-                        tension: 0.0,
-                        backgroundColor: 'rgba(255,167,38,0.2)'
-                    }
-                ]
-            },
-            "scalar": {
-                labels: ['Blues_Bass.wav', 'Blues_Guitar.wav', 'Song-4.wav', 'Song-5.wav', 'Song-6.wav', 'Song-7.wav', 'Song-8.wav'],
-                datasets: [
-                    {
-                        label: 'PEAQ',
-                        backgroundColor: "red",
-                        borderColor: "blue",
-                        data: [65, 59, 80, 81, 56, 55, 40]
-                    },
-                    {
-                        label: 'SM-2',
-                        backgroundColor: "green",
-                        borderColor: "blue",
-                        data: [28, 48, 40, 19, 86, 27, 90]
-                    },
-                    {
-                        label: 'SM-3',
-                        backgroundColor: "blue",
-                        borderColor: "blue",
-                        data: [67, 26, 54, 33, 46, 49, 77]
-                    },
-                    {
-                        label: 'SM-4',
-                        backgroundColor: "yellow",
-                        borderColor: "blue",
-                        data: [47, 36, 24, 73, 86, 29, 67]
-                    }
-                ]
-            }
+        const fetchMetricsMetadata = async () => {
+            let metricsMetadata = await retrieveMetricsMetadata()
+            //setSelectedLinearMetric(metricsMetadata["linear"][0] ? metricsMetadata["linear"][0] : null)
+            //setSelectedScalarMetric(metricsMetadata["scalar"][0] ? metricsMetadata["scalar"][0] : null)
+            setMetricsMetadata(metricsMetadata)
         }
-        setMetrics(metrics)
+        fetchMetricsMetadata()
 
         const options = {
             "linear": {
@@ -99,10 +45,90 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
         setChartOptions(options)
     }, [runId])
 
+    useEffect(() => {
+        const fetchMetrics = async (category, metricType) => {
+            let metricsData = await retrieveMetricsData(metricsHandler.current(), category, metricType)
+            setMetricsData(metricsData)
+        }
+
+        if (selectedLinearMetric) {
+            fetchMetrics("linear", selectedLinearMetric.code)
+        }
+    }, [selectedLinearMetric])
+
+    useEffect(() => {
+        const fetchMetrics = async (category, metricType) => {
+            let metricsData = await retrieveMetricsData(metricsHandler.current(), category, metricType)
+            setMetricsData(metricsData)
+        }
+        if (selectedScalarMetric) {
+            fetchMetrics("scalar", selectedScalarMetric.code)
+        }
+    }, [selectedScalarMetric])
+
+    const retrieveMetricsMetadata = async () => {
+        let categories = ["linear", "scalar"]
+        let metricsMetadata = await trackPromise(Promise.all(categories.map(async (category, index) => {
+            return { "category": category, "metrics": await servicesContainer.configurationService.getOutputAnalysers(category) }
+        })))
+        return {
+            linear: metricsMetadata.filter((x) => x.category == "linear").flatMap((x) => x.metrics.map((x) => { return { "name": x, "code": x } })),
+            scalar: metricsMetadata.filter((x) => x.category == "scalar").flatMap((x) => x.metrics.map((x) => { return { "name": x, "code": x } }))
+        }
+    }
+
+    const retrieveMetricsData = async (metrics, category, metricType) => {
+        let channel = 0
+        let metricCategory = category
+        let metricsToLoad = metrics.filter((metric) => {
+            return metric.category == category && metric.name == metricType
+        })
+        if (metricsToLoad.length == 0) {
+            return {
+                labels: [],
+                datasets: []
+            }
+        }
+        let metricsData = await trackPromise(Promise.all(metricsToLoad.map(async (metric, index) => {
+            return servicesContainer.analysisService.fetchMetricsFromFile(runId, metric.parent_id, metric.parent_id, metric.uuid, metricCategory)
+        })))
+        let samplesNumber = metricsData.map(metric => metric.length)
+        let labels = [...Array(Math.max(...samplesNumber))].map((_, i) => i + 1)
+        let result = {}
+        result[category] = {
+            labels: labels,
+            datasets: metricsData.map((metric, index) => {
+                return {
+                    label: metrics[index].path.slice(1).map((e) => e.name).join("-"),
+                    backgroundColor: colors[index],
+                    borderColor: colors[index],
+                    fill: false,
+                    tension: 0.0,
+                    data: metric.map((sample) => { return sample.values[channel] })
+                }
+            })
+        }
+        return result
+    }
+
     const renderLinearMetrics = () => {
         return (
             <Panel header="Linear" toggleable>
-                <Chart type="line" data={metrics["linear"]} options={chartOptions["linear"]} />
+                <div id="pnl-selectedLinearMetric" className="flex-auto">
+                    <label htmlFor='selectedLinearMetric'
+                        className="font-bold block ml-2 mb-2"
+                        style={{ color: 'white' }}>Metric</label>
+                    <Dropdown inputId='selectedLinearMetric'
+                        id='selectedLinearMetric'
+                        value={selectedLinearMetric}
+                        onClick={(e) => { false && e.stopPropagation() }}
+                        onChange={(e) => { setSelectedLinearMetric(e.value) }}
+                        options={metricsMetadata["linear"]}
+                        optionLabel="name"
+                        placeholder="Select metric"
+                        className="w-full md:w-20rem" />
+                </div>
+                <Chart type="line" data={metricsData["linear"]} options={chartOptions["linear"]} />
             </Panel>
         )
     }
@@ -110,7 +136,21 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
     const renderScalarMetrics = () => {
         return (
             <Panel header="Scalar" toggleable>
-                <Chart type="bar" data={metrics["scalar"]} options={chartOptions["scalar"]} />
+                <div id="pnl-selectedScalarMetric" className="flex-auto">
+                    <label htmlFor='selectedScalarMetric'
+                        className="font-bold block ml-2 mb-2"
+                        style={{ color: 'white' }}>Metric</label>
+                    <Dropdown inputId='selectedScalarMetric'
+                        id='selectedScalarMetric'
+                        value={selectedScalarMetric}
+                        onClick={(e) => { false && e.stopPropagation() }}
+                        onChange={(e) => { setSelectedScalarMetric(e.value) }}
+                        options={metricsMetadata["scalar"]}
+                        optionLabel="name"
+                        placeholder="Select metric"
+                        className="w-full md:w-20rem" />
+                </div>
+                <Chart type="bar" data={metricsData["scalar"]} options={chartOptions["scalar"]} />
             </Panel>
         )
     }

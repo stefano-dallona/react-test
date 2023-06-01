@@ -182,6 +182,7 @@ class WorkersSettings extends Component {
                         <Button
                             rounded
                             icon="pi pi-save"
+                            severity='warning'
                             tooltip="Save"
                             tooltipOptions={{ position: 'top' }}
                             className="mr-2"
@@ -190,6 +191,7 @@ class WorkersSettings extends Component {
                             <Button
                                 rounded
                                 icon="pi pi-trash"
+                                severity='danger'
                                 tooltip="Delete"
                                 tooltipOptions={{ position: 'top' }}
                                 className="mr-2"
