@@ -8,6 +8,7 @@ import { Dropdown } from 'primereact/dropdown'
 import { useContainer } from "../components/ServicesContextProvider"
 
 var d3 = require('d3v3');
+const _ = require('lodash');
 
 //https://d3-graph-gallery.com/graph/barplot_grouped_basicWide.html
 
@@ -47,8 +48,9 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
 
     useEffect(() => {
         const fetchMetrics = async (category, metricType) => {
-            let metricsData = await retrieveMetricsData(metricsHandler.current(), category, metricType)
-            setMetricsData(metricsData)
+            let newMetricsData = await retrieveMetricsData(metricsHandler.current(), category, metricType)
+            let clonedMetricsData = _.cloneDeep(metricsData)
+            setMetricsData({ ...clonedMetricsData, [category] : newMetricsData[category] })
         }
 
         if (selectedLinearMetric) {
@@ -58,8 +60,9 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
 
     useEffect(() => {
         const fetchMetrics = async (category, metricType) => {
-            let metricsData = await retrieveMetricsData(metricsHandler.current(), category, metricType)
-            setMetricsData(metricsData)
+            let newMetricsData = await retrieveMetricsData(metricsHandler.current(), category, metricType)
+            let clonedMetricsData = _.cloneDeep(metricsData)
+            setMetricsData({ ...clonedMetricsData, [category] : newMetricsData[category] })
         }
         if (selectedScalarMetric) {
             fetchMetrics("scalar", selectedScalarMetric.code)
@@ -85,30 +88,42 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
         })
         if (metricsToLoad.length == 0) {
             return {
-                labels: [],
-                datasets: []
+                [category]: {
+                    labels: [],
+                    datasets: []
+                }
             }
         }
         let metricsData = await trackPromise(Promise.all(metricsToLoad.map(async (metric, index) => {
             return servicesContainer.analysisService.fetchMetricsFromFile(runId, metric.parent_id, metric.parent_id, metric.uuid, metricCategory)
         })))
         let samplesNumber = metricsData.map(metric => metric.length)
-        let labels = category == "scalar" ? [1] : [...Array(Math.max(...samplesNumber))].map((_, i) => i + 1)
-        let result = {}
-        result[category] = {
-            labels: labels,
-            datasets: (category == "scalar") ? metricsData : metricsData.map((metric, index) => {
-                return {
-                    label: metrics[index].path.slice(1).map((e) => e.name).join("-"),
-                    backgroundColor: colors[index],
-                    borderColor: colors[index],
-                    fill: false,
-                    tension: 0.0,
-                    data: metric.map((sample) => { return sample.values[channel] })
-                }
-            })
+        let labels = category == "scalar"
+            ? metricsToLoad.map((metric) => metric.path.slice(1).map((e) => e.name).join("-"))
+            : [...Array(Math.max(...samplesNumber))].map((_, i) => i + 1)
+        return {
+            [category]: {
+                labels: labels,
+                datasets: (category == "scalar")
+                    ? Object.entries(metricsData[0]).map(([k, v], index) => {
+                        return {
+                            label: k,
+                            backgroundColor: colors[index],
+                            borderColor: colors[index],
+                            data: metricsData.map((metric, index) => metric[k])
+                        }
+                    }) : metricsData.flatMap((metric, index) => {
+                        return {
+                            label: metrics[index].path.slice(1).map((e) => e.name).join("-"),
+                            backgroundColor: colors[index],
+                            borderColor: colors[index],
+                            fill: false,
+                            tension: 0.0,
+                            data: metric.map((sample) => { return sample.values[channel] })
+                        }
+                    })
+            }
         }
-        return result
     }
 
     const renderLinearMetrics = () => {
