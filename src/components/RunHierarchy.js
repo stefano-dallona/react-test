@@ -60,6 +60,10 @@ class RunHierarchy extends Component {
         //setTimeout(() => { this.updateProgress(this.hierarchy.uuid, 50) }, 3000)
     }
 
+    componentWillUnmount() {
+        this.servicesContainer.configurationService.stopListeningForExecutionEvents()
+    }
+
     async loadData() {
         this.hierarchy = await trackPromise(this.servicesContainer.configurationService.getRunHierarchy(this.state.runId, this.state.filename));
         let data = [this.hierarchy]
@@ -68,6 +72,9 @@ class RunHierarchy extends Component {
         this.links = links
         this.resetProgressBars(0, false)
         this.setData(data);
+
+        // FIXME - Start only if the run is in RUNNING status
+        this.startListeningForExecutionEvents()
     }
 
     setRunId(runId) {

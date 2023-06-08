@@ -83,8 +83,9 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
     const retrieveMetricsData = async (metrics, category, metricType) => {
         let channel = 0
         let metricCategory = category
-        let metricsToLoad = metrics.filter((metric) => {
+        let metricsToLoad = metrics.filter((metric, index) => {
             return metric.category == category && metric.name == metricType
+                //&& index == 0
         })
         if (metricsToLoad.length == 0) {
             return {

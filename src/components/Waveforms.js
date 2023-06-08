@@ -378,14 +378,17 @@ class Waveforms extends Component {
         let waveforms = []
 
         if (this.parallelWaveformLoading) {
-            waveforms = await trackPromise(Promise.all(this.audioFiles.map(async (file, index) => {
+            waveforms = await trackPromise(Promise.all(this.audioFiles.filter((file, index) => {
+                return true //&& index == 0
+            }).map(async (file, index) => {
                 let $track = this.waveuiEl;
                 let maxSlices = (this.loadOnlyZoomedSection) ? Math.ceil($track.getBoundingClientRect().width) : -1;
                 let unitOfMeas = "samples"
                 return this.servicesContainer.analysisService.fetchWaveform(this.state.runId, file.uuid, file.uuid, channel, offset, numSamples, unitOfMeas, maxSlices)
             })))
         } else {
-            for (const file of this.audioFiles) {
+            for (const [index, file] of this.audioFiles.entries()) {
+                //if (index != 0) continue
                 let $track = this.waveuiEl;
                 let maxSlices = (this.loadOnlyZoomedSection) ? Math.ceil($track.getBoundingClientRect().width) : -1;
                 let unitOfMeas = "samples"

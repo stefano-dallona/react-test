@@ -19,6 +19,7 @@ import axios from 'axios'
 
 import Navigation from './components/Navigation';
 import { useContainer } from "./components/ServicesContextProvider"
+import { StreamingChart } from './components/SimpleChart'
 
 
 function App() {
@@ -82,6 +83,7 @@ function App() {
       <Toast ref={toast} />
       <LoadingIndicator />
       <Navigation />
+      <StreamingChart />
     </div>
   );
 }

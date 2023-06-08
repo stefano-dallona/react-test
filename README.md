@@ -90,3 +90,8 @@ HTTPS=true npm start
 
 # How to write D3js React components
 https://betterprogramming.pub/5-steps-to-render-d3-js-with-react-functional-components-fcce6cec1411
+
+# Install d3fc
+npm i d3-v6@npm:d3@6.1.1 --save
+npm i d3fc@13.2.1 --save
+npm i d3fc-webgl@0.0.5 --save
