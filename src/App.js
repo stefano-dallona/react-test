@@ -83,7 +83,9 @@ function App() {
       <Toast ref={toast} />
       <LoadingIndicator />
       <Navigation />
-      <StreamingChart />
+      {false && (
+        <StreamingChart />
+      )}
     </div>
   );
 }

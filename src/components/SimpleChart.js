@@ -45,7 +45,7 @@ export const StreamingChart = ({ initialData, next }) => {
     const getNext = useCallback(() => next ? next() : [], stream.next());
   
     useEffect(() => {
-    /*
+    /**/
       const timer = setTimeout(() => {
         setData((prevData) => {
           const data = prevData.slice(1);
@@ -56,7 +56,7 @@ export const StreamingChart = ({ initialData, next }) => {
         });
       }, 200);
       return () => clearTimeout(timer);
-      */
+    
     }, [data]);
   
     return <SimpleChart data={data} chartId="streaming-chart" />;

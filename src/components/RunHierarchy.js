@@ -162,7 +162,7 @@ class RunHierarchy extends Component {
 
 
     handleZoom() {
-        let transform = d3.event.transform
+        let transform = d3.zoomTransform(this)
         transform.x = window.innerWidth / 2
         d3.select('#hierarchy').attr('transform', transform.toString());
     }

@@ -57,7 +57,6 @@ export class ConfigurationService {
         }
 
         const requestOptions = {
-            method: 'POST',
             headers: {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
@@ -81,7 +80,7 @@ export class ConfigurationService {
             return null
         }
         */
-        let response = await this.axiosClient.get(requestUrl, requestOptions)
+        let response = await this.axiosClient.post(requestUrl, requestOptions)
         if (response?.status == 200) {
             let responseBody = response.data
             console.log("responseBody: " + JSON.stringify(responseBody))
