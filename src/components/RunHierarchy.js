@@ -72,9 +72,6 @@ class RunHierarchy extends Component {
         this.links = links
         this.resetProgressBars(0, false)
         this.setData(data);
-
-        // FIXME - Start only if the run is in RUNNING status
-        this.startListeningForExecutionEvents()
     }
 
     setRunId(runId) {
@@ -124,33 +121,61 @@ class RunHierarchy extends Component {
     }
 
     resetProgressBars(percentage = 0, includeElaborationProgressBar = false) {
-        this.progressBarRefs.forEach((progressBar, nodeId) => {
-            if (progressBar.current && (nodeId != this.state.runId || includeElaborationProgressBar)) {
-                progressBar.current.setCurrentPercentage(percentage)
+        if (includeElaborationProgressBar) {
+            let progressBarRef = this.progressBarRefs.get(this.state.runId)
+            if (progressBarRef.current) {
+                progressBarRef.current.setCurrentPercentage(percentage)
             }
-            localStorage.setItem(nodeId, percentage)
+            localStorage.setItem(this.state.runId, percentage)
+        }
+
+        this.nodes.forEach((node) => {
+            let progressBarRef = this.progressBarRefs.get(node.data.uuid)
+            if (progressBarRef.current) {
+                progressBarRef.current.setCurrentPercentage(percentage)
+            }
+            localStorage.setItem(node.data.uuid, percentage)
         })
     }
 
     startListeningForExecutionEvents() {
+
         let progressCallback = async function (e) {
             let message = JSON.parse(e.data)
+
+            if (!(message.nodeid == this.state.runId
+                    || this.nodes.filter((node) => node.data.uuid == message.nodeid).length > 0)) {
+                return
+            }
+
+            console.log("nodetype: " + message.nodetype +
+                ", nodeid: " + message.nodeid +
+                ", currentPercentage: " + message.currentPercentage)
+
             this.updateProgress(message.nodeid, message.currentPercentage)
             localStorage.setItem(message.nodeid, message.currentPercentage)
-
+            /*
             if (message.nodetype == "RunExecution" && message.nodeid == this.state.runId) {
-                this.resetProgressBars(100)
                 this.servicesContainer.configurationService.stopListeningForExecutionEvents();
+                this.resetProgressBars(100)
                 this.onExecutionCompleted(this.state.runId)
             }
+            */
             if (message.nodetype == "PLCTestbench") {
-                this.updateProgress(message.nodeid, message.currentPercentage)
-                localStorage.setItem(message.nodeid, message.currentPercentage)
-                let run = await this.servicesContainer.configurationService.getRun(this.state.runId)
-                let selectedInputFiles = run.selected_input_files
-                let newFileIndex = Math.min(selectedInputFiles.length - 1, Math.ceil(selectedInputFiles.length * (message.currentPercentage / 100.0)))
-                if (this.state.filename != selectedInputFiles[newFileIndex]) {
-                    this.setFilename(selectedInputFiles[newFileIndex])
+                if (message.currentPercentage < 100) {
+                    this.updateProgress(message.nodeid, message.currentPercentage)
+                    localStorage.setItem(message.nodeid, message.currentPercentage)
+                    let run = await this.servicesContainer.configurationService.getRun(this.state.runId)
+                    let selectedInputFiles = run.selected_input_files
+                    let newFileIndex = Math.min(selectedInputFiles.length - 1, Math.ceil(selectedInputFiles.length * (message.currentPercentage / 100.0)))
+                    if (this.state.filename != selectedInputFiles[newFileIndex]) {
+                        this.setFilename(selectedInputFiles[newFileIndex])
+                    }
+                }
+                 else {
+                    this.servicesContainer.configurationService.stopListeningForExecutionEvents();
+                    this.resetProgressBars(100)
+                    this.onExecutionCompleted(this.state.runId)
                 }
             }
         }
@@ -200,7 +225,7 @@ class RunHierarchy extends Component {
                                 y={80}
                                 r={30}
                                 contextMenuRef={this.contextMenuRef}
-                                />
+                            />
                         }
                     </g>
                     <g id="hierarchy" transform={`translate(${window.innerWidth / 2}, 50)`}>
@@ -224,7 +249,7 @@ class RunHierarchy extends Component {
                                     y={node.y}
                                     percentage={localStorage.getItem(node.data.uuid) || 0}
                                     contextMenuRef={this.contextMenuRef}
-                                    />
+                                />
                             )
                         })}
                     </g>

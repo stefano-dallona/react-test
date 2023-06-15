@@ -140,10 +140,14 @@ export class ConfigurationService {
         return run_execution
     }
 
-    startListeningForExecutionEvents(run_id, execution_id, callback) {
+    startListeningForExecutionEvents(run_id,
+            execution_id,
+            callback,
+            error_callback = (err) => { console.error("EventSource failed:", err) }) {
         let requestUrl = `${this.baseUrl}/runs/${run_id}/executions/${execution_id}/events`
         this.sseListener = new EventSource(requestUrl, { authorizationHeader: localStorage.getItem("jwt_token") });
         this.sseListener.addEventListener("run_execution", callback)
+        this.sseListener.onerror = error_callback
     }
 
     stopListeningForExecutionEvents() {
