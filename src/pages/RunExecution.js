@@ -29,10 +29,12 @@ export const RunExecution = (props) => {
 
     const execute = () => {
         setExecutionInProgress(true)
-        runHierarchy.current.setFilename("")
-        runHierarchy.current.resetProgressBars(0, true)
-        runHierarchy.current.startListeningForExecutionEvents()
-        servicesContainer.configurationService.launchRunExecution(runId)
+        runHierarchy.current.setFilename("", 0, () => {
+            runHierarchy.current.currentFileIndex = 0
+            runHierarchy.current.resetProgressBars(0, true)
+            runHierarchy.current.startListeningForExecutionEvents()
+            servicesContainer.configurationService.launchRunExecution(runId)
+        })
     }
 
     const showMessage = (severity, summary, detail) => {

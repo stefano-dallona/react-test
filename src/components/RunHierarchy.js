@@ -46,6 +46,8 @@ class RunHierarchy extends Component {
         this.nodes = []
         this.links = []
 
+        this.currentFileIndex = 0
+
         this.state = {
             runId: props.runId,
             filename: props.filename,
@@ -64,13 +66,14 @@ class RunHierarchy extends Component {
         this.servicesContainer.configurationService.stopListeningForExecutionEvents()
     }
 
-    async loadData() {
+    async loadData(currentPercentage = 0) {
         this.hierarchy = await trackPromise(this.servicesContainer.configurationService.getRunHierarchy(this.state.runId, this.state.filename));
         let data = [this.hierarchy]
+        //this.currentFileIndex = 0
         let [nodes, links] = this.generateTree(data)
         this.nodes = nodes
         this.links = links
-        this.resetProgressBars(0, false)
+        this.resetProgressBars(currentPercentage, false)
         this.setData(data);
     }
 
@@ -80,10 +83,13 @@ class RunHierarchy extends Component {
         })
     }
 
-    setFilename(filename) {
+    setFilename(filename, currentPercentage = 0, callback = () => {}) {
         this.setState({
             filename: filename
-        }, this.loadData)
+        }, async (currentPercentage) => {
+            await this.loadData(currentPercentage)
+            callback()
+        })
     }
 
     setData(data) {
@@ -98,7 +104,7 @@ class RunHierarchy extends Component {
             .separation((a, b) => 2);
 
         const rootNode = tree(
-            hierarchy(data[0] || [], d => d.children)
+            hierarchy(data[this.currentFileIndex] || [], d => d.children)
         );
         let nodes = rootNode.descendants();
         const links = rootNode.links();
@@ -108,7 +114,7 @@ class RunHierarchy extends Component {
 
             this.progressBarRefs.set(node.data.uuid, React.createRef())
         });
-
+        
         return [nodes, links]
     }
 
@@ -117,7 +123,7 @@ class RunHierarchy extends Component {
         if (progressBarRef && progressBarRef.current) {
             progressBarRef.current.setCurrentPercentage(progress)
         }
-        localStorage.setItem(nodeId, progress)
+        //localStorage.setItem(nodeId, progress)
     }
 
     resetProgressBars(percentage = 0, includeElaborationProgressBar = false) {
@@ -126,15 +132,21 @@ class RunHierarchy extends Component {
             if (progressBarRef.current) {
                 progressBarRef.current.setCurrentPercentage(percentage)
             }
-            localStorage.setItem(this.state.runId, percentage)
+            //localStorage.setItem(this.state.runId, percentage)
         }
-
+        /*
+        this.progressBarRefs.forEach((progressBarRef) => {
+            if (progressBarRef.current) {
+                progressBarRef.current.setCurrentPercentage(percentage)
+            }
+        })
+        */
         this.nodes.forEach((node) => {
             let progressBarRef = this.progressBarRefs.get(node.data.uuid)
             if (progressBarRef.current) {
                 progressBarRef.current.setCurrentPercentage(percentage)
             }
-            localStorage.setItem(node.data.uuid, percentage)
+            //localStorage.setItem(node.data.uuid, percentage)
         })
     }
 
@@ -145,6 +157,7 @@ class RunHierarchy extends Component {
 
             if (!(message.nodeid == this.state.runId
                     || this.nodes.filter((node) => node.data.uuid == message.nodeid).length > 0)) {
+                console.log("Event " + message.nodetype + " discarded due to node_id not found and not equal to run_id")
                 return
             }
 
@@ -153,7 +166,7 @@ class RunHierarchy extends Component {
                 ", currentPercentage: " + message.currentPercentage)
 
             this.updateProgress(message.nodeid, message.currentPercentage)
-            localStorage.setItem(message.nodeid, message.currentPercentage)
+            //localStorage.setItem(message.nodeid, message.currentPercentage)
             /*
             if (message.nodetype == "RunExecution" && message.nodeid == this.state.runId) {
                 this.servicesContainer.configurationService.stopListeningForExecutionEvents();
@@ -163,18 +176,20 @@ class RunHierarchy extends Component {
             */
             if (message.nodetype == "PLCTestbench") {
                 if (message.currentPercentage < 100) {
-                    this.updateProgress(message.nodeid, message.currentPercentage)
-                    localStorage.setItem(message.nodeid, message.currentPercentage)
                     let run = await this.servicesContainer.configurationService.getRun(this.state.runId)
                     let selectedInputFiles = run.selected_input_files
-                    let newFileIndex = Math.min(selectedInputFiles.length - 1, Math.ceil(selectedInputFiles.length * (message.currentPercentage / 100.0)))
-                    if (this.state.filename != selectedInputFiles[newFileIndex]) {
-                        this.setFilename(selectedInputFiles[newFileIndex])
+                    let currentFileIndex = Math.min(selectedInputFiles.length - 1, Math.ceil(selectedInputFiles.length * (message.currentPercentage / 100.0)))
+                    //this.currentFileIndex = currentFileIndex
+                    if (this.state.filename != selectedInputFiles[currentFileIndex]) {
+                        this.resetProgressBars(0, false)
+                        this.setFilename(selectedInputFiles[currentFileIndex])
                     }
                 }
                  else {
                     this.servicesContainer.configurationService.stopListeningForExecutionEvents();
-                    this.resetProgressBars(100)
+                    let run = await this.servicesContainer.configurationService.getRun(this.state.runId)
+                    let selectedInputFiles = run.selected_input_files
+                    this.setFilename(selectedInputFiles[selectedInputFiles.length - 1], 100)
                     this.onExecutionCompleted(this.state.runId)
                 }
             }

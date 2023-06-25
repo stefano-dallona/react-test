@@ -18,6 +18,7 @@ const { elasticSearchFormat, queryBuilderFormat, jsonLogicFormat, queryString, _
 const emptyInitValue = { "id": QbUtils.uuid(), "type": "group" };
 let initValue = loadedInitValue && Object.keys(loadedInitValue).length > 0 ? loadedInitValue : emptyInitValue;
 
+const path = "C:\\Data\\personale\\Università\\2022-2023\\original_tracks\\6cf51cbb-6a0f-4e49-985e-6b55c1aa1f7d\\"
 // You can load query value from your backend storage (for saving see `Query.onChange()`)
 initValue = {
     "type": "group",
@@ -31,8 +32,8 @@ initValue = {
                 "operator": "multiselect_contains",
                 "value": [
                     [
-                        "C:\\Data\\personale\\Università\\2022-2023\\original_tracks\\Blues_Bass.wav",
-                        "C:\\Data\\personale\\Università\\2022-2023\\original_tracks\\Blues_Guitar.wav"
+                        path + "Blues_Bass.wav",
+                        path + "Blues_Guitar.wav"
                     ]
                 ],
                 "valueSrc": [
@@ -43,12 +44,12 @@ initValue = {
                 ],
                 "asyncListValues": [
                     {
-                        "value": "C:\\Data\\personale\\Università\\2022-2023\\original_tracks\\Blues_Bass.wav",
-                        "title": "Blues_Bass.wav"
+                        "title": "Blues_Bass.wav",
+                        "value": path + "Blues_Bass.wav"
                     },
                     {
                         "title": "Blues_Guitar.wav",
-                        "value": "C:\\Data\\personale\\Università\\2022-2023\\original_tracks\\Blues_Guitar.wav"
+                        "value": path + "Blues_Guitar.wav"
                     }
                 ]
             }
@@ -398,11 +399,19 @@ const fields = {
     },
 };
 */
-const path = "C:\\Data\\personale\\Università\\2022-2023\\original_tracks\\"
+
 // Postprocessing of query (replace "_" with ".", replace *** \{"([^"_]+)_Settings\.([^"]+)" *** with *** {"worker":"\1","\2" ***)
 // {"lostSamplesMasks_reconstructedTracks":{"$elemMatch":{"LowCostPLC_Settings.max_frequency":1}}} =>
 // {"lostSamplesMasks.reconstructedTracks":{"$elemMatch":{"worker":"LowCostPLC", "max_frequency":4800}}}
 const fields = {
+    runId: {
+        label: "ID",
+        type: "text",
+    },
+    description: {
+        label: "Description",
+        type: "text",
+    },
     filename: {
         label: "Input files",
         type: "multiselect",
@@ -511,7 +520,7 @@ const fields = {
             }
         }
     },
-    lostSamplesMasks_reconstructedTracks: {
+    "lostSamplesMasks|reconstructedTracks": {
         label: "PLC Algorithm",
         type: "!group",
         subfields: {
@@ -594,7 +603,7 @@ const fields = {
             }
         }
     },
-    lostSamplesMasks_reconstructedTracks_outputAnalysis: {
+    "lostSamplesMasks|reconstructedTracks|outputAnalysis": {
         label: "Output Analyser",
         type: "!group",
         subfields: {
@@ -718,20 +727,20 @@ class RunAwesomeQueryBuilder extends Component {
     }
 
     queryPostProcessing = (queryString) => {
-        let modifiedQueryString = queryString
+        let modifiedQueryString = queryString ? queryString
             .replace(/\{"([^"_]+)_Settings\.([^"]+)"/gm, "{\"worker\":\"$1\",\"$2\"")
-            .replace("_", ".")
+            .replace(/\|/gm, ".") : queryString
         // \{"([^"_]+)_Settings\.([^"]+)"  => {"worker":"\1","\2"
         return modifiedQueryString
     }
 
     renderResult = ({ tree: immutableTree, config }) => (
-        false && (
+        //false && (
             <div className="query-builder-result">
                 <div>MongoDb query: <pre>{this.getMongoDbQuery(immutableTree)}</pre></div>
                 <div>Tree: <pre>{JSON.stringify(QbUtils.getTree(immutableTree))}</pre></div>
             </div>
-        )
+        //)
     )
 
     render = () => (

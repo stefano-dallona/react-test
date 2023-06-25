@@ -32,6 +32,7 @@ export class ConfigurationService {
     }
 
     async findRunsByFilter(queryString, projectionString, pagination) {
+        /*
         queryString = {
             "$and":[
                 {
@@ -48,7 +49,7 @@ export class ConfigurationService {
                 }
             ]
         }
-
+        */
         projectionString = { "_id": 1 }
 
         pagination = {

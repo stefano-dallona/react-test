@@ -28,7 +28,11 @@ class Settings extends Component {
 
         this.paged = props.paged || true
 
-        this.pages = ["InputFileSelection", "GlobalSettings", "PacketLossSimulator", "PLCAlgorithm", "OutputAnalyser"]
+        this.pages = ["InputFileSelection",
+                      //"GlobalSettings",
+                      "PacketLossSimulator",
+                      "PLCAlgorithm",
+                      "OutputAnalyser"]
 
         this.defaultSettings = []
         this.storedSettings = []
