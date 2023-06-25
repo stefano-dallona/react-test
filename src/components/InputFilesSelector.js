@@ -15,8 +15,7 @@ class InputFilesSelector extends Component {
     constructor(props) {
         super(props);
 
-        this.baseUrl = 'http://localhost:5000'
-        this.configurationService = new ConfigurationService(this.baseUrl)
+        this.servicesContainer = props.servicesContainer
 
         this.dropzoneConfig = {
             iconFiletypes: ['.wav'],
@@ -67,7 +66,7 @@ class InputFilesSelector extends Component {
     }
 
     loadInputFiles = async () => {
-        let availableInputFiles = await this.configurationService.getInputFiles()
+        let availableInputFiles = await this.servicesContainer.configurationService.getInputFiles()
         this.setAvailableInputFiles(availableInputFiles)        
     }
 

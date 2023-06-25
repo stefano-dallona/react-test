@@ -13,9 +13,7 @@ class SamplesVisualizer extends Component {
 
         this.runId = props.runId || ""
 
-        let baseUrl = "http://localhost:5000"
-        this.configurationService = new ConfigurationService(baseUrl)
-        this.analysisService = new AnalysisService(baseUrl)
+        this.servicesContainer = props.servicesContainer
 
         this.state = {
             isReady: false
@@ -31,7 +29,7 @@ class SamplesVisualizer extends Component {
         const startat = offset - numsamples
         const nsamples = 3 * numsamples
         let samples = await trackPromise(Promise.all(audioFiles.map(async (file) => {
-            return await this.analysisService.fetchSamplesFromFile(this.runId, audioFiles.uuid, file.uuid, channel, startat, nsamples, unitOfMeas)
+            return await this.servicesContainer.analysisService.fetchSamplesFromFile(this.runId, audioFiles.uuid, file.uuid, channel, startat, nsamples, unitOfMeas)
         })));
         this.audioFiles = audioFiles;
         this.samples = samples;
@@ -125,7 +123,7 @@ class SamplesVisualizer extends Component {
 
             var legendGroup = svg.append("g");
 
-            legendGroup.append("rect")
+            let rect = legendGroup.append("rect")
                 .attr("width", chartConfig.lineLabel.width + 5)
                 .attr("height", chartConfig.lineLabel.height)
                 .attr("x", (width / 2 + marginLegend - 45) / 1.3)
@@ -136,8 +134,7 @@ class SamplesVisualizer extends Component {
                 .duration(600)
                 .style("opacity", 1)
 
-
-            legendGroup.append('text')
+            let textElement = legendGroup.append('text')
                 .attr('id', 'legend-' + lineId)
                 .attr('text-anchor', 'middle')
                 .attr('font-family', 'sans-serif')
@@ -154,6 +151,10 @@ class SamplesVisualizer extends Component {
                         .duration(500)
                         .style("display", display)
                 });
+            
+            rect[0][0].setAttribute("width", textElement[0][0].getBoundingClientRect().width)
+            rect[0][0].setAttribute("x", textElement[0][0].getBoundingClientRect().left - 16)
+            
             marginLegend += 100;
         }
 

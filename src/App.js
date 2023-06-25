@@ -5,17 +5,43 @@ import "primereact/resources/primereact.min.css";
 import "primeicons/primeicons.css";
 import 'primeflex/primeflex.css';
 
-import { React, useState } from 'react'
+import { React, useState, useEffect, useRef } from 'react'
+import { googleLogout, useGoogleLogin } from '@react-oauth/google';
 import { BlockUI } from 'primereact/blockui';
 
 import { ThreeDots, ColorRing } from 'react-loader-spinner';
 import { usePromiseTracker } from 'react-promise-tracker';
 import { trackPromise } from 'react-promise-tracker';
 
+import { Toast } from 'primereact/toast'
+
+import axios from 'axios'
+
 import Navigation from './components/Navigation';
+import { useContainer } from "./components/ServicesContextProvider"
+import { StreamingChart } from './components/SimpleChart'
 
 
 function App() {
+  let servicesContainer = useContainer()
+  let toast = useRef(null);
+
+  const testConnectivity = async () => {
+    try {
+      let response = await servicesContainer.testConnectivity()
+      console.log("Connection test succeeded")
+    } catch (error) {
+      if (toast && error.response?.status === 401) {
+        toast.current.show({ severity: "info", summary: "Please authenticate.", detail: "" });
+      }
+    }
+  }
+
+  useEffect(() => {
+    testConnectivity()
+    window.globalToast = toast
+  })
+
 
   const LoadingIndicator = props => {
     const { promiseInProgress } = usePromiseTracker();
@@ -46,6 +72,7 @@ function App() {
     );
   }
   //<ProgressSpinner style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%, -50%)", zIndex: "1000" }} />
+
   return (
     <div className="App">
       <header className="App-header">
@@ -53,8 +80,12 @@ function App() {
           PLC TestBench UI
         </p>
       </header>
+      <Toast ref={toast} />
       <LoadingIndicator />
       <Navigation />
+      {false && (
+        <StreamingChart />
+      )}
     </div>
   );
 }

@@ -9,8 +9,7 @@ import { Toast } from 'primereact/toast';
 import InputFilesSelector from './InputFilesSelector';
 import WorkersSettings from './WorkersSettings';
 
-import defaultSettings from '../assets/settings.json';
-import { ConfigurationService } from '../services/testbench-configuration-service';
+//import defaultSettings from '../assets/settings.json';
 
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -25,14 +24,17 @@ class Settings extends Component {
 
         this.execute = props.execute
 
-        let baseUrl = "http://localhost:5000"
-        this.configurationService = new ConfigurationService(baseUrl)
+        this.servicesContainer = props.servicesContainer
 
         this.paged = props.paged || true
 
-        this.pages = ["Input File Selection", "GlobalSettings", "PlsAlgorithm", "PlcAlgorithm", "OutputAnalyser"]
+        this.pages = ["InputFileSelection",
+                      //"GlobalSettings",
+                      "PacketLossSimulator",
+                      "PLCAlgorithm",
+                      "OutputAnalyser"]
 
-        this.defaultSettings = defaultSettings
+        this.defaultSettings = []
         this.storedSettings = []
         this.runId = null
 
@@ -43,8 +45,8 @@ class Settings extends Component {
         this.renderWorkerSettings = this.renderWorkerSettings.bind(this)
     }
 
-    componentDidMount() {
-
+    async componentDidMount() {
+        this.defaultSettings = await this.servicesContainer.configurationService.getSettingsMetadata()
     }
 
     setCurrentPage(currentPage) {
@@ -79,7 +81,7 @@ class Settings extends Component {
             return errors
         }
 
-        if (this.getCurrentPageName() == "Input File Selection") {
+        if (this.getCurrentPageName() == "InputFileSelection") {
             let workerSettings = this.getPageSettings()
             if (workerSettings.settings.length == 0)
                 errors.push(`${this.getCurrentPageName()}: At least one audio file must be selected`)
@@ -152,7 +154,7 @@ class Settings extends Component {
     save = async () => {
         let [success, errors] = this.storeSettings()
         if (success) {
-            this.runId = await this.configurationService.saveRunConfiguration(this.storedSettings.flatMap((item) => item))
+            this.runId = await this.servicesContainer.configurationService.saveRunConfiguration(this.storedSettings.flatMap((item) => item))
             let details = "" //JSON.stringify(this.storedSettings)
             this.toast.current.show({ severity: 'info', summary: `Run configuration saved!\nUUID:${this.runId}`, detail: details });
             if (this.execute) {
@@ -169,10 +171,31 @@ class Settings extends Component {
 
     getToolBarButtons = () => {
         return (<React.Fragment>
-            <Button label="<&nbsp;Previous" icon="pi" className='mr-2' onClick={this.previousPage}></Button>
-            <Button label="Next >" icon="pi" className='mr-2' onClick={this.nextPage}></Button>
+            <Button
+                rounded
+                icon="pi pi-angle-left"
+                tooltip="Previous"
+                tooltipOptions={{ position: 'top' }}
+                className='mr-2'
+                onClick={this.previousPage}
+                disabled={this.isFirstPage()}></Button>
+            <Button
+                rounded
+                icon="pi pi-angle-right"
+                tooltip="Next"
+                tooltipOptions={{ position: 'top' }}
+                className='mr-2'
+                onClick={this.nextPage}
+                disabled={this.isLastPage()}></Button>
             {this.isLastPage() && (
-                <Button label="Save" icon="pi pi-save" className='mr-2' onClick={this.save}></Button>
+                <Button
+                    rounded
+                    icon="pi pi-save"
+                    severity='warning'
+                    tooltip="Save"
+                    tooltipOptions={{ position: 'top' }}
+                    className='mr-2'
+                    onClick={this.save}></Button>
             )}
         </React.Fragment>
         )
@@ -197,7 +220,7 @@ class Settings extends Component {
                 <Toast ref={this.toast} />
                 {(!this.paged || this.state.currentPage == 0) && (
                     <Panel header={this.paged ? this.getProgress() : null} toggleable={this.toggleable} >
-                        <InputFilesSelector ref={this.inputFilesSelector}></InputFilesSelector>
+                        <InputFilesSelector servicesContainer={this.servicesContainer} ref={this.inputFilesSelector}></InputFilesSelector>
                     </Panel>
                 )}
                 {this.pages.slice(1).filter((workerType, index) => !this.paged || this.state.currentPage == index + 1).map((workerType) => {

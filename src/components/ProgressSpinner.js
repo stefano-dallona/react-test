@@ -1,12 +1,14 @@
 import React, { Component } from 'react';
 import cloneDeep from 'lodash/cloneDeep';
-import { arc as d3arc } from 'd3';
+import { arc as d3arc, style } from 'd3';
 
 
 class ProgressSpinner extends Component {
 
     constructor(props) {
         super(props);
+
+        this.contextMenuRef = props.contextMenuRef || null
 
         this.state = {
             nodeId: props.nodeId || "",
@@ -62,9 +64,20 @@ class ProgressSpinner extends Component {
         return progressArc()
     }
 
+    handleContextMenu(e) {
+        e.preventDefault()
+        e.stopPropagation()
+        if (this.contextMenuRef && this.contextMenuRef.current) {
+            this.contextMenuRef.current.show(e)
+        }
+    }
+
     render() {
         return (
-            <g id={`pb-${this.state.nodeId}`} transform={`translate(${this.state.x}, ${this.state.y})`}>
+            <g id={`pb-${this.state.nodeId}`}
+                style={{cursor: 'pointer'}}
+                transform={`translate(${this.state.x}, ${this.state.y})`}
+                onContextMenu={(e) => { this.handleContextMenu(e) }}>
                 <path fill="red" className="progress-bar-bg" d={this.drawMainArc()} />
                 <path fill="blue" className="progress-bar" d={this.drawProgressArc()} />
                 <text stroke="white" className="progress-label" transform={`translate(-11, 5)`}>{this.state.currentPercentage}</text>

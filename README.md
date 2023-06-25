@@ -74,3 +74,24 @@ https://www.notion.so/Introduction-9f133eeef32d4a4f9220cd6d6feaaef7
 
 # Nice architectural example
 https://martinfowler.com/articles/modularizing-react-apps.html
+
+# Enable typescript on existing project
+npm install --save --force typescript @types/node @types/react @types/react-dom @types/jest
+
+# React Google login
+https://blog.logrocket.com/guide-adding-google-login-react-app/
+
+# Starting with HTTPS
+SSL_CRT_FILE=<path-to-crt-file>
+SSL_KEY_FILE=<path-to-key-file>
+set HTTPS=true && npm start
+($env:HTTPS = "true") -and (npm start)
+HTTPS=true npm start
+
+# How to write D3js React components
+https://betterprogramming.pub/5-steps-to-render-d3-js-with-react-functional-components-fcce6cec1411
+
+# Install d3fc
+npm i d3-v6@npm:d3@6.1.1 --save
+npm i d3fc@13.2.1 --save
+npm i d3fc-webgl@0.0.5 --save

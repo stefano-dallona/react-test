@@ -2,11 +2,14 @@ import '../App.css';
 import "primereact/resources/primereact.min.css";
 import "primeicons/primeicons.css";
 import 'primeflex/primeflex.css';
+import '../css/waveforms.css'
 
 import React, { Component, forwardRef } from 'react';
 import Waveforms from '../components/Waveforms';
 import withNavigation from "../components/withNavigation";
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
+
+import { useContainer } from "../components/ServicesContextProvider"
 
 /*
 class RunAnalysis extends Component {
@@ -51,11 +54,12 @@ export default withNavigation(RunAnalysis);
 export const RunAnalysis = (props) => {
     let navigate = useNavigate()
     let { runId } = useParams()
+    let servicesContainer = useContainer()
 
     return (
         runId ? (
             <div id="runAnalysis" className="card p-fluid">
-                <Waveforms runId={runId} filename={""} segmentEventHandler={(segment) => { }}></Waveforms>
+                <Waveforms servicesContainer={servicesContainer} runId={runId} filename={""} segmentEventHandler={(segment) => { }}></Waveforms>
             </div>
         ) : <Navigate to={`/run/history`} state={{nextPage: "RunAnalysis"}} />
     )

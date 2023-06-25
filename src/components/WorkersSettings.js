@@ -179,9 +179,23 @@ class WorkersSettings extends Component {
                         )
                     })}
                     <div className="p-inputgroup">
-                        <Button className="mr-2" onClick={(e) => this.saveWorker()}>Save</Button>
+                        <Button
+                            rounded
+                            icon="pi pi-save"
+                            severity='warning'
+                            tooltip="Save"
+                            tooltipOptions={{ position: 'top' }}
+                            className="mr-2"
+                            onClick={(e) => this.saveWorker()}></Button>
                         {this.defaultSettings.length > 1 && (
-                            <Button className="mr-2" onClick={(e) => this.deleteWorker()}>Delete</Button>
+                            <Button
+                                rounded
+                                icon="pi pi-trash"
+                                severity='danger'
+                                tooltip="Delete"
+                                tooltipOptions={{ position: 'top' }}
+                                className="mr-2"
+                                onClick={(e) => this.deleteWorker()}></Button>
                         )}
                     </div>
                     {this.defaultSettings.length > 1 && (

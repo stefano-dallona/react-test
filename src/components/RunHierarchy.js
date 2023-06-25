@@ -5,6 +5,8 @@ import { tree as d3tree, hierarchy } from 'd3-hierarchy';
 import { select } from 'd3-selection';
 import { trackPromise } from 'react-promise-tracker';
 
+import { ContextMenu } from 'primereact/contextmenu';
+
 import Node from './Node'
 import Link from './Link'
 import ProgressSpinner from './ProgressSpinner'
@@ -33,8 +35,9 @@ class RunHierarchy extends Component {
     constructor(props) {
         super(props);
 
-        let baseUrl = "http://localhost:5000"
-        this.configurationService = new ConfigurationService(baseUrl)
+        this.contextMenuRef = React.createRef(null)
+
+        this.servicesContainer = props.servicesContainer
 
         this.progressBarRefs = new Map()
 
@@ -42,6 +45,8 @@ class RunHierarchy extends Component {
 
         this.nodes = []
         this.links = []
+
+        this.currentFileIndex = 0
 
         this.state = {
             runId: props.runId,
@@ -57,13 +62,18 @@ class RunHierarchy extends Component {
         //setTimeout(() => { this.updateProgress(this.hierarchy.uuid, 50) }, 3000)
     }
 
-    async loadData() {
-        this.hierarchy = await trackPromise(this.configurationService.getRunHierarchy(this.state.runId, this.state.filename));
+    componentWillUnmount() {
+        this.servicesContainer.configurationService.stopListeningForExecutionEvents()
+    }
+
+    async loadData(currentPercentage = 0) {
+        this.hierarchy = await trackPromise(this.servicesContainer.configurationService.getRunHierarchy(this.state.runId, this.state.filename));
         let data = [this.hierarchy]
+        //this.currentFileIndex = 0
         let [nodes, links] = this.generateTree(data)
         this.nodes = nodes
         this.links = links
-        this.resetProgressBars(0, false)
+        this.resetProgressBars(currentPercentage, false)
         this.setData(data);
     }
 
@@ -73,10 +83,13 @@ class RunHierarchy extends Component {
         })
     }
 
-    setFilename(filename) {
+    setFilename(filename, currentPercentage = 0, callback = () => {}) {
         this.setState({
             filename: filename
-        }, this.loadData)
+        }, async (currentPercentage) => {
+            await this.loadData(currentPercentage)
+            callback()
+        })
     }
 
     setData(data) {
@@ -91,7 +104,7 @@ class RunHierarchy extends Component {
             .separation((a, b) => 2);
 
         const rootNode = tree(
-            hierarchy(data[0] || [], d => d.children)
+            hierarchy(data[this.currentFileIndex] || [], d => d.children)
         );
         let nodes = rootNode.descendants();
         const links = rootNode.links();
@@ -101,7 +114,7 @@ class RunHierarchy extends Component {
 
             this.progressBarRefs.set(node.data.uuid, React.createRef())
         });
-
+        
         return [nodes, links]
     }
 
@@ -110,41 +123,78 @@ class RunHierarchy extends Component {
         if (progressBarRef && progressBarRef.current) {
             progressBarRef.current.setCurrentPercentage(progress)
         }
-        localStorage.setItem(nodeId, progress)
+        //localStorage.setItem(nodeId, progress)
     }
 
     resetProgressBars(percentage = 0, includeElaborationProgressBar = false) {
-        this.progressBarRefs.forEach((progressBar, nodeId) => {
-            if (progressBar.current && (nodeId != this.state.runId || includeElaborationProgressBar)) {
-                progressBar.current.setCurrentPercentage(percentage)
+        if (includeElaborationProgressBar) {
+            let progressBarRef = this.progressBarRefs.get(this.state.runId)
+            if (progressBarRef.current) {
+                progressBarRef.current.setCurrentPercentage(percentage)
             }
-            localStorage.setItem(nodeId, percentage)
+            //localStorage.setItem(this.state.runId, percentage)
+        }
+        /*
+        this.progressBarRefs.forEach((progressBarRef) => {
+            if (progressBarRef.current) {
+                progressBarRef.current.setCurrentPercentage(percentage)
+            }
+        })
+        */
+        this.nodes.forEach((node) => {
+            let progressBarRef = this.progressBarRefs.get(node.data.uuid)
+            if (progressBarRef.current) {
+                progressBarRef.current.setCurrentPercentage(percentage)
+            }
+            //localStorage.setItem(node.data.uuid, percentage)
         })
     }
 
     startListeningForExecutionEvents() {
+
         let progressCallback = async function (e) {
             let message = JSON.parse(e.data)
-            this.updateProgress(message.nodeid, message.currentPercentage)
-            localStorage.setItem(message.nodeid, message.currentPercentage)
 
+            if (!(message.nodeid == this.state.runId
+                    || this.nodes.filter((node) => node.data.uuid == message.nodeid).length > 0)) {
+                console.log("Event " + message.nodetype + " discarded due to node_id not found and not equal to run_id")
+                return
+            }
+
+            console.log("nodetype: " + message.nodetype +
+                ", nodeid: " + message.nodeid +
+                ", currentPercentage: " + message.currentPercentage)
+
+            this.updateProgress(message.nodeid, message.currentPercentage)
+            //localStorage.setItem(message.nodeid, message.currentPercentage)
+            /*
             if (message.nodetype == "RunExecution" && message.nodeid == this.state.runId) {
+                this.servicesContainer.configurationService.stopListeningForExecutionEvents();
                 this.resetProgressBars(100)
-                this.configurationService.stopListeningForExecutionEvents();
                 this.onExecutionCompleted(this.state.runId)
             }
-            if (message.nodetype == "ECCTestbench") {
-                this.updateProgress(message.nodeid, message.currentPercentage)
-                localStorage.setItem(message.nodeid, message.currentPercentage)
-                let run = await this.configurationService.getRun(this.state.runId)
-                let selectedInputFiles = run.selected_input_files
-                let newFileIndex = Math.min(selectedInputFiles.length - 1, Math.ceil(selectedInputFiles.length * (message.currentPercentage / 100.0)))
-                if (this.state.filename != selectedInputFiles[newFileIndex]) {
-                    this.setFilename(selectedInputFiles[newFileIndex])
+            */
+            if (message.nodetype == "PLCTestbench") {
+                if (message.currentPercentage < 100) {
+                    let run = await this.servicesContainer.configurationService.getRun(this.state.runId)
+                    let selectedInputFiles = run.selected_input_files
+                    let currentFileIndex = Math.min(selectedInputFiles.length - 1, Math.ceil(selectedInputFiles.length * (message.currentPercentage / 100.0)))
+                    //this.currentFileIndex = currentFileIndex
+                    if (this.state.filename != selectedInputFiles[currentFileIndex]) {
+                        this.resetProgressBars(0, false)
+                        this.setFilename(selectedInputFiles[currentFileIndex])
+                    }
+                }
+                 else {
+                    this.servicesContainer.configurationService.stopListeningForExecutionEvents();
+                    let run = await this.servicesContainer.configurationService.getRun(this.state.runId)
+                    let selectedInputFiles = run.selected_input_files
+                    this.setFilename(selectedInputFiles[selectedInputFiles.length - 1], 100)
+                    this.onExecutionCompleted(this.state.runId)
                 }
             }
         }
-        this.configurationService.startListeningForExecutionEvents(this.state.runId, this.state.runId, progressCallback.bind(this))
+        this.servicesContainer.configurationService.startListeningForExecutionEvents(this.state.runId, this.state.runId, progressCallback.bind(this))
     }
 
     executionCompletedDefaultHandler() {
@@ -152,7 +202,7 @@ class RunHierarchy extends Component {
 
 
     handleZoom() {
-        let transform = d3.event.transform
+        let transform = d3.zoomTransform(this)
         transform.x = window.innerWidth / 2
         d3.select('#hierarchy').attr('transform', transform.toString());
     }
@@ -162,11 +212,18 @@ class RunHierarchy extends Component {
         d3.select('svg').call(zoom);
     }
 
+    getMenuItems() {
+        return [
+            { label: 'Delete', icon: 'pi pi-fw pi-trash', severity: 'warning', command: () => { alert("Delete !") } }
+        ]
+    }
+
     render() {
         this.nodes.forEach((node, i) => { node.key = "node-" + i })
         this.links.forEach((link, i) => { link.key = "link-" + i })
         return (
             <div className="runHierarchy">
+                <ContextMenu model={this.getMenuItems()} ref={this.contextMenuRef} />
                 <svg
                     className="hierarchy"
                     width="100%"
@@ -175,7 +232,15 @@ class RunHierarchy extends Component {
                     <g>
                         {
                             (this.progressBarRefs.has(this.state.runId) || this.progressBarRefs.set(this.state.runId, React.createRef())) &&
-                            <ProgressSpinner ref={this.progressBarRefs.get(this.state.runId)} key={`pb-${this.state.runId}`} nodeId={this.state.runId} x={150} y={80} r={30} />
+                            <ProgressSpinner
+                                ref={this.progressBarRefs.get(this.state.runId)}
+                                key={`pb-${this.state.runId}`}
+                                nodeId={this.state.runId}
+                                x={150}
+                                y={80}
+                                r={30}
+                                contextMenuRef={this.contextMenuRef}
+                            />
                         }
                     </g>
                     <g id="hierarchy" transform={`translate(${window.innerWidth / 2}, 50)`}>
@@ -191,7 +256,15 @@ class RunHierarchy extends Component {
                         })}
                         {this.nodes.map((node, i) => {
                             return (
-                                <ProgressSpinner ref={this.progressBarRefs.get(node.data.uuid)} key={`pb-${node.key}`} nodeId={node.data.uuid} x={node.x} y={node.y} percentage={localStorage.getItem(node.data.uuid) || 0} />
+                                <ProgressSpinner
+                                    ref={this.progressBarRefs.get(node.data.uuid)}
+                                    key={`pb-${node.key}`}
+                                    nodeId={node.data.uuid}
+                                    x={node.x}
+                                    y={node.y}
+                                    percentage={localStorage.getItem(node.data.uuid) || 0}
+                                    contextMenuRef={this.contextMenuRef}
+                                />
                             )
                         })}
                     </g>

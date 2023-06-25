@@ -13,19 +13,30 @@ class RunList extends Component {
     constructor(props) {
         super(props);
 
-        this.baseUrl = 'http://localhost:5000'
-        this.configurationService = new ConfigurationService(this.baseUrl)
+        this.servicesContainer = props.servicesContainer
 
         this.state = {
             data: [],
+            page: 0,
+            pageSize: 5,
+            totalRecords: 0,
             selectedRun: null
         };
     }
 
-    setData(data) {
+    setData(data, page, totalRecords) {
         this.setState({
-            data: data
+            data: data,
+            page: page,
+            totalRecords: totalRecords
         })
+    }
+
+    setPageSize(page, pageSize, callback) {
+        this.setState({
+            page: page,
+            pageSize: pageSize
+        }, callback) 
     }
 
     setSelectedRun(runId) {
@@ -49,22 +60,84 @@ class RunList extends Component {
         });*/
     }
 
-    async loadData() {
-        let data = await trackPromise(this.configurationService.findAllRuns());
-        data.forEach((row) => { row.input_files = row.selected_input_files.join(",") })
-        this.setData(data);
+    async loadData(page = 0) {
+        let pagination = { page: page, pageSize: this.state.pageSize }
+        let result = await trackPromise(this.servicesContainer.configurationService.findAllRuns(pagination));
+        result.data.forEach((row) => { row.input_files = row.selected_input_files.join(",") })
+        this.setData(result.data, page, result.totalRecords);
+    }
+
+    onPageChange = (event) => {
+        let page = event.page
+        this.setPageSize(event.page, event.rows, () => this.loadData(page));
+    };
+
+    getStatusIcon = (status) => {
+        switch (status) {
+            case 'CREATED':
+                return null;
+
+            case 'RUNNING':
+                return (
+                    <i className="pi pi-spin pi-spinner" style={{ fontSize: '1rem' }}></i>
+                );
+
+            case 'COMPLETED':
+                return (
+                    <i className="pi pi-check" style={{ color: 'white', fontSize: '1rem' }}></i>
+                );
+
+            case 'FAILED':
+                return (
+                    <i className="pi pi-times" style={{ color: 'red', fontSize: '1rem' }}></i>
+                );
+
+            default:
+                return null;
+        }
+    };
+
+    statusBodyTemplate = (rowData) => {
+        return (
+            <div className="flex align-items-center gap-2">
+                {this.getStatusIcon(rowData.status)}
+            </div>
+        );
+    };
+
+    paginatorTemplate = {
+        layout: 'RowsPerPageDropdown PrevPageLink PageLinks NextPageLink CurrentPageReport',
+        CurrentPageReport: (options) => {
+            return (
+                <span style={{ color: 'var(--text-color)', userSelect: 'none', width: '120px', textAlign: 'center' }}>
+                    {options.first} - {options.last} of {options.totalRecords}
+                </span>
+            );
+        }
     }
 
     render() {
         return (
             <div id="runList">
-                <DataTable stripedRows value={this.state.data} selectionMode="single" selection={this.state.selectedRun} onSelectionChange={(e) => this.setSelectedRun(e.value)}>
+                <DataTable lazy
+                        stripedRows
+                        value={this.state.data}
+                        selectionMode="single"
+                        selection={this.state.selectedRun}
+                        onSelectionChange={(e) => this.setSelectedRun(e.value)}>
                     <Column field="run_id" header="Run ID"></Column>
                     <Column field="input_files" header="Files"></Column>
                     <Column field="created_on" header="Created On"></Column>
                     <Column field="creator" header="Creator"></Column>
+                    <Column field="status" header="Status" body={this.statusBodyTemplate}></Column>
                 </DataTable>
-                <Paginator rows={10} totalRecords={this.state.data.length} onPageChange={null}></Paginator>
+                <Paginator
+                    template={this.paginatorTemplate}
+                    first={this.state.page * this.state.pageSize}
+                    rows={this.state.pageSize}
+                    totalRecords={this.state.totalRecords}
+                    rowsPerPageOptions={[3, 5]}
+                    onPageChange={this.onPageChange}></Paginator>
             </div>
         )
     }
