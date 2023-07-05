@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { fetchEventSource } from '@microsoft/fetch-event-source'
 
 function create_UUID() {
     var dt = new Date().getTime();
@@ -145,10 +146,28 @@ export class ConfigurationService {
             execution_id,
             callback,
             error_callback = (err) => { console.error("EventSource failed:", err) }) {
-        let requestUrl = `${this.baseUrl}/runs/${run_id}/executions/${execution_id}/events`
+        let token = localStorage.getItem("jwt_token")                
+        let requestUrl = `${this.baseUrl}/runs/${run_id}/executions/${execution_id}/events?token=${token}`
+        /*
         this.sseListener = new EventSource(requestUrl, { authorizationHeader: localStorage.getItem("jwt_token") });
         this.sseListener.addEventListener("run_execution", callback)
         this.sseListener.onerror = error_callback
+        */
+        
+        fetchEventSource(requestUrl, {
+            headers: {
+                'Authorization': localStorage.getItem("jwt_token"),
+            },
+            onmessage(msg) {
+                if (msg.event === 'run_execution') {
+                    callback(msg)
+                }
+            },
+            onerror(err) {
+                error_callback(err)
+            }
+        })
+        
     }
 
     stopListeningForExecutionEvents() {

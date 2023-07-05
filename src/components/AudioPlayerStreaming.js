@@ -190,7 +190,8 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
                 original_file_node_id: bufferToPlay,
                 audio_file_node_id: bufferToPlay,
                 start_time: 0,
-                stop_time: null
+                stop_time: null,
+                authorization: localStorage.getItem("jwt_token")
             });
 
             socketRef.current.on('track-stream', async (args) => {

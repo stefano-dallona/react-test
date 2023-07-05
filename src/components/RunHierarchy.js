@@ -157,7 +157,7 @@ class RunHierarchy extends Component {
 
             if (!(message.nodeid == this.state.runId
                     || this.nodes.filter((node) => node.data.uuid == message.nodeid).length > 0)) {
-                console.log("Event " + message.nodetype + " discarded due to node_id not found and not equal to run_id")
+                console.log("Event " + message.nodetype + " discarded due to node_id '" + message.nodeid + "' not found and not equal to run_id '" + this.state.runId + "'")
                 return
             }
 
