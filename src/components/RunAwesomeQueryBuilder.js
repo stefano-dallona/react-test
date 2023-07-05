@@ -32,8 +32,8 @@ initValue = {
                 "operator": "multiselect_contains",
                 "value": [
                     [
-                        path + "Blues_Bass.wav",
-                        path + "Blues_Guitar.wav"
+                        "Blues_Bass.wav",
+                        "Blues_Guitar.wav"
                     ]
                 ],
                 "valueSrc": [
@@ -418,8 +418,8 @@ const fields = {
         fieldSettings: {
             showSearch: true,
             listValues: [
-                { value: path + "Blues_Bass.wav", title: "Blues_Bass.wav" },
-                { value: path + "Blues_Guitar.wav", title: "Blues_Guitar.wav" }
+                { value: "Blues_Bass.wav", title: "Blues_Bass.wav" },
+                { value: "Blues_Guitar.wav", title: "Blues_Guitar.wav" }
             ],
             allowCustomValues: false
         }

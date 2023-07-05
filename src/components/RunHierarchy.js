@@ -155,7 +155,7 @@ class RunHierarchy extends Component {
         let progressCallback = async function (e) {
             let message = JSON.parse(e.data)
 
-            if (!(message.nodeid == this.state.runId
+            if (!(message.nodetype == "PLCTestbench" || message.nodeid == this.state.runId
                     || this.nodes.filter((node) => node.data.uuid == message.nodeid).length > 0)) {
                 console.log("Event " + message.nodetype + " discarded due to node_id '" + message.nodeid + "' not found and not equal to run_id '" + this.state.runId + "'")
                 return
@@ -163,7 +163,8 @@ class RunHierarchy extends Component {
 
             console.log("nodetype: " + message.nodetype +
                 ", nodeid: " + message.nodeid +
-                ", currentPercentage: " + message.currentPercentage)
+                ", currentPercentage: " + message.currentPercentage,
+                ", progress: " + message.progress)
 
             this.updateProgress(message.nodeid, message.currentPercentage)
             //localStorage.setItem(message.nodeid, message.currentPercentage)

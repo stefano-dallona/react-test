@@ -147,7 +147,7 @@ export class ConfigurationService {
             callback,
             error_callback = (err) => { console.error("EventSource failed:", err) }) {
         let token = localStorage.getItem("jwt_token")                
-        let requestUrl = `${this.baseUrl}/runs/${run_id}/executions/${execution_id}/events?token=${token}`
+        let requestUrl = `${this.baseUrl}/runs/${run_id}/executions/${execution_id}/events` //?token=${token}`
         /*
         this.sseListener = new EventSource(requestUrl, { authorizationHeader: localStorage.getItem("jwt_token") });
         this.sseListener.addEventListener("run_execution", callback)
