@@ -133,7 +133,7 @@ class RunList extends Component {
                         selection={this.state.selectedRun}
                         onSelectionChange={(e) => this.setSelectedRun(e.value)}>
                     <Column field="run_id" header="Run ID"></Column>
-                    <Column field="input_files" header="Files"></Column>
+                    <Column field="selected_input_files" header="Files"></Column>
                     <Column field="created_on" header="Created On"></Column>
                     <Column field="creator" header="Creator"></Column>
                     <Column field="status" header="Status" body={this.statusBodyTemplate}></Column>

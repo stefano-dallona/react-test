@@ -51,7 +51,7 @@ export class ConfigurationService {
             ]
         }
         */
-        projection = { "_id": 1 }
+        projection = { }
 
         pagination = {
             "page": 0,

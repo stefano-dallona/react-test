@@ -45,11 +45,11 @@ initValue = {
                 "asyncListValues": [
                     {
                         "title": "Blues_Bass.wav",
-                        "value": path + "Blues_Bass.wav"
+                        "value": "Blues_Bass.wav"
                     },
                     {
                         "title": "Blues_Guitar.wav",
-                        "value": path + "Blues_Guitar.wav"
+                        "value": "Blues_Guitar.wav"
                     }
                 ]
             }
@@ -521,7 +521,7 @@ const fields = {
             }
         }
     },
-    "lostSamplesMasks|reconstructedTracks": {
+    "reconstructedTracks": {
         label: "PLC Algorithm",
         type: "!group",
         subfields: {
@@ -604,7 +604,7 @@ const fields = {
             }
         }
     },
-    "lostSamplesMasks|reconstructedTracks|outputAnalysis": {
+    "outputAnalysis": {
         label: "Output Analyser",
         type: "!group",
         subfields: {
@@ -736,12 +736,12 @@ class RunAwesomeQueryBuilder extends Component {
     }
 
     renderResult = ({ tree: immutableTree, config }) => (
-        //false && (
+        false && (
             <div className="query-builder-result">
                 <div>MongoDb query: <pre>{this.getMongoDbQuery(immutableTree)}</pre></div>
                 <div>Tree: <pre>{JSON.stringify(QbUtils.getTree(immutableTree))}</pre></div>
             </div>
-        //)
+        )
     )
 
     render = () => (
