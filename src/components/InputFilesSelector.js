@@ -44,14 +44,15 @@ class InputFilesSelector extends Component {
                 _this.dropzone.removeFile(file)
             },
             uploadprogress: (file, progress, bytesSent) => {
-                let progressPercentage = Math.floor(bytesSent / file.size * 100)
-                if (file.upload.chunked && !file.status === "uploading") {
-                    this.loadInputFiles()
-                    return;
-                }
+                let progressPercentage = Math.min(Math.ceil(bytesSent / file.size * 100), 100)
                 let progressElement = file.previewElement.querySelector("[data-dz-uploadprogress]");
                 progressElement.style.width = progressPercentage + "%";
                 console.log("file:" + file + ", progress:" + progressPercentage)
+                
+                if (file.upload.chunked && progressPercentage >= 100) {
+                    this.loadInputFiles()
+                    return;
+                }
             },
             totaluploadprogress: null /*(progress) => {
                 console.log("totaluploadprogress:" + progress)
