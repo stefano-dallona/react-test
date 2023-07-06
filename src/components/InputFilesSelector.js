@@ -16,6 +16,7 @@ class InputFilesSelector extends Component {
         super(props);
 
         this.servicesContainer = props.servicesContainer
+        this.baseUrl = this.servicesContainer.configurationService.baseUrl
 
         this.dropzoneConfig = {
             iconFiletypes: ['.wav'],
@@ -31,7 +32,8 @@ class InputFilesSelector extends Component {
             maxFiles: 20,
             maxFilesize: 1025,
             chunkSize: 1000000,
-            acceptedFiles: '.wav'
+            acceptedFiles: '.wav',
+            headers: { "Authorization": localStorage.getItem("jwt_token") }
         }
 
         let _this = this
@@ -42,13 +44,14 @@ class InputFilesSelector extends Component {
                 _this.dropzone.removeFile(file)
             },
             uploadprogress: (file, progress, bytesSent) => {
-                if (file.upload.chunked && progress === 100) {
+                let progressPercentage = Math.floor(bytesSent / file.size * 100)
+                if (file.upload.chunked && !file.status === "uploading") {
                     this.loadInputFiles()
                     return;
                 }
                 let progressElement = file.previewElement.querySelector("[data-dz-uploadprogress]");
-                progressElement.style.width = progress + "%";
-                console.log("file:" + file + ", progress:" + progress)
+                progressElement.style.width = progressPercentage + "%";
+                console.log("file:" + file + ", progress:" + progressPercentage)
             },
             totaluploadprogress: null /*(progress) => {
                 console.log("totaluploadprogress:" + progress)
