@@ -27,6 +27,7 @@ export const RunHistory = (props) => {
         console.log(`queryString:${queryString}`)
         let projection = { "_id": 1 }
         let pagination = {page: 0, pageSize: 10}
+        runList.current.setQuery(queryString)
         let runs = await servicesContainer.configurationService.findRunsByFilter(queryString, projection, pagination)
         return runs
     }
@@ -94,7 +95,7 @@ export const RunHistory = (props) => {
                     loadSavedFiltersHandler={loadSavedFilters}/>
             </Panel>
             <Panel header="Run List">
-                <RunList servicesContainer={servicesContainer} ref={runList} parentChangeHandler={onChange}></RunList>
+                <RunList servicesContainer={servicesContainer} ref={runList} query={null} parentChangeHandler={onChange}></RunList>
             </Panel>
             {(!location.state || !location.state.nextPage) && (
                 <Toolbar start={startContent} />

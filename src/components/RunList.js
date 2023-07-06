@@ -16,12 +16,19 @@ class RunList extends Component {
         this.servicesContainer = props.servicesContainer
 
         this.state = {
+            query: null,
             data: [],
             page: 0,
             pageSize: 5,
             totalRecords: 0,
             selectedRun: null
         };
+    }
+
+    setQuery(query) {
+        this.setState({
+            query: query
+        }, this.loadData)
     }
 
     setData(data, page, totalRecords) {
@@ -62,7 +69,7 @@ class RunList extends Component {
 
     async loadData(page = 0) {
         let pagination = { page: page, pageSize: this.state.pageSize }
-        let result = await trackPromise(this.servicesContainer.configurationService.findAllRuns(pagination));
+        let result = await trackPromise(this.state.query ? this.servicesContainer.configurationService.findRunsByFilter(this.state.query, {}, pagination) : this.servicesContainer.configurationService.findAllRuns(pagination));
         result.data.forEach((row) => { row.input_files = row.selected_input_files.join(",") })
         this.setData(result.data, page, result.totalRecords);
     }

@@ -28,7 +28,7 @@ initValue = {
             "type": "rule",
             "id": "b9bbab8b-0123-4456-b89a-b188529aabe0",
             "properties": {
-                "field": "filename",
+                "field": "selected_input_files",
                 "operator": "multiselect_contains",
                 "value": [
                     [
@@ -412,14 +412,15 @@ const fields = {
         label: "Description",
         type: "text",
     },
-    filename: {
+    selected_input_files: {
         label: "Input files",
         type: "multiselect",
         fieldSettings: {
             showSearch: true,
             listValues: [
                 { value: "Blues_Bass.wav", title: "Blues_Bass.wav" },
-                { value: "Blues_Guitar.wav", title: "Blues_Guitar.wav" }
+                { value: "Blues_Guitar.wav", title: "Blues_Guitar.wav" },
+                { value: "Musica_e.wav", title: "Musica_e.wav" }
             ],
             allowCustomValues: false
         }

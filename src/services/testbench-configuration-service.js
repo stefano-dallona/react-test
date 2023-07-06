@@ -32,7 +32,7 @@ export class ConfigurationService {
         return runs
     }
 
-    async findRunsByFilter(queryString, projectionString, pagination) {
+    async findRunsByFilter(queryString, projection, pagination) {
         /*
         queryString = {
             "$and":[
@@ -51,7 +51,7 @@ export class ConfigurationService {
             ]
         }
         */
-        projectionString = { "_id": 1 }
+        projection = { "_id": 1 }
 
         pagination = {
             "page": 0,
@@ -60,12 +60,12 @@ export class ConfigurationService {
 
         const requestOptions = {
             headers: {
-                Accept: 'application/json',
+                'Accept': 'application/json',
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
                 queryString: queryString,
-                projectionString: projectionString,
+                projectionString: projection,
                 pagination: pagination
             })
         };
