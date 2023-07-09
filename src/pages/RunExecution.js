@@ -32,8 +32,10 @@ export const RunExecution = (props) => {
         runHierarchy.current.setFilename("", 0, () => {
             runHierarchy.current.currentFileIndex = 0
             runHierarchy.current.resetProgressBars(0, true)
-            runHierarchy.current.startListeningForExecutionEvents()
-            servicesContainer.configurationService.launchRunExecution(runId)
+            let task_id = servicesContainer.configurationService.create_UUID()
+            localStorage.setItem("runExecution:" + runId, task_id)
+            runHierarchy.current.startListeningForExecutionEvents(task_id)
+            servicesContainer.configurationService.launchRunExecution(runId, task_id)
         })
     }
 
@@ -41,9 +43,10 @@ export const RunExecution = (props) => {
         toast.current.show({ severity: severity, summary: summary, detail: detail });
     }
 
-    const onExecutionCompleted = (runId) => {
+    const onExecutionCompleted = (runId, task_id) => {
         setExecutionInProgress(false)
         runHierarchy.current.resetProgressBars(100, true)
+        localStorage.removeItem("runExecution:" + runId)
         showMessage('info', `Elaboration of run ${runId} completed successfully`, '')
     }
 

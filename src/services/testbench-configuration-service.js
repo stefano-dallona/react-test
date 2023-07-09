@@ -1,21 +1,21 @@
 import axios from 'axios'
 import { fetchEventSource } from '@microsoft/fetch-event-source'
 
-function create_UUID() {
-    var dt = new Date().getTime();
-    var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-        var r = (dt + Math.random() * 16) % 16 | 0;
-        dt = Math.floor(dt / 16);
-        return (c == 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-    });
-    return uuid;
-}
-
 export class ConfigurationService {
 
     constructor(baseUrl, axiosClient) {
         this.baseUrl = baseUrl;
         this.axiosClient = axiosClient
+    }
+
+    create_UUID() {
+        var dt = new Date().getTime();
+        var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            var r = (dt + Math.random() * 16) % 16 | 0;
+            dt = Math.floor(dt / 16);
+            return (c == 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+        });
+        return uuid;
     }
 
     async findAllRuns(pagination={page: 0, pageSize: -1}) {
@@ -124,12 +124,15 @@ export class ConfigurationService {
         }
     }
 
-    async launchRunExecution(run_id) {
+    async launchRunExecution(run_id, task_id) {
         const requestOptions = {
             method: 'POST',
             headers: {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
+            },
+            body: {
+                'task_id': task_id
             }
         };
         let requestUrl = this.baseUrl + "/runs/" + run_id + "/executions"
@@ -138,16 +141,17 @@ export class ConfigurationService {
         let run_execution = await response.json()
         */
         let response = await this.axiosClient.post(requestUrl, requestOptions)
-        let run_execution = response.data
-        return run_execution
+        let executionId = response.data
+        return executionId
     }
 
     startListeningForExecutionEvents(run_id,
             execution_id,
             callback,
+            task_id,
             error_callback = (err) => { console.error("EventSource failed:", err) }) {
-        let token = localStorage.getItem("jwt_token")                
-        let requestUrl = `${this.baseUrl}/runs/${run_id}/executions/${execution_id}/events` //?token=${token}`
+        let token = localStorage.getItem("jwt_token")
+        let requestUrl = `${this.baseUrl}/runs/${run_id}/executions/${execution_id}/events?task_id=${task_id}` //&token=${token}`
         /*
         this.sseListener = new EventSource(requestUrl, { authorizationHeader: localStorage.getItem("jwt_token") });
         this.sseListener.addEventListener("run_execution", callback)
@@ -156,7 +160,7 @@ export class ConfigurationService {
         
         fetchEventSource(requestUrl, {
             headers: {
-                'Authorization': localStorage.getItem("jwt_token"),
+                'Authorization': token,
             },
             onmessage(msg) {
                 if (msg.event === 'run_execution') {

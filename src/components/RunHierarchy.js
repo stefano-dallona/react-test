@@ -150,7 +150,7 @@ class RunHierarchy extends Component {
         })
     }
 
-    startListeningForExecutionEvents() {
+    startListeningForExecutionEvents(task_id) {
 
         let progressCallback = async function (e) {
             let message = JSON.parse(e.data)
@@ -161,12 +161,20 @@ class RunHierarchy extends Component {
                 return
             }
 
-            console.log("nodetype: " + message.nodetype +
+            console.log("task_id: " + message.task_id +
+                ", nodetype: " + message.nodetype +
                 ", nodeid: " + message.nodeid +
                 ", currentPercentage: " + message.currentPercentage,
                 ", progress: " + message.progress)
-
+     
             this.updateProgress(message.nodeid, message.currentPercentage)
+
+            for (const [nodeid, currentPercentage] of Object.entries(message.progress).filter(([key, value]) => {
+                return this.progressBarRefs.get(key) != null
+            })) {
+                this.updateProgress(nodeid, currentPercentage)
+            }
+
             //localStorage.setItem(message.nodeid, message.currentPercentage)
             /*
             if (message.nodetype == "RunExecution" && message.nodeid == this.state.runId) {
@@ -191,11 +199,11 @@ class RunHierarchy extends Component {
                     let run = await this.servicesContainer.configurationService.getRun(this.state.runId)
                     let selectedInputFiles = run.selected_input_files
                     this.setFilename(selectedInputFiles[selectedInputFiles.length - 1], 100)
-                    this.onExecutionCompleted(this.state.runId)
+                    this.onExecutionCompleted(this.state.runId, task_id)
                 }
             }
         }
-        this.servicesContainer.configurationService.startListeningForExecutionEvents(this.state.runId, this.state.runId, progressCallback.bind(this))
+        this.servicesContainer.configurationService.startListeningForExecutionEvents(this.state.runId, this.state.runId, progressCallback.bind(this), task_id)
     }
 
     executionCompletedDefaultHandler() {
