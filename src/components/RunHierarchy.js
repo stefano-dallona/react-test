@@ -61,11 +61,23 @@ class RunHierarchy extends Component {
     async componentDidMount() {
         this.loadData()
         this.initZoom()
-        //setTimeout(() => { this.updateProgress(this.hierarchy.uuid, 50) }, 3000)
     }
 
     componentWillUnmount() {
         this.servicesContainer.configurationService.stopListeningForExecutionEvents()
+    }
+
+    checkForRunningTask() {
+        let task_id = localStorage.getItem("runExecution:" + this.state.runId)
+        if (task_id) {
+            //if (this.run.status == "RUNNING") {
+                if (!this.isExecuting()) {
+                    this.startListeningForExecutionEvents(task_id)
+                }
+            //} else {
+                localStorage.removeItem("runExecution:" + this.state.runId)
+            //}
+        }
     }
 
     async loadRun() {
@@ -75,7 +87,8 @@ class RunHierarchy extends Component {
     async loadData(currentPercentage = 0) {
         if (this.state.filename == "") {
             this.setCurrentFileIndex(0)
-            this.loadRun()
+            await this.loadRun()
+            this.checkForRunningTask()
         }
         this.hierarchy = await trackPromise(this.servicesContainer.configurationService.getRunHierarchy(this.state.runId, this.state.filename));
         let data = [this.hierarchy]
