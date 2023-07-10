@@ -30,8 +30,6 @@ export const RunExecution = (props) => {
     const execute = () => {
         setExecutionInProgress(true)
         runHierarchy.current.setFilename("", 0, () => {
-            runHierarchy.current.currentFileIndex = 0
-            runHierarchy.current.resetProgressBars(0, true)
             let task_id = servicesContainer.configurationService.create_UUID()
             localStorage.setItem("runExecution:" + runId, task_id)
             runHierarchy.current.startListeningForExecutionEvents(task_id)

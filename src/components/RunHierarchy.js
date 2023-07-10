@@ -46,7 +46,9 @@ class RunHierarchy extends Component {
         this.nodes = []
         this.links = []
 
+        this.run = null
         this.currentFileIndex = 0
+        this.executing = false
 
         this.state = {
             runId: props.runId,
@@ -56,7 +58,7 @@ class RunHierarchy extends Component {
         };
     }
 
-    componentDidMount() {
+    async componentDidMount() {
         this.loadData()
         this.initZoom()
         //setTimeout(() => { this.updateProgress(this.hierarchy.uuid, 50) }, 3000)
@@ -66,15 +68,38 @@ class RunHierarchy extends Component {
         this.servicesContainer.configurationService.stopListeningForExecutionEvents()
     }
 
+    async loadRun() {
+        this.run = await this.servicesContainer.configurationService.getRun(this.state.runId)
+    }
+
     async loadData(currentPercentage = 0) {
+        if (this.state.filename == "") {
+            this.setCurrentFileIndex(0)
+            this.loadRun()
+        }
         this.hierarchy = await trackPromise(this.servicesContainer.configurationService.getRunHierarchy(this.state.runId, this.state.filename));
         let data = [this.hierarchy]
-        //this.currentFileIndex = 0
         let [nodes, links] = this.generateTree(data)
         this.nodes = nodes
         this.links = links
         this.resetProgressBars(currentPercentage, false)
         this.setData(data);
+    }
+
+    getCurrentFileIndex() {
+        return this.currentFileIndex
+    }
+
+    setCurrentFileIndex(currentFileIndex) {
+        this.currentFileIndex = currentFileIndex
+    }
+
+    isExecuting() {
+        return this.executing
+    }
+
+    setExecuting(executing) {
+        this.executing = executing
     }
 
     setRunId(runId) {
@@ -83,7 +108,7 @@ class RunHierarchy extends Component {
         })
     }
 
-    setFilename(filename, currentPercentage = 0, callback = () => {}) {
+    setFilename(filename, currentPercentage = 0, callback = () => { }) {
         this.setState({
             filename: filename
         }, async (currentPercentage) => {
@@ -104,7 +129,7 @@ class RunHierarchy extends Component {
             .separation((a, b) => 2);
 
         const rootNode = tree(
-            hierarchy(data[this.currentFileIndex] || [], d => d.children)
+            hierarchy(data[0] || [], d => d.children)
         );
         let nodes = rootNode.descendants();
         const links = rootNode.links();
@@ -114,7 +139,7 @@ class RunHierarchy extends Component {
 
             this.progressBarRefs.set(node.data.uuid, React.createRef())
         });
-        
+
         return [nodes, links]
     }
 
@@ -151,24 +176,54 @@ class RunHierarchy extends Component {
     }
 
     startListeningForExecutionEvents(task_id) {
+        this.setExecuting(true)
+
+        let selectedInputFiles = this.run.selected_input_files
 
         let progressCallback = async function (e) {
             let message = JSON.parse(e.data)
 
+            if (message.task_id != localStorage.getItem("runExecution:" + this.state.runId)) {
+                console.log("A spurious event " + message.nodetype + " was received not related to run_id '" + this.state.runId + "'")
+                return
+            }
+
+            //if (message.nodetype == "PLCTestbench") {
+            //    if (message.progress.current_root_index != null && message.progress.current_root_index == this.currentFileIndex) {
+            //if (message.nodetype == "OriginalTrackWorker") {
+                if (message.progress.current_root_index != null && message.progress.current_root_index > this.getCurrentFileIndex()) {
+                    let newFileIndex = Math.min(selectedInputFiles.length, message.progress.current_root_index)
+                    this.setCurrentFileIndex(newFileIndex)
+                    let newFile = selectedInputFiles[newFileIndex]
+                    if (this.state.filename != newFile) {
+                        this.resetProgressBars(0, false)
+                        console.log(`Loading new file: ${newFile}, triggered by message with revision ${message.progress.revision}`)
+                        this.setFilename(newFile)
+                    }
+                }
+            //}
+            /*
             if (!(message.nodetype == "PLCTestbench" || message.nodeid == this.state.runId
                     || this.nodes.filter((node) => node.data.uuid == message.nodeid).length > 0)) {
                 console.log("Event " + message.nodetype + " discarded due to node_id '" + message.nodeid + "' not found and not equal to run_id '" + this.state.runId + "'")
                 return
             }
-
+            */
             console.log("task_id: " + message.task_id +
                 ", nodetype: " + message.nodetype +
                 ", nodeid: " + message.nodeid +
                 ", currentPercentage: " + message.currentPercentage,
                 ", progress: " + message.progress)
-     
-            this.updateProgress(message.nodeid, message.currentPercentage)
 
+            for (const [nodeid, pbRef] of this.progressBarRefs) {
+                let progressMap = new Map(Object.entries(message.progress))
+                if (!progressMap.get(nodeid)) {
+                    this.updateProgress(nodeid, 0)
+                }
+                if (progressMap.get(nodeid) < message.progress) {
+                    this.updateProgress(nodeid, message.progress)
+                }
+            }
             for (const [nodeid, currentPercentage] of Object.entries(message.progress).filter(([key, value]) => {
                 return this.progressBarRefs.get(key) != null
             })) {
@@ -183,24 +238,14 @@ class RunHierarchy extends Component {
                 this.onExecutionCompleted(this.state.runId)
             }
             */
-            if (message.nodetype == "PLCTestbench") {
-                if (message.currentPercentage < 100) {
-                    let run = await this.servicesContainer.configurationService.getRun(this.state.runId)
-                    let selectedInputFiles = run.selected_input_files
-                    let currentFileIndex = Math.min(selectedInputFiles.length - 1, Math.ceil(selectedInputFiles.length * (message.currentPercentage / 100.0)))
-                    //this.currentFileIndex = currentFileIndex
-                    if (this.state.filename != selectedInputFiles[currentFileIndex]) {
-                        this.resetProgressBars(0, false)
-                        this.setFilename(selectedInputFiles[currentFileIndex])
-                    }
+            if (message.nodetype == "RunExecution" && this.isExecuting()) {
+                this.setExecuting(false)
+                this.servicesContainer.configurationService.stopListeningForExecutionEvents();
+                let lastFile = selectedInputFiles[selectedInputFiles.length - 1]
+                if (this.state.filename != lastFile) {
+                    this.setFilename(lastFile, 100)
                 }
-                 else {
-                    this.servicesContainer.configurationService.stopListeningForExecutionEvents();
-                    let run = await this.servicesContainer.configurationService.getRun(this.state.runId)
-                    let selectedInputFiles = run.selected_input_files
-                    this.setFilename(selectedInputFiles[selectedInputFiles.length - 1], 100)
-                    this.onExecutionCompleted(this.state.runId, task_id)
-                }
+                this.onExecutionCompleted(this.state.runId, task_id)
             }
         }
         this.servicesContainer.configurationService.startListeningForExecutionEvents(this.state.runId, this.state.runId, progressCallback.bind(this), task_id)

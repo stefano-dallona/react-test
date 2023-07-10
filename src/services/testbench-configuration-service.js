@@ -6,6 +6,7 @@ export class ConfigurationService {
     constructor(baseUrl, axiosClient) {
         this.baseUrl = baseUrl;
         this.axiosClient = axiosClient
+        this.sseListenerController = new AbortController();
     }
 
     create_UUID() {
@@ -145,6 +146,15 @@ export class ConfigurationService {
         return executionId
     }
 
+    /*
+    https://www.npmjs.com/package/@microsoft/fetch-event-source
+     "this library also plugs into the browser's Page Visibility API
+     so the connection closes if the document is hidden (e.g., the
+     user minimizes the window), and automatically retries with the
+     last event ID when it becomes visible again. This reduces the
+     load on your server by not having open connections unnecessarily
+     (but you can opt out of this behavior if you want.)"
+    */
     startListeningForExecutionEvents(run_id,
             execution_id,
             callback,
@@ -157,8 +167,11 @@ export class ConfigurationService {
         this.sseListener.addEventListener("run_execution", callback)
         this.sseListener.onerror = error_callback
         */
+        class RetriableError extends Error { }
+        class FatalError extends Error { }
         
         fetchEventSource(requestUrl, {
+            openWhenHidden: true,
             headers: {
                 'Authorization': token,
             },
@@ -167,17 +180,33 @@ export class ConfigurationService {
                     callback(msg)
                 }
             },
+            onclose() {
+                // if the server closes the connection unexpectedly, retry:
+                throw new RetriableError();
+            },
             onerror(err) {
                 error_callback(err)
-            }
+                if (err instanceof FatalError) {
+                    throw err; // rethrow to stop the operation
+                } else if (err instanceof FatalError) {
+                    throw err;
+                } else {
+                    // do nothing to automatically retry. You can also
+                    // return a specific retry interval here.
+                }
+            },
+            signal: this.sseListenerController.signal
         })
         
     }
 
     stopListeningForExecutionEvents() {
+        /*
         if (this.sseListener) {
             this.sseListener.close();
         }
+        */
+        this.sseListenerController.abort()
     }
 
     async getRunHierarchy(run_id, audio_file) {
