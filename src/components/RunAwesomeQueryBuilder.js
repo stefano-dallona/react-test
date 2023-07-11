@@ -404,7 +404,7 @@ const fields = {
 // {"lostSamplesMasks_reconstructedTracks":{"$elemMatch":{"LowCostPLC_Settings.max_frequency":1}}} =>
 // {"lostSamplesMasks.reconstructedTracks":{"$elemMatch":{"worker":"LowCostPLC", "max_frequency":4800}}}
 const fields = {
-    runId: {
+    run_id: {
         label: "ID",
         type: "text",
     },
@@ -433,7 +433,7 @@ const fields = {
         },
         valueSources: ["value"],
     },
-    createdOn: {
+    created_on: {
         label: "Created on",
         type: "date",
         valueSources: ["value"],
@@ -446,7 +446,7 @@ const fields = {
             },
         },
     },
-    createdBy: {
+    creator: {
         label: "Created by",
         type: "select",
         valueSources: ["value"],
@@ -458,7 +458,7 @@ const fields = {
             allowCustomValues: false
         },
     },
-    lostSamplesMasks: {
+    lost_samples_masks: {
         label: "PLS Algorithm",
         type: "!group",
         subfields: {
@@ -521,7 +521,7 @@ const fields = {
             }
         }
     },
-    "reconstructedTracks": {
+    reconstructed_tracks: {
         label: "PLC Algorithm",
         type: "!group",
         subfields: {
@@ -567,7 +567,7 @@ const fields = {
                     }
                 }
             },
-            'DeepLearningPLC_Settings': {
+            DeepLearningPLC_Settings: {
                 label: "DeepLearningPLC",
                 tooltip: "Group of fields",
                 type: "!struct",
@@ -604,7 +604,7 @@ const fields = {
             }
         }
     },
-    "outputAnalysis": {
+    output_analysis: {
         label: "Output Analyser",
         type: "!group",
         subfields: {

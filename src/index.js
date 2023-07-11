@@ -18,6 +18,13 @@ import { UserProfile } from './pages/UserProfile';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
+  // https://levelup.gitconnected.com/handling-access-tokens-for-google-apis-with-react-node-js-tutorial-5ebf94d8f90f
+  // https://developers.google.com/identity/oauth2/web/guides/use-code-model
+  // https://www.npmjs.com/package/react-google-login
+  // https://dev.to/kamalhossain/refresh-token-problem-in-react-google-login-solved--1med
+  // https://github.com/MomenSherif/react-oauth/issues/12#issuecomment-1131408898
+  // https://github.com/MomenSherif/react-oauth/blob/master/apps/playground/src/components/CodeFlow.tsx
+  // https://realpython.com/flask-google-login/
   <GoogleOAuthProvider clientId="524953903108-944ibh494ugop6i54jh18gu2pkokfi9r.apps.googleusercontent.com">
       <BrowserRouter>
         <App />

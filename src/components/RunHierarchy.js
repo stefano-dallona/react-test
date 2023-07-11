@@ -70,13 +70,13 @@ class RunHierarchy extends Component {
     checkForRunningTask() {
         let task_id = localStorage.getItem("runExecution:" + this.state.runId)
         if (task_id) {
-            //if (this.run.status == "RUNNING") {
+            if (this.run.status == "RUNNING") {
                 if (!this.isExecuting()) {
                     this.startListeningForExecutionEvents(task_id)
                 }
-            //} else {
+            } else {
                 localStorage.removeItem("runExecution:" + this.state.runId)
-            //}
+            }
         }
     }
 
