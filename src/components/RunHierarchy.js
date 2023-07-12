@@ -41,6 +41,7 @@ class RunHierarchy extends Component {
 
         this.progressBarRefs = new Map()
 
+        this.onExecutionStarted = props.onExecutionStarted || (() => {})
         this.onExecutionCompleted = props.onExecutionCompleted || this.executionCompletedDefaultHandler
 
         this.nodes = []
@@ -190,6 +191,7 @@ class RunHierarchy extends Component {
 
     startListeningForExecutionEvents(task_id) {
         this.setExecuting(true)
+        this.onExecutionStarted()
 
         let selectedInputFiles = this.run.selected_input_files
 

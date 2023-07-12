@@ -77,7 +77,7 @@ export const RunExecution = (props) => {
             <div id="runAnalysis" className="card p-fluid">
                 <Toast ref={toast}/>
                 <Panel header="Run Hierarchy">
-                    <RunHierarchy servicesContainer={servicesContainer} ref={runHierarchy} runId={runId} filename={""} onExecutionCompleted={onExecutionCompleted}/>
+                    <RunHierarchy servicesContainer={servicesContainer} ref={runHierarchy} runId={runId} filename={""} onExecutionStarted={() => {setExecutionInProgress(true)}} onExecutionCompleted={onExecutionCompleted}/>
                 </Panel>
                 <Toolbar start={startContent} />
             </div>
