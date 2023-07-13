@@ -9,8 +9,8 @@ import { ConfigurationService } from "./testbench-configuration-service";
 import { trackPromise } from 'react-promise-tracker';
 
 //https://dev.to/mihaiandrei97/jwt-authentication-using-axios-interceptors-55be
-
-let baseUrl = "https://127.0.0.1:5000"
+let baseUrl = `${process.env.REACT_APP_HTTPS && process.env.REACT_APP_HTTPS == "true" ? "https" : "http"}://${process.env.REACT_APP_HOST}:${process.env.REACT_APP_PORT}`
+//let baseUrl = "https://127.0.0.1:5000"
 
 class AxiosClient {
   client: Axios
@@ -40,13 +40,14 @@ class AxiosClient {
       (error) => {
         if (error.response?.status === 401) {
           let jwt_token = localStorage.getItem("jwt_token")
+          window["globalToast"].current.show({ severity: "info", summary: "Please authenticate", detail: "" });
           if (jwt_token) {
             // try to refresh the token
             
           } else {
             // or redirect to the landing page
-            if (window.document.location.href != baseUrl.replace("5000", "3000") + "/") {
-              window.document.location.href = baseUrl.replace("5000", "3000")
+            if (window.location.pathname != "/") {
+              window.location.assign(window.location.protocol + "//" + window.location.hostname + ":" + window.location.port + "/")
             }
           }
         } else {
