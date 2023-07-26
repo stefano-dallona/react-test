@@ -66,8 +66,8 @@ initValue = {
 // You need to provide your own config. See below 'Config format'
 
 const demoListValues = [
-    { title: "Luca Vignati", value: "luca.vignati@unitn.it" },
-    { title: "Stefano Dallona", value: "stefano.dallona@studenti.unitn.it" }
+    { title: "Luca Vignati", value: "luca.vignati95@gmail.com" },
+    { title: "Stefano Dallona", value: "stefano.dallona@gmail.com" }
 ];
 const { simulateAsyncFetch } = QbUtils.Autocomplete;
 const simulatedAsyncFetch = simulateAsyncFetch(demoListValues, 3);
