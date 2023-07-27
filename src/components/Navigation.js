@@ -103,7 +103,7 @@ const Navigation = (props) => {
         {!localStorage.getItem('user') && (
             /*<button onClick={() => login()}>Sign in with Google 🚀 </button>*/
             <Button rounded className="mr-2">
-                <GoogleLogin size='small' width='20' type='icon' shape='circle' theme='filled_blue' onSuccess={responseMessage} onError={errorMessage} />
+                <GoogleLogin size='small' width={20} type='icon' shape='circle' theme='filled_blue' onSuccess={responseMessage} onError={errorMessage} />
             </Button>
         )}
         {localStorage.getItem('user') && (

@@ -47,7 +47,9 @@ class AxiosClient {
           } else {
             // or redirect to the landing page
             if (window.location.pathname != "/") {
-              window.location.assign(window.location.protocol + "//" + window.location.hostname + ":" + window.location.port + "/")
+              setTimeout(() => {
+                window.location.assign(window.location.protocol + "//" + window.location.hostname + ":" + window.location.port + "/")
+              }, 3000)
             }
           }
         } else {
