@@ -43,7 +43,8 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
     const playingZoomedSectionRef = useRef(false)
     const secretKey = "1234"
     const wsUrl = props.servicesContainer.baseUrl
-    //const sliding = useRef(false)
+    const slidingRef = useRef(false)
+    const streamingRef = useRef(false)
 
 
     //https://www.kianmusser.com/articles/react-where-put-websocket/
@@ -63,6 +64,17 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
             audioContextRef.current = new AudioContext({ sampleRate: sampleRate })
         }
         return audioContextRef.current
+    }
+
+    const resetState = () => {
+        audioContextRef.current = null
+        audioSourceRef.current = null
+        audioBufferRef.current = null
+        startTimeRef.current = null
+        offsetRef.current = 0
+        playWhileLoadingDurationRef.current = 0
+        streamIdRef.current = null
+        playingZoomedSectionRef.current = false
     }
 
     const handlePlayingEnd = () => {
@@ -94,10 +106,6 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
             clearInterval(updateProgressIntervalRef.current)
             updateProgressIntervalRef.current = null
         }
-    }
-
-    const getProgress = () => {
-        return progress
     }
 
     const startProgressMonitoring = () => {
@@ -143,7 +151,12 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
     }
 
     const playWhileLoading = (duration = 0) => {
-        if (audioSourceRef.current) audioSourceRef.current.stop()
+        if (audioSourceRef.current) {
+            audioSourceRef.current.stop()
+        }
+        if (audioContextRef.current == null) {
+            audioContextRef.current = getAudioContext()
+        }
         audioSourceRef.current = audioContextRef.current.createBufferSource();
         audioSourceRef.current.buffer = audioBufferRef.current;
         audioSourceRef.current.connect(audioContextRef.current.destination);
@@ -175,10 +188,11 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
 
     const startPlaying = () => {
         setProgress(0)
-        requestStreaming(bufferToPlay, progress)
+        requestStreaming(bufferToPlay, 0)
         setPlaying(true)
         updateCursor()()
         giveFocusToStopButton()
+        console.log("Start completed")
     }
 
     const onPlayClick = (start = 0, duration) => {
@@ -187,11 +201,16 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
     }
 
     const requestStreaming = async (bufferToPlay, progress = 0) => {
+        if (streamingRef.current == true) {
+            return
+        }
+        streamingRef.current = true
+
         console.log("Streaming started")
         let audioAsByte64String = ""
         let cachedFile = null//await retrieveFileFromLocalStorage(bufferToPlay)
         let startTime = buffersListRef.current.find((buffer) => buffer.uuid == bufferToPlay)?.duration * progress / 100.0
-
+        streamingRef.current = true
         if (cachedFile) {
             setAudionState({ loadingProgress: 100 })
             getAudioContext(cachedFile.header.sampleRate)
@@ -216,7 +235,14 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
             socketRef.current.off('track-stream')
             socketRef.current.on('track-stream', async (args) => {
 
-                streamIdRef.current = args['stream_id']
+                if (streamIdRef.current == null) {
+                    streamIdRef.current = args['stream_id']
+                }
+
+                if (streamIdRef.current !== args['stream_id']) {
+                    console.log("Received chunk of inactive stream")
+                    return
+                }
 
                 socketRef.current.emit('track-ack', {
                     chunk_num: args['chunk_num']
@@ -235,7 +261,7 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
                     )
                 );
 
-                console.log(`BEFORE APPEND: audioBufferRef.current.duration:${audioBufferRef.current ? audioBufferRef.current.duration : 0}, chunk: ${args['chunk_num']}, audioBufferChunk.duration: ${audioBufferChunk.duration}`)
+                console.log(`BEFORE APPEND: audioBufferRef.current.duration:${audioBufferRef.current ? audioBufferRef.current.duration : 0}, stream_id: ${args['stream_id']}, chunk: ${args['chunk_num']}, audioBufferChunk.duration: ${audioBufferChunk.duration}`)
                 audioBufferRef.current = (audioBufferRef.current)
                     ? appendBuffer(audioBufferRef.current, audioBufferChunk, audioContextRef.current)
                     : audioBufferChunk;
@@ -276,8 +302,10 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
             socketRef.current.emit('track-stop', {
                 stream_id: streamIdRef.current
             });
+            streamIdRef.current = null
         }
         stopLoadingMonitoring()
+        streamingRef.current = false
     }
 
     const pause = () => {
@@ -323,7 +351,11 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
         stopProgressMonitoring()
         setPlaying(false)
         setProgress(0)
-        giveFocusToStopButton()
+
+        resetState()
+
+        //giveFocusToStopButton()
+        console.log("Stop completed")
     }
 
     const playZoomedInterval = () => {
@@ -372,22 +404,38 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
         };
     }
 
-    const sliderMouseDownHandler = () => {
-        console.log("MouseDown")
-        //sliding.current = true
-        setTimeout(stop, 0)
-        document.addEventListener('mouseup', sliderMouseUpHandler, { once: true })
+    const sliderMouseDownHandler = (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        if (e.buttons == 1) {
+            console.log("MouseDown, e.buttons:" + e.buttons)
+            
+            slidingRef.current = true
+            //setTimeout(stop, 0)
+            stop()
+            /**/
+            document.addEventListener('mouseup', sliderMouseUpHandler, { once: true })           
+        }
     }
 
-    const sliderMouseUpHandler = () => {
-        console.log("MouseUp")
-        //sliding.current = false
-        setTimeout(startPlaying, 0)
+    const sliderMouseUpHandler = (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        if (e.buttons == 0) {
+            console.log("MouseUp, e.buttons:" + e.buttons)
+            
+            //setTimeout(startPlaying, 0)
+            startPlaying()
+            slidingRef.current = false
+            /**/
+        }
     }
 
     const sliderChangeValueHandler = (e) => {
-        setProgress(e.value)
-        console.log("setting progress from slidebar onChange to " + e.value)
+        if (slidingRef.current) {
+            setProgress(e.value)
+            console.log("setting progress from slidebar onChange to " + e.value)
+        }
     }
 
     const getStartButtons = () => {
@@ -455,7 +503,7 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
                 <InputText
                     value={durationRef.current ? (durationRef.current * (100 - progress) / 100.0).toFixed(2) : ""}
                     className="mr-2"
-                    style={{ width: "100px" }}></InputText>
+                    style={{ width: "100px", textAlign: "right" }}></InputText>
             </React.Fragment>
         )
     }
@@ -469,6 +517,7 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
                 className=""
                 min={0}
                 max={100}
+                step={0.01}
                 style={{ width: "100%" }}></Slider>
             <div className="p-slider p-component mb-4 mt-4 p-slider-horizontal">
                 <span className="p-slider-range" style={{ width: audionState.loadingProgress + "%", backgroundColor: "orange" }}></span>

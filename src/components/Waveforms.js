@@ -24,6 +24,8 @@ import { CirclePicker, CompactPicker, SwatchesPicker, TwitterPicker } from 'reac
 
 import BrushZoomState from '../audio/brush-zoom'
 
+import ReactH5AudioPlayer, { RHAP_UI } from 'react-h5-audio-player'
+
 var wavesUI = require('waves-ui');
 
 
@@ -38,6 +40,7 @@ class Waveforms extends Component {
         this.samplesVisualizer = React.createRef();
         this.spectrogram = React.createRef();
         this.audioPlayerOnZoomOut = React.createRef();
+        this.player = React.createRef()
 
         this.audioContext = new AudioContext()
 
@@ -166,6 +169,19 @@ class Waveforms extends Component {
         this.setState({
             audioFileToPlay: audioFileToPlay
         });
+    }
+
+    getAudioFileToPlayURL() {
+        if (this.audioFiles && this.audioFiles.length > 0) {
+            let selectedFile = this.audioFiles[this.state.audioFileToPlay]
+            if (selectedFile) {
+                return `https://localhost:5000/analysis/runs/${this.state.runId}/input-files/${selectedFile.uuid}/output-files/${selectedFile.uuid}`
+            } else {
+                return ""
+            }
+        } else {
+            return ""
+        }
     }
 
     giveFocusToStopButton() {
@@ -328,6 +344,7 @@ class Waveforms extends Component {
                 this.downsamplingEnabled ? async (channel, offset, numSamples) => {
                     let waveformsData = await this.fetchWaveforms.bind(this)(channel, offset, numSamples)
                     this.updateWaveforms(channel, waveformsData)
+                    this.setPlayerCurrentTime(offset / this.buffersList[0].sampleRate)
                 } : null
             );
             this.timeline.on('event', this.handleSegmentEvent().bind(this));
@@ -503,10 +520,31 @@ class Waveforms extends Component {
         return _treeToList(root)
     }
 
+    getPlayableFilesCombo() {
+        let playableFiles = this.audioFiles.map((file, i) => {
+            return { code: i, name: file.label }
+        })
+        return (
+            <Dropdown value={this.state.audioFileToPlay}
+                options={playableFiles}
+                optionLabel="name"
+                optionValue='code'
+                onChange={(e) => this.setAudioFileToPlay(e.value)}
+                placeholder="Select a file to play"
+                className="mr-2 ml-2 w-full md:w-14rem" />
+        );
+    }
+
     getPlayableFilesButtons() {
         return this.audioFiles.map((file, i) => {
             return { label: file.label, icon: (this.state.audioFileToPlay == i) ? "pi pi-check" : "", command: () => { this.setAudioFileToPlay(i) } }
         });
+    }
+
+    setPlayerCurrentTime = (time) => {
+        if (this.player.current) {
+            this.player.current.audio.current.currentTime = time
+        }
     }
 
     handleSegmentEvent() {
@@ -518,7 +556,7 @@ class Waveforms extends Component {
             let segment = sourceLayer.getItemFromDOMElement(e.target);
             return { "segment": segment, "sourceLayer": sourceLayer }
         }
-        
+
         const highlightSelectedSegment = (selectedLoss) => {
             if (this.selectedLoss && this.selectedLoss.color) {
                 delete this.selectedLoss.color
@@ -703,7 +741,7 @@ class Waveforms extends Component {
             case 32:    //SPACE
                 console.log("zoom out")
                 let onZoomOutHandler = this.audioPlayerOnZoomOut.current
-                onZoomOutHandler()
+                if (onZoomOutHandler) onZoomOutHandler()
                 break;
             default:
                 break;
@@ -758,25 +796,25 @@ class Waveforms extends Component {
     }
 
     // FIXME - Temporary workaround. Find a way to rerender the nested component when the parent is ready
-    onAccordionTabStatusChange(status, tabIndex)  {
+    onAccordionTabStatusChange(status, tabIndex) {
         let delay = 1000
-        switch(status) {
+        switch (status) {
             case 'opened':
                 if (tabIndex === 0) {
                     setTimeout(this.renderTrack.bind(this), delay)
                 }
                 else if (tabIndex === 1) {
                     setTimeout(this.refreshSampleVisualizer.bind(this), delay)
-                } 
+                }
                 break
             case 'closed':
                 if (tabIndex === 0) {
                     this.clearWaveforms.bind(this)()
                     this.clearTrack.bind(this)()
-                } 
+                }
                 break
             default:
-  
+
         }
     }
 
@@ -866,7 +904,8 @@ class Waveforms extends Component {
                         tooltipOptions={{ position: 'top' }}
                         className="mr-2"
                         disabled={false}
-                        visible={true} ></Button>
+                        visible={true}
+                        onClick={() => {this.setPlayerCurrentTime(20)}} ></Button>
                 </div>
             </React.Fragment>
         );
@@ -953,7 +992,7 @@ class Waveforms extends Component {
                     {true && (
                         <Toolbar start={startContent} end={endContent} />
                     )}
-                    {this.state.buffersListReady && (
+                    {/*this.state.buffersListReady && (
                         <AudioPlayer
                             servicesContainer={this.servicesContainer}
                             ref={this.audioPlayerOnZoomOut}
@@ -962,7 +1001,41 @@ class Waveforms extends Component {
                             buffersList={this.buffersList}
                             timeline={this.getTimeline.bind(this)}
                             cursorLayer={this.getCursorLayer.bind(this)} />
-                    )}
+
+                    )*/}
+                    <div>
+                        <ReactH5AudioPlayer
+                            ref={this.player}
+                            autoPlay={false}
+                            autoPlayAfterSrcChange={false}
+                            customProgressBarSection={[RHAP_UI.PROGRESS_BAR]}
+                            customControlsSection={[RHAP_UI.CURRENT_TIME, RHAP_UI.MAIN_CONTROLS, RHAP_UI.ADDITIONAL_CONTROLS, RHAP_UI.VOLUME_CONTROLS, RHAP_UI.DURATION]}
+                            customAdditionalControls={[this.getPlayableFilesCombo()]}
+                            customVolumeControls={[RHAP_UI.VOLUME]}
+                            showSkipControls={true}
+                            listenInterval={20 * 1000}
+                            onListen={async () => {
+                                let currentTime = this.player.current.audio.current.currentTime
+                                console.log("audio.currentTime: " + currentTime)
+                                if (this.buffersList && this.buffersList.length > 0) {
+                                    let sampleRate = this.buffersList[0].sampleRate
+                                    let channel = 0
+                                    let offset = Math.floor(currentTime * sampleRate)
+                                    let numSamples = 20 * sampleRate
+                                    console.log(`fetching samples ${numSamples} starting from ${offset}`)
+                                    /*
+                                    let waveformsData = await this.fetchWaveforms.bind(this)(channel, offset, numSamples)
+                                    this.updateWaveforms(channel, waveformsData)
+                                    */
+                                }
+                            }}
+                            width="100%"
+                            src={this.getAudioFileToPlayURL()}
+                            layout='stacked'
+                            />
+                        {/*<audio src='https://localhost:5000/analysis/runs/40914666118008288/input-files/6058707010551074/output-files/6058707010551074' controls autoPlay={false} />*/}
+                    </div>
+
                 </AccordionTab>
                 <AccordionTab header="Samples">
                     {this.waveuiEl && this.state.lossSimulationsReady && this.state.buffersListReady && (
