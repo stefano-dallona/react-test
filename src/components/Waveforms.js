@@ -41,6 +41,7 @@ class Waveforms extends Component {
         this.spectrogram = React.createRef();
         this.audioPlayerOnZoomOut = React.createRef();
         this.player = React.createRef()
+        this.zoomedRegion = React.createRef()
 
         this.audioContext = new AudioContext()
 
@@ -175,7 +176,8 @@ class Waveforms extends Component {
         if (this.audioFiles && this.audioFiles.length > 0) {
             let selectedFile = this.audioFiles[this.state.audioFileToPlay]
             if (selectedFile) {
-                return `https://localhost:5000/analysis/runs/${this.state.runId}/input-files/${selectedFile.uuid}/output-files/${selectedFile.uuid}`
+                let baseUrl = this.servicesContainer.configurationService.baseUrl
+                return `${baseUrl}/analysis/runs/${this.state.runId}/input-files/${selectedFile.uuid}/output-files/${selectedFile.uuid}?jwt=${localStorage.getItem("jwt_token")}`
             } else {
                 return ""
             }
@@ -345,6 +347,11 @@ class Waveforms extends Component {
                     let waveformsData = await this.fetchWaveforms.bind(this)(channel, offset, numSamples)
                     this.updateWaveforms(channel, waveformsData)
                     this.setPlayerCurrentTime(offset / this.buffersList[0].sampleRate)
+                    this.zoomedRegion.current = numSamples < 0 ? null : {
+                        startTime: offset / this.buffersList[0].sampleRate,
+                        endTime: (offset + numSamples) / this.buffersList[0].sampleRate,
+                        numSamples: numSamples
+                    }
                 } : null
             );
             this.timeline.on('event', this.handleSegmentEvent().bind(this));
@@ -740,6 +747,7 @@ class Waveforms extends Component {
         switch (event.keyCode) {
             case 32:    //SPACE
                 console.log("zoom out")
+                this.zoomedRegion.current = null
                 let onZoomOutHandler = this.audioPlayerOnZoomOut.current
                 if (onZoomOutHandler) onZoomOutHandler()
                 break;
@@ -768,6 +776,52 @@ class Waveforms extends Component {
         if (c) {
             this.waveuiEl = c;
         }
+    }
+
+    async slideWaveForm() {
+        let currentTime = this.player.current.audio.current.currentTime
+        let duration = this.player.current.audio.current.duration
+
+        if (this.buffersList && this.buffersList.length > 0) {
+            let sampleRate = this.buffersList[0].sampleRate
+
+            if (currentTime >= duration) {
+                this.player.current.audio.current.currentTime = 0
+                currentTime = this.player.current.audio.current.currentTime
+                if (this.zoomedRegion.current) {
+                    let numSamples = this.zoomedRegion.current.numSamples
+                    this.zoomedRegion.current = {
+                        startTime: 0,
+                        endTime: 0,
+                        numSamples: numSamples
+                    }
+                }
+            }
+    
+            console.log("audio.currentTime: " + currentTime)
+            console.log("player.listenInterval: " + this.player.current.props.listenInterval)
+
+            if (this.zoomedRegion.current) {
+                if (this.zoomedRegion.current.endTime <= currentTime) {
+                    let channel = 0
+                    let offset = Math.floor(currentTime * sampleRate)
+                    let numSamples = this.zoomedRegion.current.numSamples
+                    console.log(`fetching samples ${numSamples} starting from ${offset}`)
+
+                    this.zoomedRegion.current = {
+                        startTime: currentTime,
+                        endTime: currentTime + (numSamples * 1.0 / sampleRate),
+                        numSamples: numSamples
+                    }
+
+                    let waveformsData = await this.fetchWaveforms.bind(this)(channel, offset, numSamples)
+                    this.timeline.timeContext.offset = -this.zoomedRegion.current.startTime
+                    this.setCursorPosition(this.zoomedRegion.current.startTime)
+                    this.updateWaveforms(channel, waveformsData)
+                }
+            }
+        }
+        this.setCursorPosition(currentTime)        
     }
 
     showColorPicker() {
@@ -989,7 +1043,7 @@ class Waveforms extends Component {
                         style={{ height: "250px" }}>
                         {this.waveuiEl && this.state.lossSimulationsReady && this.state.buffersListReady && this.renderAll(this.waveformTrackId)}
                     </div>
-                    {true && (
+                    {false && (
                         <Toolbar start={startContent} end={endContent} />
                     )}
                     {/*this.state.buffersListReady && (
@@ -1013,22 +1067,8 @@ class Waveforms extends Component {
                             customAdditionalControls={[this.getPlayableFilesCombo()]}
                             customVolumeControls={[RHAP_UI.VOLUME]}
                             showSkipControls={true}
-                            listenInterval={20 * 1000}
-                            onListen={async () => {
-                                let currentTime = this.player.current.audio.current.currentTime
-                                console.log("audio.currentTime: " + currentTime)
-                                if (this.buffersList && this.buffersList.length > 0) {
-                                    let sampleRate = this.buffersList[0].sampleRate
-                                    let channel = 0
-                                    let offset = Math.floor(currentTime * sampleRate)
-                                    let numSamples = 20 * sampleRate
-                                    console.log(`fetching samples ${numSamples} starting from ${offset}`)
-                                    /*
-                                    let waveformsData = await this.fetchWaveforms.bind(this)(channel, offset, numSamples)
-                                    this.updateWaveforms(channel, waveformsData)
-                                    */
-                                }
-                            }}
+                            listenInterval={100}
+                            onListen={this.slideWaveForm.bind(this)}
                             width="100%"
                             src={this.getAudioFileToPlayURL()}
                             layout='stacked'
