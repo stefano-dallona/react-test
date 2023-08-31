@@ -12,6 +12,7 @@ import { Button } from 'primereact/button';
 import { SplitButton } from 'primereact/splitbutton';
 import { Dropdown } from 'primereact/dropdown';
 import { Dialog } from 'primereact/dialog'
+import { Tooltip } from 'primereact/tooltip'
 
 import { BufferLoader } from '../audio/bufferloader';
 import { trackPromise } from 'react-promise-tracker';
@@ -411,6 +412,7 @@ class Waveforms extends Component {
                 return this.servicesContainer.analysisService.fetchWaveform(this.state.runId, file.uuid, file.uuid, channel, offset, numSamples, unitOfMeas, maxSlices)
             })))
         } else {
+            /*
             for (const [index, file] of this.audioFiles.entries()) {
                 //if (index != 0) continue
                 let $track = this.waveuiEl;
@@ -419,6 +421,11 @@ class Waveforms extends Component {
                 let waveform = await trackPromise(this.servicesContainer.analysisService.fetchWaveform(this.state.runId, file.uuid, file.uuid, channel, offset, numSamples, unitOfMeas, maxSlices))
                 waveforms.push(waveform)
             }
+            */
+            let $track = this.waveuiEl;
+            let maxSlices = (this.loadOnlyZoomedSection) ? Math.ceil($track.getBoundingClientRect().width) : -1;
+            let unitOfMeas = "samples"
+            waveforms = await trackPromise(this.servicesContainer.analysisService.fetchWaveforms(this.state.runId, this.audioFiles[0].uuid, channel, offset, numSamples, unitOfMeas, maxSlices))
         }
 
         return waveforms
@@ -743,13 +750,18 @@ class Waveforms extends Component {
         this.renderLossSimulations(waveformTrackId)
     }
 
+    zoomOut() {
+        console.log("zoom out")
+        this.zoomedRegion.current = null
+        this.timeline.state.zoomOut()
+        let onZoomOutHandler = this.audioPlayerOnZoomOut.current
+        if (onZoomOutHandler) onZoomOutHandler()
+    }
+
     onKeyDownHandler(event) {
         switch (event.keyCode) {
             case 32:    //SPACE
-                console.log("zoom out")
-                this.zoomedRegion.current = null
-                let onZoomOutHandler = this.audioPlayerOnZoomOut.current
-                if (onZoomOutHandler) onZoomOutHandler()
+                this.zoomOut()
                 break;
             default:
                 break;
@@ -974,8 +986,9 @@ class Waveforms extends Component {
                 activeIndex={[0, 1, 2]}
                 onTabClose={(e) => { this.onAccordionTabStatusChange('closed', e.index) }}
                 onTabOpen={(e) => { this.onAccordionTabStatusChange('opened', e.index) }}
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
-                <AccordionTab header="Waveform" >
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                >
+                <AccordionTab header="Waveform">
                     <div className="card flex flex-wrap gap-3 p-fluid mb-6">
                         <div id="pnl-selectedAudioFile" className="flex-auto">
                             <label htmlFor='selectedAudioFile' className="font-bold block ml-2 mb-2" style={{ color: 'white' }}>Audio File</label>
@@ -1039,7 +1052,7 @@ class Waveforms extends Component {
                     </div>
                     <div id="runWaveforms"
                         ref={this.setWaveformRef.bind(this)}
-                        className="block mb-2 mr-4"
+                        className="waveform block mb-2 mr-4"
                         style={{ height: "250px" }}>
                         {this.waveuiEl && this.state.lossSimulationsReady && this.state.buffersListReady && this.renderAll(this.waveformTrackId)}
                     </div>
@@ -1058,13 +1071,33 @@ class Waveforms extends Component {
 
                     )*/}
                     <div>
+                        <Tooltip target=".pi-search-plus" />
                         <ReactH5AudioPlayer
                             ref={this.player}
                             autoPlay={false}
                             autoPlayAfterSrcChange={false}
                             customProgressBarSection={[RHAP_UI.PROGRESS_BAR]}
                             customControlsSection={[RHAP_UI.CURRENT_TIME, RHAP_UI.MAIN_CONTROLS, RHAP_UI.ADDITIONAL_CONTROLS, RHAP_UI.VOLUME_CONTROLS, RHAP_UI.DURATION]}
-                            customAdditionalControls={[this.getPlayableFilesCombo()]}
+                            customAdditionalControls={[this.getPlayableFilesCombo(),
+                                /*<i className="mr-4 pi pi-search-plus"
+                                    data-pr-tooltip="Brush on waveform to zoom-in"></i>,*/
+                                <Button
+                                    rounded
+                                    icon="pi pi-search-plus"
+                                    tooltip="Brush on waveform to zoom-in"
+                                    tooltipOptions={{ position: 'top' }}
+                                    className="mr-2"
+                                    visible={true} ></Button>,
+                                <Button
+                                    onClick={(e) => { this.zoomOut() }}
+                                    rounded
+                                    icon="pi pi-search-minus"
+                                    tooltip="Zoom-out"
+                                    tooltipOptions={{ position: 'top' }}
+                                    className="mr-2"
+                                    disabled={false}
+                                    visible={true} ></Button>
+                            ]}
                             customVolumeControls={[RHAP_UI.VOLUME]}
                             showSkipControls={true}
                             listenInterval={100}

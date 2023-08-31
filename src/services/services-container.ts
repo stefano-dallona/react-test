@@ -1,4 +1,4 @@
-import { Axios} from 'axios'
+import { Axios } from 'axios'
 import axios from 'axios'
 
 import { useGoogleLogin } from '@react-oauth/google';
@@ -17,7 +17,7 @@ let baseUrl = window.location.protocol + "//" + window.location.host
 
 class AxiosClient {
   client: Axios
-  
+
   constructor(options = {}) {
     this.client = axios.create(options)
 
@@ -33,7 +33,7 @@ class AxiosClient {
         return Promise.reject(error);
       }
     );
-  
+
     this.client.interceptors.response.use(
       (response) => {
         // Any status code that lie within the range of 2xx cause this function to trigger
@@ -45,15 +45,15 @@ class AxiosClient {
           let jwt_token = localStorage.getItem("jwt_token")
           window["globalToast"].current.show({ severity: "info", summary: "Please authenticate", detail: "" });
           if (jwt_token) {
+            localStorage.removeItem('user')
+            localStorage.removeItem('jwt_token');
             // try to refresh the token
-            
-          } else {
-            // or redirect to the landing page
-            if (window.location.pathname != "/") {
-              setTimeout(() => {
-                window.location.assign(window.location.protocol + "//" + window.location.hostname + ":" + window.location.port + "/")
-              }, 3000)
-            }
+          }
+          // or redirect to the landing page
+          if (window.location.pathname != "/") {
+            setTimeout(() => {
+              window.location.assign(window.location.protocol + "//" + window.location.hostname + ":" + window.location.port + "/")
+            }, 3000)
           }
         } else {
           if (window["globalToast"]) {
@@ -90,7 +90,7 @@ export const container = {
   testConnectivity: async () => {
     let axiosClient = axios.create()
     let response = axiosClient.get(baseUrl, {
-      headers: { "Authorization" : localStorage.getItem("jwt_token") }
+      headers: { "Authorization": localStorage.getItem("jwt_token") }
     })
     return response
   },

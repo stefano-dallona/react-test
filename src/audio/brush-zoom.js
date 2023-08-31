@@ -31,6 +31,7 @@ export default class BrushZoomState extends BaseState {
       case 'keydown':
         this.onKeyDown(e);
         break;
+      default:
     }
   }
 
