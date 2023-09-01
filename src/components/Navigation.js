@@ -114,6 +114,7 @@ const Navigation = (props) => {
                 className="mr-2"
                 style={{ padding: 0, borderRadius: "50%" }}>
                 <img
+                    referrerPolicy="no-referrer"
                     className='custom-target-icon'
                     size='small'
                     alt={localStorage.getItem('user').picture}

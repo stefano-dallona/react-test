@@ -16,7 +16,11 @@ import {
     storeFileIntoLocalStorage,
 } from '../audio/persistence-management'
 
+import WaveformData from "waveform-data"
+
 const crypto = require("crypto-js")
+var Peaks = require('peaks.js');
+var peaksInstance = null;
 
 export const AudioPlayer = React.forwardRef((props, ref) => {
     let [playing, setPlaying] = useState(false)
@@ -280,6 +284,50 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
                     const inSec = (Date.now() - startTimeRef.current) / 1000;
                     play(inSec, null, null, handlePlayingEnd);
 
+
+                    WaveformData.createFromAudio({
+                        audio_buffer: audioBufferRef.current,
+                        scale: Math.ceil(args['n_frames'] / 1400),
+                        amplitude_scale: 1.0,
+                        disable_worker: false
+                    }, (err, waveform) => {
+                        if (err) {
+                            console.error(err);
+                            return;
+                        }
+                        console.log(`Waveform has ${waveform.channels} channels`);
+                        console.log(`Waveform has length ${waveform.length} points`);
+                        console.log(`Waveform min_array: ${waveform.channel(0).min_array()}`);
+                        console.log(`Waveform max_array: ${waveform.channel(0).max_array()}`);
+                        console.log(`Waveform min: ${Math.min(...waveform.channel(0).min_array())}`);
+                        console.log(`Waveform max: ${Math.max(...waveform.channel(0).max_array())}`);
+
+                        const options = {
+                            zoomview: {
+                                container: document.getElementById('zoomview-container')
+                            },
+                            overview: {
+                                container: document.getElementById('overview-container')
+                            },
+                            mediaElement: document.getElementById('audio'),
+                            webAudio: {
+                                audioContext: new AudioContext()
+                            }
+                        }
+
+                        if (peaksInstance) peaksInstance.destroy()
+                        Peaks.default.init(options, function (err, peaks) {
+                            if (err) {
+                                console.error('Failed to initialize Peaks instance: ' + err.message);
+                                return;
+                            }
+
+                            // Do something when the waveform is displayed and ready
+                            peaksInstance = peaks
+                            console.log('Peaks has been initialized successfully.')
+                        })
+                    })
+                    /**/
                     //storeFileIntoLocalStorage(bufferToPlay, args, audioAsByte64String)
                 }
             });
@@ -409,12 +457,12 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
         e.stopPropagation()
         if (e.buttons == 1) {
             console.log("MouseDown, e.buttons:" + e.buttons)
-            
+
             slidingRef.current = true
             //setTimeout(stop, 0)
             stop()
             /**/
-            document.addEventListener('mouseup', sliderMouseUpHandler, { once: true })           
+            document.addEventListener('mouseup', sliderMouseUpHandler, { once: true })
         }
     }
 
@@ -423,7 +471,7 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
         e.stopPropagation()
         if (e.buttons == 0) {
             console.log("MouseUp, e.buttons:" + e.buttons)
-            
+
             //setTimeout(startPlaying, 0)
             startPlaying()
             slidingRef.current = false
@@ -530,6 +578,9 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
                     style={{ left: progress + "%" }}></span>
             </div>
             <Toolbar start={getStartButtons} end={getEndButtons} />
+            <div id="zoomview-container"></div>
+            <div id="overview-container"></div>
+            <audio controls autoplay id="audio" src="http://localhost:3000/Blues_Bass.wav"></audio>
         </div>
     )
 

@@ -26,8 +26,10 @@ import { CirclePicker, CompactPicker, SwatchesPicker, TwitterPicker } from 'reac
 import BrushZoomState from '../audio/brush-zoom'
 
 import ReactH5AudioPlayer, { RHAP_UI } from 'react-h5-audio-player'
+//import Peaks from 'peaks.js';
 
 var wavesUI = require('waves-ui');
+//var Peaks = require('peaks.js');
 
 
 class Waveforms extends Component {
@@ -36,7 +38,7 @@ class Waveforms extends Component {
 
         this.downsamplingEnabled = true
         this.loadOnlyZoomedSection = true
-        this.parallelWaveformLoading = true
+        this.parallelWaveformLoading = false
 
         this.samplesVisualizer = React.createRef();
         this.spectrogram = React.createRef();
@@ -120,6 +122,30 @@ class Waveforms extends Component {
     async componentDidMount() {
         await this.loadInputFiles()
         this.setFilename(this.inputFiles[0])
+
+        const options = {
+            zoomview: {
+                container: document.getElementById('zoomview-container')
+            },
+            overview: {
+                container: document.getElementById('overview-container')
+            },
+            mediaElement: document.getElementById('audio'),
+            webAudio: {
+                audioContext: new AudioContext()
+            }
+        }
+        /*
+        Peaks.default.init(options, function (err, peaks) {
+            if (err) {
+                console.error('Failed to initialize Peaks instance: ' + err.message);
+                return;
+            }
+
+            // Do something when the waveform is displayed and ready
+            console.log('Peaks has been initialized successfully.')
+        })
+        */
     }
 
     setAudioFiles(audioFiles) {
@@ -809,7 +835,7 @@ class Waveforms extends Component {
                     }
                 }
             }
-    
+
             console.log("audio.currentTime: " + currentTime)
             console.log("player.listenInterval: " + this.player.current.props.listenInterval)
 
@@ -833,7 +859,7 @@ class Waveforms extends Component {
                 }
             }
         }
-        this.setCursorPosition(currentTime)        
+        this.setCursorPosition(currentTime)
     }
 
     showColorPicker() {
@@ -971,7 +997,7 @@ class Waveforms extends Component {
                         className="mr-2"
                         disabled={false}
                         visible={true}
-                        onClick={() => {this.setPlayerCurrentTime(20)}} ></Button>
+                        onClick={() => { this.setPlayerCurrentTime(20) }} ></Button>
                 </div>
             </React.Fragment>
         );
@@ -987,7 +1013,7 @@ class Waveforms extends Component {
                 onTabClose={(e) => { this.onAccordionTabStatusChange('closed', e.index) }}
                 onTabOpen={(e) => { this.onAccordionTabStatusChange('opened', e.index) }}
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                >
+            >
                 <AccordionTab header="Waveform">
                     <div className="card flex flex-wrap gap-3 p-fluid mb-6">
                         <div id="pnl-selectedAudioFile" className="flex-auto">
@@ -1059,7 +1085,7 @@ class Waveforms extends Component {
                     {false && (
                         <Toolbar start={startContent} end={endContent} />
                     )}
-                    {/*this.state.buffersListReady && (
+                    {this.state.buffersListReady && (
                         <AudioPlayer
                             servicesContainer={this.servicesContainer}
                             ref={this.audioPlayerOnZoomOut}
@@ -1069,7 +1095,7 @@ class Waveforms extends Component {
                             timeline={this.getTimeline.bind(this)}
                             cursorLayer={this.getCursorLayer.bind(this)} />
 
-                    )*/}
+                    )/**/}
                     <div>
                         <Tooltip target=".pi-search-plus" />
                         <ReactH5AudioPlayer
@@ -1079,24 +1105,24 @@ class Waveforms extends Component {
                             customProgressBarSection={[RHAP_UI.PROGRESS_BAR]}
                             customControlsSection={[RHAP_UI.CURRENT_TIME, RHAP_UI.MAIN_CONTROLS, RHAP_UI.ADDITIONAL_CONTROLS, RHAP_UI.VOLUME_CONTROLS, RHAP_UI.DURATION]}
                             customAdditionalControls={[this.getPlayableFilesCombo(),
-                                /*<i className="mr-4 pi pi-search-plus"
-                                    data-pr-tooltip="Brush on waveform to zoom-in"></i>,*/
-                                <Button
-                                    rounded
-                                    icon="pi pi-search-plus"
-                                    tooltip="Brush on waveform to zoom-in"
-                                    tooltipOptions={{ position: 'top' }}
-                                    className="mr-2"
-                                    visible={true} ></Button>,
-                                <Button
-                                    onClick={(e) => { this.zoomOut() }}
-                                    rounded
-                                    icon="pi pi-search-minus"
-                                    tooltip="Zoom-out"
-                                    tooltipOptions={{ position: 'top' }}
-                                    className="mr-2"
-                                    disabled={false}
-                                    visible={true} ></Button>
+                            /*<i className="mr-4 pi pi-search-plus"
+                                data-pr-tooltip="Brush on waveform to zoom-in"></i>,*/
+                            <Button
+                                rounded
+                                icon="pi pi-search-plus"
+                                tooltip="Brush on waveform to zoom-in"
+                                tooltipOptions={{ position: 'top' }}
+                                className="mr-2"
+                                visible={true} ></Button>,
+                            <Button
+                                onClick={(e) => { this.zoomOut() }}
+                                rounded
+                                icon="pi pi-search-minus"
+                                tooltip="Zoom-out"
+                                tooltipOptions={{ position: 'top' }}
+                                className="mr-2"
+                                disabled={false}
+                                visible={true} ></Button>
                             ]}
                             customVolumeControls={[RHAP_UI.VOLUME]}
                             showSkipControls={true}
@@ -1105,7 +1131,11 @@ class Waveforms extends Component {
                             width="100%"
                             src={this.getAudioFileToPlayURL()}
                             layout='stacked'
-                            />
+                        />
+
+                        {/*<div id="zoomview-container"></div>
+                        <div id="overview-container"></div>
+                        <audio controls autoplay id="audio" src="http://localhost:3000/Blues_Bass.wav"></audio>*/}
                         {/*<audio src='https://localhost:5000/analysis/runs/40914666118008288/input-files/6058707010551074/output-files/6058707010551074' controls autoPlay={false} />*/}
                     </div>
 
