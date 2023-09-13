@@ -92,6 +92,11 @@ const Navigation = (props) => {
             label: 'Run Analysis', icon: 'pi pi-bw pi-chart-bar', command: () => {
                 window.location.href = '/run/analysis'
             }
+        },
+        {
+            label: 'Run Analysis 2', icon: 'pi pi-bw pi-chart-bar', command: () => {
+                window.location.href = '/run/analysis2'
+            }
         }
     ]
 

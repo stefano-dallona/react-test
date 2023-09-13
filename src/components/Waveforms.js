@@ -26,6 +26,7 @@ import { CirclePicker, CompactPicker, SwatchesPicker, TwitterPicker } from 'reac
 import BrushZoomState from '../audio/brush-zoom'
 
 import ReactH5AudioPlayer, { RHAP_UI } from 'react-h5-audio-player'
+import { WaveformCanvas } from './WaveformCanvas';
 //import Peaks from 'peaks.js';
 
 var wavesUI = require('waves-ui');
@@ -45,6 +46,7 @@ class Waveforms extends Component {
         this.audioPlayerOnZoomOut = React.createRef();
         this.player = React.createRef()
         this.zoomedRegion = React.createRef()
+        this.waveformCanvasRef = React.createRef()
 
         this.audioContext = new AudioContext()
 
@@ -368,17 +370,19 @@ class Waveforms extends Component {
         if (!this.timeline) {
             this.timeline = new wavesUI.core.Timeline(pixelsPerSecond, width);
             //this.timeline.state = new wavesUI.states.BrushZoomState(this.timeline);
+            let sampleRate = this.buffersList[0].sampleRate
             this.timeline.state = new BrushZoomState(this.timeline,
-                this.buffersList[0].sampleRate,
+                sampleRate,
                 this.downsamplingEnabled ? async (channel, offset, numSamples) => {
+                    this.zoomedRegion.current = numSamples < 0 ? null : {
+                        startTime: offset / sampleRate,
+                        endTime: (offset + numSamples) / sampleRate,
+                        numSamples: numSamples,
+                        sampleRate: sampleRate
+                    }
                     let waveformsData = await this.fetchWaveforms.bind(this)(channel, offset, numSamples)
                     this.updateWaveforms(channel, waveformsData)
-                    this.setPlayerCurrentTime(offset / this.buffersList[0].sampleRate)
-                    this.zoomedRegion.current = numSamples < 0 ? null : {
-                        startTime: offset / this.buffersList[0].sampleRate,
-                        endTime: (offset + numSamples) / this.buffersList[0].sampleRate,
-                        numSamples: numSamples
-                    }
+                    this.setPlayerCurrentTime(offset / sampleRate)
                 } : null
             );
             this.timeline.on('event', this.handleSegmentEvent().bind(this));
@@ -461,10 +465,12 @@ class Waveforms extends Component {
         this.audioFiles.map((file, index) => {
             let waveformLayer = this.layersMap.get(file)
             let waveform = waveforms[index]
-            let newData = waveform.getChannelData(channel)
-            if (waveformLayer) {
-                waveformLayer.data = newData
-                waveformLayer.render()
+            if (waveform) {
+                let newData = waveform.getChannelData(channel)
+                if (waveformLayer) {
+                    waveformLayer.data = newData
+                    waveformLayer.render()
+                }
             }
         })
         this.waveformTrack.update()
@@ -626,7 +632,14 @@ class Waveforms extends Component {
             let eventType = e.type;
 
             const { segment, sourceLayer } = findSegmentAndLayerByEvent(e);
-            if (!segment || !sourceLayer) return;
+            if (!segment || !sourceLayer) {
+                if (eventType === 'click') {
+                    let minTime = this.timeline.timeToPixel.invert(e.x)
+                    let startTime = -this.timeline.offset + minTime
+                    this.player.current.audio.current.currentTime = startTime
+                }
+                return;
+            }
 
             let selectedLoss = sourceLayer.getDatumFromItem(segment);
             console.log("selectedLoss: (x:" + selectedLoss.lossstart + ", width:" + selectedLoss.losswidth + ")")
@@ -817,22 +830,30 @@ class Waveforms extends Component {
     }
 
     async slideWaveForm() {
-        let currentTime = this.player.current.audio.current.currentTime
+        let currentTime = JSON.parse(JSON.stringify(this.player.current.audio.current.currentTime))
         let duration = this.player.current.audio.current.duration
+        let channel = 0
 
         if (this.buffersList && this.buffersList.length > 0) {
             let sampleRate = this.buffersList[0].sampleRate
 
             if (currentTime >= duration) {
+                this.player.current.audio.current.pause()
                 this.player.current.audio.current.currentTime = 0
-                currentTime = this.player.current.audio.current.currentTime
+                currentTime = JSON.parse(JSON.stringify(this.player.current.audio.current.currentTime))
                 if (this.zoomedRegion.current) {
                     let numSamples = this.zoomedRegion.current.numSamples
                     this.zoomedRegion.current = {
                         startTime: 0,
-                        endTime: 0,
-                        numSamples: numSamples
+                        endTime: numSamples / sampleRate,
+                        numSamples: numSamples,
+                        sampleRate: sampleRate,
+                        waveformsDataOffset: 0
                     }
+                    let waveformsData = await this.fetchWaveforms.bind(this)(channel, 0, numSamples)
+                    this.timeline.timeContext.offset = -this.zoomedRegion.current.startTime
+                    this.setCursorPosition(this.zoomedRegion.current.startTime)
+                    this.updateWaveforms(channel, waveformsData)
                 }
             }
 
@@ -840,22 +861,52 @@ class Waveforms extends Component {
             console.log("player.listenInterval: " + this.player.current.props.listenInterval)
 
             if (this.zoomedRegion.current) {
-                if (this.zoomedRegion.current.endTime <= currentTime) {
-                    let channel = 0
-                    let offset = Math.floor(currentTime * sampleRate)
-                    let numSamples = this.zoomedRegion.current.numSamples
-                    console.log(`fetching samples ${numSamples} starting from ${offset}`)
+                if (!this.zoomedRegion.current.waveformsData) {
+                    let offset = Math.floor(this.zoomedRegion.current.endTime * sampleRate)
+                    this.zoomedRegion.current.waveformsData = this.fetchWaveforms.bind(this)(channel, offset, this.zoomedRegion.current.numSamples)
+                    this.zoomedRegion.current.waveformsDataOffset = offset
+                }
+                if ((this.zoomedRegion.current.endTime - this.zoomedRegion.current.startTime) >= 5) {
+                    if ((currentTime - this.zoomedRegion.current.startTime) < -0.1 || currentTime >= this.zoomedRegion.current.endTime) {
+                        let offset = Math.floor(currentTime * sampleRate)
+                        let numSamples = this.zoomedRegion.current.numSamples
+                        console.log(`fetching samples ${numSamples} starting from ${offset}`)
 
-                    this.zoomedRegion.current = {
-                        startTime: currentTime,
-                        endTime: currentTime + (numSamples * 1.0 / sampleRate),
-                        numSamples: numSamples
+                        if (offset > this.zoomedRegion.current.waveformsDataOffset + numSamples || (offset - this.zoomedRegion.current.waveformsDataOffset) < 0.1) {
+                            this.zoomedRegion.current.waveformsData = this.fetchWaveforms.bind(this)(channel, offset, numSamples)
+                            this.zoomedRegion.current.waveformsDataOffset = offset
+                        }
+                        let waveformsData = await this.zoomedRegion.current.waveformsData
+
+                        let newZoomRegion = JSON.parse(JSON.stringify(this.zoomedRegion.current))
+                        newZoomRegion.startTime = newZoomRegion.waveformsDataOffset / sampleRate
+                        newZoomRegion.endTime = (newZoomRegion.waveformsDataOffset / sampleRate) + (numSamples * 1.0 / sampleRate)
+                        newZoomRegion.waveformsData = null
+                        this.zoomedRegion.current = newZoomRegion
+
+                        console.log(this.zoomedRegion.current)
+
+                        //let waveformsData = await this.fetchWaveforms.bind(this)(channel, offset, numSamples)
+                        this.timeline.timeContext.offset = -this.zoomedRegion.current.startTime
+                        this.setCursorPosition(this.zoomedRegion.current.startTime)
+                        this.updateWaveforms(channel, waveformsData)
+                        /**/
+                        /*
+                        if (this.waveformCanvasRef.current) {
+                            let offset = this.waveformCanvasRef.current.state.offset
+                            if (offset < currentTime * sampleRate) {
+                                this.waveformCanvasRef.current.setInterval(offset + 5 * sampleRate, numSamples, sampleRate)
+                            }
+                        }
+                        */
                     }
-
-                    let waveformsData = await this.fetchWaveforms.bind(this)(channel, offset, numSamples)
-                    this.timeline.timeContext.offset = -this.zoomedRegion.current.startTime
-                    this.setCursorPosition(this.zoomedRegion.current.startTime)
-                    this.updateWaveforms(channel, waveformsData)
+                } else {
+                    if (this.player.current.audio.current.currentTime >= this.zoomedRegion.current.endTime) {
+                        this.player.current.audio.current.pause()
+                        this.player.current.audio.current.currentTime = this.zoomedRegion.current.startTime
+                        currentTime = this.player.current.audio.current.currentTime
+                        this.zoomedRegion.current.waveformsData = null
+                    }
                 }
             }
         }
@@ -1082,10 +1133,17 @@ class Waveforms extends Component {
                         style={{ height: "250px" }}>
                         {this.waveuiEl && this.state.lossSimulationsReady && this.state.buffersListReady && this.renderAll(this.waveformTrackId)}
                     </div>
+                    {false && (<WaveformCanvas
+                        ref={this.waveformCanvasRef}
+                        runId={this.state.runId}
+                        numSamples={this.buffersList && this.buffersList.length > 0 ? 5 * this.buffersList[0].sampleRate : 0}
+                        sampleRate={this.buffersList && this.buffersList.length > 0 ? this.buffersList[0].sampleRate : 44100}>
+                    </WaveformCanvas>
+                    )}
                     {false && (
                         <Toolbar start={startContent} end={endContent} />
                     )}
-                    {this.state.buffersListReady && (
+                    {/*this.state.buffersListReady && (
                         <AudioPlayer
                             servicesContainer={this.servicesContainer}
                             ref={this.audioPlayerOnZoomOut}
@@ -1095,44 +1153,45 @@ class Waveforms extends Component {
                             timeline={this.getTimeline.bind(this)}
                             cursorLayer={this.getCursorLayer.bind(this)} />
 
-                    )/**/}
+                    )*/}
                     <div>
                         <Tooltip target=".pi-search-plus" />
-                        <ReactH5AudioPlayer
-                            ref={this.player}
-                            autoPlay={false}
-                            autoPlayAfterSrcChange={false}
-                            customProgressBarSection={[RHAP_UI.PROGRESS_BAR]}
-                            customControlsSection={[RHAP_UI.CURRENT_TIME, RHAP_UI.MAIN_CONTROLS, RHAP_UI.ADDITIONAL_CONTROLS, RHAP_UI.VOLUME_CONTROLS, RHAP_UI.DURATION]}
-                            customAdditionalControls={[this.getPlayableFilesCombo(),
-                            /*<i className="mr-4 pi pi-search-plus"
-                                data-pr-tooltip="Brush on waveform to zoom-in"></i>,*/
-                            <Button
-                                rounded
-                                icon="pi pi-search-plus"
-                                tooltip="Brush on waveform to zoom-in"
-                                tooltipOptions={{ position: 'top' }}
-                                className="mr-2"
-                                visible={true} ></Button>,
-                            <Button
-                                onClick={(e) => { this.zoomOut() }}
-                                rounded
-                                icon="pi pi-search-minus"
-                                tooltip="Zoom-out"
-                                tooltipOptions={{ position: 'top' }}
-                                className="mr-2"
-                                disabled={false}
-                                visible={true} ></Button>
-                            ]}
-                            customVolumeControls={[RHAP_UI.VOLUME]}
-                            showSkipControls={true}
-                            listenInterval={100}
-                            onListen={this.slideWaveForm.bind(this)}
-                            width="100%"
-                            src={this.getAudioFileToPlayURL()}
-                            layout='stacked'
-                        />
-
+                        {true && (
+                            <ReactH5AudioPlayer
+                                ref={this.player}
+                                autoPlay={false}
+                                autoPlayAfterSrcChange={false}
+                                customProgressBarSection={[RHAP_UI.PROGRESS_BAR]}
+                                customControlsSection={[RHAP_UI.CURRENT_TIME, RHAP_UI.MAIN_CONTROLS, RHAP_UI.ADDITIONAL_CONTROLS, RHAP_UI.VOLUME_CONTROLS, RHAP_UI.DURATION]}
+                                customAdditionalControls={[this.getPlayableFilesCombo(),
+                                /*<i className="mr-4 pi pi-search-plus"
+                                    data-pr-tooltip="Brush on waveform to zoom-in"></i>,*/
+                                <Button
+                                    rounded
+                                    icon="pi pi-search-plus"
+                                    tooltip="Brush on waveform to zoom-in"
+                                    tooltipOptions={{ position: 'top' }}
+                                    className="mr-2"
+                                    visible={true} ></Button>,
+                                <Button
+                                    onClick={(e) => { this.zoomOut() }}
+                                    rounded
+                                    icon="pi pi-search-minus"
+                                    tooltip="Zoom-out"
+                                    tooltipOptions={{ position: 'top' }}
+                                    className="mr-2"
+                                    disabled={false}
+                                    visible={true} ></Button>
+                                ]}
+                                customVolumeControls={[RHAP_UI.VOLUME]}
+                                showSkipControls={true}
+                                listenInterval={100}
+                                onListen={this.slideWaveForm.bind(this)}
+                                width="100%"
+                                src={this.getAudioFileToPlayURL()}
+                                layout='stacked'
+                            />
+                        )}
                         {/*<div id="zoomview-container"></div>
                         <div id="overview-container"></div>
                         <audio controls autoplay id="audio" src="http://localhost:3000/Blues_Bass.wav"></audio>*/}

@@ -38,3 +38,9 @@
     width: 100%;
     height: 200px;
 }
+
+.zoomview-container,
+.overview-container {
+    width: 100%;
+    height: 200px;
+}

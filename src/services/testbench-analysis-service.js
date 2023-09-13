@@ -51,10 +51,10 @@ export class AnalysisService {
                 sampleRate: waveform.sampleRate,
                 originalSampleRate: waveform.originalSampleRate,
                 getChannelData: (channel) => {
-                    let data = Array(waveform.numSamples).fill(0)
+                    let data = Array(offset + waveform.numSamples).fill(0)
                     let indexes = Object.keys(waveform.data)
                     indexes.forEach((index) => {
-                        data[index] = waveform.data[index]
+                        data[Number.parseInt(offset) + index] = waveform.data[index]
                     })
                     return Float32Array.from(data)
                 }

@@ -271,23 +271,11 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
                     : audioBufferChunk;
                 console.log(`AFTER APPEND: audioBufferRef.current.duration:${audioBufferRef.current.duration}, audioBufferChunk.duration: ${audioBufferChunk.duration}`)
 
-                let loadRate = audioBufferRef.current.length * 100.0 / args['n_frames']
-                durationRef.current = args['n_frames'] * 1.0 / args['sample_rate']
-                console.log(`loadRate:${loadRate}`)
-                setAudionState({ loadingProgress: loadRate })
-
-                startLoadingMonitoring()
-
-                if (args['last_chunk']) {
-                    stopLoadingMonitoring()
-                    playWhileLoadingDurationRef.current = Math.ceil(audioBufferRef.current.duration)
-                    const inSec = (Date.now() - startTimeRef.current) / 1000;
-                    play(inSec, null, null, handlePlayingEnd);
-
-
+                try {
                     WaveformData.createFromAudio({
-                        audio_buffer: audioBufferRef.current,
-                        scale: Math.ceil(args['n_frames'] / 1400),
+                        audio_buffer: audioBufferChunk,
+                        //scale: Math.ceil(args['n_frames'] / 1400),
+                        scale: 1,
                         amplitude_scale: 1.0,
                         disable_worker: false
                     }, (err, waveform) => {
@@ -301,7 +289,7 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
                         console.log(`Waveform max_array: ${waveform.channel(0).max_array()}`);
                         console.log(`Waveform min: ${Math.min(...waveform.channel(0).min_array())}`);
                         console.log(`Waveform max: ${Math.max(...waveform.channel(0).max_array())}`);
-
+    
                         const options = {
                             zoomview: {
                                 container: document.getElementById('zoomview-container')
@@ -311,23 +299,42 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
                             },
                             mediaElement: document.getElementById('audio'),
                             webAudio: {
-                                audioContext: new AudioContext()
+                                audioContext: audioContextRef.current,
+                                audio_buffer: audioBufferRef.current
                             }
                         }
-
-                        if (peaksInstance) peaksInstance.destroy()
-                        Peaks.default.init(options, function (err, peaks) {
-                            if (err) {
-                                console.error('Failed to initialize Peaks instance: ' + err.message);
-                                return;
-                            }
-
-                            // Do something when the waveform is displayed and ready
-                            peaksInstance = peaks
-                            console.log('Peaks has been initialized successfully.')
-                        })
+    
+                        if (!peaksInstance) {
+                            Peaks.default.init(options, function (err, peaks) {
+                                if (err) {
+                                    console.error('Failed to initialize Peaks instance: ' + err.message);
+                                    return;
+                                }
+        
+                                // Do something when the waveform is displayed and ready
+                                peaksInstance = peaks
+                                console.log('Peaks has been initialized successfully.')
+                            })
+                        }
                     })
                     /**/
+                } catch(err) {
+                    console.log(err)
+                }
+
+                let loadRate = audioBufferRef.current.length * 100.0 / args['n_frames']
+                durationRef.current = args['n_frames'] * 1.0 / args['sample_rate']
+                console.log(`loadRate:${loadRate}`)
+                setAudionState({ loadingProgress: loadRate })
+
+                startLoadingMonitoring()
+
+                if (args['last_chunk']) {
+                    stopLoadingMonitoring()
+                    playWhileLoadingDurationRef.current = Math.ceil(audioBufferRef.current.duration)
+                    const inSec = (Date.now() - startTimeRef.current) / 1000;
+                    play(inSec, null, null, handlePlayingEnd);
+
                     //storeFileIntoLocalStorage(bufferToPlay, args, audioAsByte64String)
                 }
             });
@@ -580,7 +587,7 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
             <Toolbar start={getStartButtons} end={getEndButtons} />
             <div id="zoomview-container"></div>
             <div id="overview-container"></div>
-            <audio controls autoplay id="audio" src="http://localhost:3000/Blues_Bass.wav"></audio>
+            <audio controls id="audio" src={false ? null : "http://localhost:3000/Blues_Bass-cut.wav"}></audio>
         </div>
     )
 
