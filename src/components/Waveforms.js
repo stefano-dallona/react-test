@@ -852,9 +852,9 @@ class Waveforms extends Component {
                     }
                     let waveformsData = await this.fetchWaveforms.bind(this)(channel, 0, numSamples)
                     this.timeline.timeContext.offset = -this.zoomedRegion.current.startTime
-                    this.setCursorPosition(this.zoomedRegion.current.startTime)
                     this.updateWaveforms(channel, waveformsData)
                 }
+                this.setCursorPosition(0)
             }
 
             console.log("audio.currentTime: " + currentTime)
