@@ -208,7 +208,9 @@ export class ConfigurationService {
             this.sseListener.close();
         }
         */
-        this.sseListenerController.abort()
+        if (this.sseListenerController) {
+            this.sseListenerController.abort()
+        }
     }
 
     async getRunHierarchy(run_id, audio_file) {
