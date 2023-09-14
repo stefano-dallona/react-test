@@ -24,7 +24,7 @@ class Node extends Component {
                         onMouseOut={() => { }}
                     ></circle>
                     <g className="rd3t-label">
-                        <text text-anchor="middle" y={-30} fill={"#ffffff"} className="rd3t-label__title">
+                        <text textAnchor="middle" y={-30} fill={"#ffffff"} className="rd3t-label__title">
                             {this.props.label}
                         </text>
                     </g>
