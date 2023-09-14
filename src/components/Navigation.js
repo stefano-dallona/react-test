@@ -74,30 +74,30 @@ const Navigation = (props) => {
             }
         },
         {
-            label: 'Run History', icon: 'pi pi-fw pi-history', command: () => {
+            label: 'History', icon: 'pi pi-fw pi-history', command: () => {
                 window.location.href = '/run/history';
             }
         },
         {
-            label: 'Run Configuration', icon: 'pi pi-fw pi-sitemap', command: () => {
+            label: 'Configuration', icon: 'pi pi-fw pi-sitemap', command: () => {
                 window.location.href = '/run/configuration';
             }
         },
         {
-            label: 'Run Execution', icon: 'pi pi-fw pi-cog', command: () => {
+            label: 'Execution', icon: 'pi pi-fw pi-cog', command: () => {
                 window.location.href = '/run/execution'
             }
         },
         {
-            label: 'Run Analysis', icon: 'pi pi-bw pi-chart-bar', command: () => {
+            label: 'Analysis', icon: 'pi pi-bw pi-chart-bar', command: () => {
                 window.location.href = '/run/analysis'
             }
         },
-        {
+        /*{
             label: 'Run Analysis 2', icon: 'pi pi-bw pi-chart-bar', command: () => {
                 window.location.href = '/run/analysis2'
             }
-        }
+        }*/
     ]
 
     const getCurrentUser = () => {
