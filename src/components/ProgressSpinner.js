@@ -80,7 +80,7 @@ class ProgressSpinner extends Component {
                 onContextMenu={(e) => { this.handleContextMenu(e) }}>
                 <path fill="red" className="progress-bar-bg" d={this.drawMainArc()} />
                 <path fill="blue" className="progress-bar" d={this.drawProgressArc()} />
-                <text stroke="white" className="progress-label" transform={`translate(-11, 5)`}>{this.state.currentPercentage}</text>
+                <text text-anchor="middle" stroke="white" className="progress-label" transform={`translate(0, 5)`}>{this.state.currentPercentage}</text>
             </g>
         )
     }
