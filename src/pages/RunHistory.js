@@ -7,10 +7,11 @@ import React from 'react';
 import { Panel } from 'primereact/panel';
 import { Toolbar } from 'primereact/toolbar';
 import { Button } from 'primereact/button';
+import { Toast } from 'primereact/toast'
 
 import RunList from '../components/RunList';
-import { useLocation, useNavigate } from "react-router-dom";
-import { useRef } from "react";
+import { useLocation, useNavigate, } from "react-router-dom";
+import { useRef, useEffect } from "react";
 
 import RunAwesomeQueryBuilder from '../components/RunAwesomeQueryBuilder'
 import { useContainer } from "../components/ServicesContextProvider"
@@ -20,13 +21,26 @@ import '../css/querybuilder.css';
 export const RunHistory = (props) => {
     let navigate = useNavigate()
     let location = useLocation()
+    let toast = useRef()
     let runList = useRef()
     let servicesContainer = useContainer()
+
+    useEffect(() => {
+        if (location.state && location.state.nextPage) {
+            if (location.state.nextPage === 'RunExecution' || location.state.nextPage === 'RunAnalysis') {
+                showMessage('info', `Please select a run`, '')
+            }
+        }
+    })
+
+    const showMessage = (severity, summary, detail) => {
+        toast.current.show({ severity: severity, summary: summary, detail: detail });
+    }
 
     const search = async (queryString) => {
         console.log(`queryString:${queryString}`)
         let projection = { "_id": 1 }
-        let pagination = {page: 0, pageSize: 10}
+        let pagination = { page: 0, pageSize: 10 }
         runList.current.setQuery(queryString)
         let runs = await servicesContainer.configurationService.findRunsByFilter(queryString, projection, pagination)
         return runs
@@ -41,10 +55,39 @@ export const RunHistory = (props) => {
     }
 
     const execute = () => {
+        if (!runList.current.state.selectedRun) {
+            showMessage('info', `Please select a run for execution`, '')
+            return
+        }
+
         navigate(`/run/${runList.current.state.selectedRun.run_id}/execution`)
     }
 
-    const analyse = () => {
+    const loadRun = async () => {
+        if (!runList.current.state.selectedRun) {
+            return null
+        }
+        let run = await servicesContainer.configurationService.getRun(runList.current.state.selectedRun.run_id)
+        return run
+    }
+
+    const analyse = async () => {
+        if (!runList.current.state.selectedRun) {
+            showMessage('info', `Please select a run for analysis`, '')
+            return
+        }
+
+        let run = await loadRun()
+        if (!run) {
+            showMessage('error', `Run not found`, '')
+            return
+        }
+
+        if (run.status !== "COMPLETED") {
+            showMessage('error', `Run must be executed successfully before it can be analysed`, '')
+            return
+        }
+
         navigate(`/run/${runList.current.state.selectedRun.run_id}/analysis`)
     }
 
@@ -92,11 +135,12 @@ export const RunHistory = (props) => {
                 <RunAwesomeQueryBuilder
                     searchHandler={search}
                     saveFilterHandler={saveFilter}
-                    loadSavedFiltersHandler={loadSavedFilters}/>
+                    loadSavedFiltersHandler={loadSavedFilters} />
             </Panel>
             <Panel header="Run List">
                 <RunList servicesContainer={servicesContainer} ref={runList} query={null} parentChangeHandler={onChange}></RunList>
             </Panel>
+            <Toast ref={toast} />
             {(!location.state || !location.state.nextPage) && (
                 <Toolbar start={startContent} />
             )}
