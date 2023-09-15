@@ -82,7 +82,7 @@ export const RunHistory = (props) => {
             showMessage('error', `Run not found`, '')
             return
         }
-
+        
         if (run.status !== "COMPLETED") {
             showMessage('error', `Run must be executed successfully before it can be analysed`, '')
             return
