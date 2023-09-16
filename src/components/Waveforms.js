@@ -962,7 +962,9 @@ class Waveforms extends Component {
     }
 
     refreshSampleVisualizer() {
-        this.samplesVisualizer.current.fetchSamples(this.audioFiles, this.colors, this.selectedLoss.start_sample, this.selectedLoss.num_samples)
+        if (this.selectedLoss) {
+            this.samplesVisualizer.current.fetchSamples(this.audioFiles, this.colors, this.selectedLoss.start_sample, this.selectedLoss.num_samples)
+        }
     }
 
     // FIXME - Temporary workaround. Find a way to rerender the nested component when the parent is ready
