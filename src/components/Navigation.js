@@ -8,12 +8,14 @@ import { Badge } from 'primereact/badge';
 import { GoogleLogin, googleLogout, useGoogleLogin } from '@react-oauth/google';
 import axios from 'axios';
 import jwtDecode from 'jwt-decode';
+import { useNavigate } from "react-router";
 
 
 const Navigation = (props) => {
     const [sidebarVisible, setSidebarVisible] = useState(false);
     const [user, setUser] = useState(null);
     const [profile, setProfile] = useState(null);
+    const navigate = useNavigate();
 
     const login = useGoogleLogin({
         onSuccess: (codeResponse) => {
@@ -74,30 +76,31 @@ const Navigation = (props) => {
             }
         },
         {
-            label: 'Run History', icon: 'pi pi-fw pi-history', command: () => {
+            label: 'History', icon: 'pi pi-fw pi-history', command: () => {
+                navigate('/run/history')
                 window.location.href = '/run/history';
             }
         },
         {
-            label: 'Run Configuration', icon: 'pi pi-fw pi-sitemap', command: () => {
+            label: 'Configuration', icon: 'pi pi-fw pi-sitemap', command: () => {
                 window.location.href = '/run/configuration';
             }
         },
         {
-            label: 'Run Execution', icon: 'pi pi-fw pi-cog', command: () => {
+            label: 'Execution', icon: 'pi pi-fw pi-cog', command: () => {
                 window.location.href = '/run/execution'
             }
         },
         {
-            label: 'Run Analysis', icon: 'pi pi-bw pi-chart-bar', command: () => {
+            label: 'Analysis', icon: 'pi pi-bw pi-chart-bar', command: () => {
                 window.location.href = '/run/analysis'
             }
         },
-        {
+        /*{
             label: 'Run Analysis 2', icon: 'pi pi-bw pi-chart-bar', command: () => {
                 window.location.href = '/run/analysis2'
             }
-        }
+        }*/
     ]
 
     const getCurrentUser = () => {
@@ -116,15 +119,15 @@ const Navigation = (props) => {
                 rounded
                 tooltip={getCurrentUser()["name"] + "\n User Profile "}
                 tooltipOptions={{ position: 'top' }}
-                className="mr-2"
-                style={{ padding: 0, borderRadius: "50%" }}>
+                className={"pi mr-2 " + (!JSON.parse(localStorage.getItem('user')).picture ? "pi-user" : "")}
+                style={{ height: 37, width: 37, padding: 0, borderRadius: "50%" }}>
                 <img
                     referrerPolicy="no-referrer"
                     className='custom-target-icon'
                     size='small'
-                    alt={localStorage.getItem('user').picture}
+                    alt={localStorage.getItem('user').email}
                     style={{ height: 37, borderRadius: "50%" }}
-                    src={JSON.parse(localStorage.getItem('user')).picture}
+                    src={JSON.parse(localStorage.getItem('user')).picture ? JSON.parse(localStorage.getItem('user')).picture : ""}
                     onClick={() => { window.location.href = '/userprofile' }}
                 />
             </Button>

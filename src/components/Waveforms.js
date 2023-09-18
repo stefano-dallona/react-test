@@ -77,7 +77,8 @@ class Waveforms extends Component {
             selectedLossSimulations: [],
             audioFileToPlay: 0,
             buffersListReady: false,
-            lossSimulationsReady: false
+            lossSimulationsReady: false,
+            playing: false
         };
     }
 
@@ -201,15 +202,19 @@ class Waveforms extends Component {
         });
     }
 
-    getAudioFileToPlayURL() {
+    getAudioFileToPlay() {
         if (this.audioFiles && this.audioFiles.length > 0) {
             let selectedFile = this.audioFiles[this.state.audioFileToPlay]
-            if (selectedFile) {
-                let baseUrl = this.servicesContainer.configurationService.baseUrl
-                return `${baseUrl}/analysis/runs/${this.state.runId}/input-files/${selectedFile.uuid}/output-files/${selectedFile.uuid}?jwt=${localStorage.getItem("jwt_token")}`
-            } else {
-                return ""
-            }
+            return selectedFile
+        }
+        return null
+    }
+
+    getAudioFileToPlayURL() {
+        let selectedFile = this.getAudioFileToPlay()
+        if (selectedFile) {
+            let baseUrl = this.servicesContainer.configurationService.baseUrl
+            return `${baseUrl}/analysis/runs/${this.state.runId}/input-files/${selectedFile.uuid}/output-files/${selectedFile.uuid}?jwt=${localStorage.getItem("jwt_token")}`
         } else {
             return ""
         }
@@ -217,6 +222,12 @@ class Waveforms extends Component {
 
     giveFocusToStopButton() {
         document.getElementById("btn-stop").focus()
+    }
+
+    setPlaying(playing) {
+        this.setState({
+            playing: playing
+        })
     }
 
     playSound(delay, offset, duration) {
@@ -328,12 +339,28 @@ class Waveforms extends Component {
     }
 
     initColorsPalette() {
-        while (this.colors.length < 100) {
-            let newColor = null
-            do {
-                newColor = Math.floor((Math.random() * 1000000) + 1);
-            } while (this.colors.indexOf(newColor) >= 0);
-            this.colors.push("#" + ("000000" + newColor.toString(16)).slice(-6));
+        if (!localStorage.getItem("colorMap")) {
+            /*
+            while (this.colors.length < 100) {
+                let newColor = null
+                do {
+                    newColor = Math.floor((Math.random() * 1000000) + 1);
+                } while (this.colors.indexOf(newColor) >= 0);
+                this.colors.push("#" + ("000000" + newColor.toString(16)).slice(-6));
+            }*/
+            this.colors = ['#e60049', '#0bb4ff', '#50e991', '#e6d800', '#9b19f5', '#ffa300', '#dc0ab4', '#b3d4ff', '#00bfa0', '#036fb8',
+                '#0b3cbd', '#019aa8', '#045e8c', '#00cc4c', '#0cdc96', '#0e6047', '#0f0316', '#009661', '#079236', '#016401',
+                '#08b020', '#00a874', '#0557bd', '#079f28', '#0b8465', '#098af0', '#03d21f', '#00ee7c', '#0be801', '#03e974',
+                '#0a6b51', '#02112a', '#020271', '#0b13e4', '#01de22', '#06b6e7', '#06e640', '#08fbcb', '#0e4c2b', '#0a9cce',
+                '#0f18da', '#05fa53', '#06686d', '#0b75f1', '#089bad', '#0af9ce', '#04ff84', '#051a74', '#0bfd1e', '#01bbe9',
+                '#0db055', '#0d0f70', '#04aedf', '#07f8a9', '#06de87', '#03d7a4', '#03d5b7', '#027fd7', '#07cda9', '#0d422a',
+                '#087783', '#0579cb', '#0196d3', '#0792f0', '#045e03', '#0dc003', '#04e38e', '#0a119a', '#03a738', '#05862d',
+                '#0437fb', '#05253b', '#0db400', '#068d3b', '#0dad26', '#096b15', '#038f81', '#03e814', '#0b00fa', '#03dec4',
+                '#08f9da', '#07c501', '#068d7d', '#02a66d', '#069044', '#023fea', '#031455', '#049352', '#019af8', '#025949',
+                '#0c07a7', '#02d3b6', '#008b62', '#0414ff', '#06b54f', '#027620', '#00276f', '#03f796', '#002640', '#050009']
+            localStorage.setItem("colorMap", JSON.stringify(this.colors))
+        } else {
+            this.colors = JSON.parse(localStorage.getItem("colorMap"))
         }
     }
 
@@ -608,7 +635,7 @@ class Waveforms extends Component {
                 delete this.selectedLoss.color
             }
             this.selectedLoss = selectedLoss
-            this.selectedLoss.color = "orange"
+            this.selectedLoss.color = "orange !important"
         }
 
         const handleSegmentOvering = (eventType, selectedLoss, sourceLayer) => {
@@ -810,7 +837,7 @@ class Waveforms extends Component {
     getAudioFileColor(fileId) {
         let file = this.audioFiles.find((f) => f.uuid == fileId)
         let index = this.audioFiles.indexOf(file)
-        return index > 0 ? this.colors[index] : null
+        return index >= 0 ? this.colors[index] : null
     }
 
     getAudioFileTemplate(option) {
@@ -935,7 +962,9 @@ class Waveforms extends Component {
     }
 
     refreshSampleVisualizer() {
-        this.samplesVisualizer.current.fetchSamples(this.audioFiles, this.colors, this.selectedLoss.start_sample, this.selectedLoss.num_samples)
+        if (this.selectedLoss) {
+            this.samplesVisualizer.current.fetchSamples(this.audioFiles, this.colors, this.selectedLoss.start_sample, this.selectedLoss.num_samples)
+        }
     }
 
     // FIXME - Temporary workaround. Find a way to rerender the nested component when the parent is ready
@@ -1075,6 +1104,7 @@ class Waveforms extends Component {
                                 onClick={(e) => { false && e.stopPropagation() }}
                                 onChange={(e) => { this.setFilename(e.value) }}
                                 options={this.inputFiles}
+                                disabled={this.state.playing}
                                 placeholder="Select audio file"
                                 className="w-full md:w-20rem" />
                         </div>
@@ -1086,6 +1116,7 @@ class Waveforms extends Component {
                                 onClick={(e) => { false && e.stopPropagation() }}
                                 onChange={(e) => { this.setSelectedChannel(e.value) }}
                                 options={this.state.channels}
+                                disabled={this.state.playing}
                                 placeholder="Select channel"
                                 className="w-full md:w-20rem" />
                         </div>
@@ -1100,6 +1131,7 @@ class Waveforms extends Component {
                                 optionLabel="name"
                                 optionValue='uuid'
                                 display="chip"
+                                disabled={this.state.playing}
                                 placeholder="Select loss simulations"
                                 className="w-full md:w-20rem" />
                         </div>
@@ -1115,6 +1147,7 @@ class Waveforms extends Component {
                                 optionLabel="label"
                                 optionValue='uuid'
                                 display="chip"
+                                disabled={this.state.playing}
                                 placeholder="Select audio files"
                                 maxSelectedLabels={3}
                                 className="w-full md:w-20rem"
@@ -1187,6 +1220,17 @@ class Waveforms extends Component {
                                 showSkipControls={true}
                                 listenInterval={100}
                                 onListen={this.slideWaveForm.bind(this)}
+                                onPlay={() => {
+                                    this.setPlaying(true)
+                                    console.log("Play started")
+                                    let selectedFile = this.getAudioFileToPlay()
+                                    this.setSelectedAudioFiles(selectedFile ? [selectedFile.uuid] : [])
+                                }}
+                                onPause={() => {
+                                    this.setPlaying(false)
+                                    console.log("Play paused")
+                                    this.setSelectedAudioFiles(this.audioFiles.map((file, index) => file.uuid))
+                                }}
                                 width="100%"
                                 src={this.getAudioFileToPlayURL()}
                                 layout='stacked'

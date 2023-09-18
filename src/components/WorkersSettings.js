@@ -96,7 +96,7 @@ class WorkersSettings extends Component {
             this.setCurrentWorker(null)
         }
 
-        this.showMessage('info', `Settings saved !`, JSON.stringify(this.state.selectedOutputAnalysers))
+        //this.showMessage('info', `Settings saved !`, JSON.stringify(this.state.selectedOutputAnalysers))
     }
 
     showMessage = (severity, summary, detail) => {

@@ -75,11 +75,11 @@ function App() {
 
   return (
     <div className="App">
-      <header className="App-header">
+      {false && (<header className="App-header">
         <p>
           PLC TestBench UI
         </p>
-      </header>
+      </header>)}
       <Toast ref={toast} />
       <LoadingIndicator />
       <Navigation />
