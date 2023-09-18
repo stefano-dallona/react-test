@@ -31,6 +31,7 @@ export default class BrushZoomState extends BaseState {
       case 'keydown':
         this.onKeyDown(e);
         break;
+      default:
     }
   }
 
@@ -64,24 +65,7 @@ export default class BrushZoomState extends BaseState {
     });
   }
 
-  async onMouseUp(e) {
-    // remove brush
-    this.brushes.forEach((brush) => {
-      brush.parentNode.removeChild(brush);
-    });
-
-    // update timeContext
-    const startX = this.startX;
-    const endX = e.x;
-    // return if no drag
-    if (Math.abs(startX - endX) < 1) { return; }
-
-    const leftX = Math.max(0, Math.min(startX, endX));
-    const rightX = Math.max(startX, endX);
-
-    let minTime = this.timeline.timeToPixel.invert(leftX);
-    let maxTime = this.timeline.timeToPixel.invert(rightX);
-
+  async zoomIn(minTime, maxTime) {
     const deltaDuration = maxTime - minTime;
     const zoom = this.timeline.visibleDuration / deltaDuration;
     
@@ -99,17 +83,42 @@ export default class BrushZoomState extends BaseState {
     }
   }
 
+  async zoomOut() {
+    this.timeline.offset = 0;
+    this.timeline.zoom = 1;
+    
+    if (this.loadingFunction) {
+      this.loadingFunction(this.channel, 0, -1)
+    } else {
+      this.tracks.update();
+    }
+  }
+
+  onMouseUp(e) {
+    // remove brush
+    this.brushes.forEach((brush) => {
+      brush.parentNode.removeChild(brush);
+    });
+
+    // update timeContext
+    const startX = this.startX;
+    const endX = e.x;
+    // return if no drag
+    if (Math.abs(startX - endX) < 1) { return; }
+
+    const leftX = Math.max(0, Math.min(startX, endX));
+    const rightX = Math.max(startX, endX);
+
+    let minTime = this.timeline.timeToPixel.invert(leftX);
+    let maxTime = this.timeline.timeToPixel.invert(rightX);
+
+    this.zoomIn(minTime, maxTime)
+  }
+
   onKeyDown(e) {
     // reset on space bar
     if (e.originalEvent.keyCode === 32) {
-      this.timeline.offset = 0;
-      this.timeline.zoom = 1;
-      
-      if (this.loadingFunction) {
-        this.loadingFunction(this.channel, 0, -1)
-      } else {
-        this.tracks.update();
-      }
+      this.zoomOut()
     }
   }
 }

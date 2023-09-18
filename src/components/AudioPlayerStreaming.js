@@ -4,17 +4,23 @@ import { SplitButton } from "primereact/splitbutton"
 import { Button } from "primereact/button"
 import { Toolbar } from "primereact/toolbar"
 import { Slider } from "primereact/slider"
+import { InputText } from "primereact/inputtext"
 
 import socketClient from 'socket.io-client';
-import { base64ToArrayBuffer,
-         concat,
-         appendBuffer,
-         withWaveHeader,
-         retrieveFileFromLocalStorage,
-         storeFileIntoLocalStorage,
-         } from '../audio/persistence-management'
+import {
+    base64ToArrayBuffer,
+    concat,
+    appendBuffer,
+    withWaveHeader,
+    retrieveFileFromLocalStorage,
+    storeFileIntoLocalStorage,
+} from '../audio/persistence-management'
+
+import WaveformData from "waveform-data"
 
 const crypto = require("crypto-js")
+var Peaks = require('peaks.js');
+var peaksInstance = null;
 
 export const AudioPlayer = React.forwardRef((props, ref) => {
     let [playing, setPlaying] = useState(false)
@@ -30,6 +36,7 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
     const audioBufferRef = useRef(null)
     const startTimeRef = useRef(null)
     const durationRef = useRef(0)
+    const offsetRef = useRef(0)
     const playWhileLoadingDurationRef = useRef(0)
     const socketRef = useRef(null)
     const updateProgressIntervalRef = useRef(null)
@@ -40,6 +47,8 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
     const playingZoomedSectionRef = useRef(false)
     const secretKey = "1234"
     const wsUrl = props.servicesContainer.baseUrl
+    const slidingRef = useRef(false)
+    const streamingRef = useRef(false)
 
 
     //https://www.kianmusser.com/articles/react-where-put-websocket/
@@ -52,7 +61,7 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
         return () => {
             socketRef.current.close();
         };
-    }, []);
+    }, [wsUrl]);
 
     const getAudioContext = (sampleRate) => {
         if (audioContextRef.current == null) {
@@ -61,11 +70,23 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
         return audioContextRef.current
     }
 
+    const resetState = () => {
+        audioContextRef.current = null
+        audioSourceRef.current = null
+        audioBufferRef.current = null
+        startTimeRef.current = null
+        offsetRef.current = 0
+        playWhileLoadingDurationRef.current = 0
+        streamIdRef.current = null
+        playingZoomedSectionRef.current = false
+    }
+
     const handlePlayingEnd = () => {
         console.log('Your audio has finished playing');
         window.cancelAnimationFrame(cursorAnimationRef.current);
         setPlaying(false)
         stopProgressMonitoring()
+        setProgress(0)
         playingZoomedSectionRef.current = false
 
         audioContextRef.current.close()
@@ -73,8 +94,10 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
         audioSourceRef.current.disconnect()
         audioSourceRef.current = null
         audioBufferRef.current = null
+
         startTimeRef.current = null
         durationRef.current = 0
+        offsetRef.current = 0
         playWhileLoadingDurationRef.current = 0
     }
 
@@ -132,16 +155,22 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
     }
 
     const playWhileLoading = (duration = 0) => {
-        if (audioSourceRef.current) audioSourceRef.current.stop()
+        if (audioSourceRef.current) {
+            audioSourceRef.current.stop()
+        }
+        if (audioContextRef.current == null) {
+            audioContextRef.current = getAudioContext()
+        }
         audioSourceRef.current = audioContextRef.current.createBufferSource();
         audioSourceRef.current.buffer = audioBufferRef.current;
         audioSourceRef.current.connect(audioContextRef.current.destination);
         audioSourceRef.current.onended = (audioBufferRef.current.duration == durationRef.current) ? handlePlayingEnd : null
+        console.log(`playWhileLoading: duration:${duration}`)
         audioSourceRef.current.start(0, duration);
         startProgressMonitoring()
     };
 
-    const play = async (resumeTime = 0, duration = null, buffer) => {
+    const play = async (resumeTime = 0, duration = null, buffer, callback = () => { }) => {
         if (audioSourceRef.current) audioSourceRef.current.stop();
         audioSourceRef.current = audioContextRef.current.createBufferSource()
 
@@ -154,26 +183,38 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
         }
 
         audioSourceRef.current.connect(audioContextRef.current.destination);
-        audioSourceRef.current.onended = (audioBufferRef.current.duration == durationRef.current) ? handlePlayingEnd : null
+        audioSourceRef.current.onended = (audioBufferRef.current.duration >= durationRef.current) ? handlePlayingEnd : callback
         startTimeRef.current = (resumeTime == 0) ? Date.now() : startTimeRef.current
+        console.log(`play: resumeTime:${resumeTime}`)
         audioSourceRef.current.start(0, resumeTime);
         startProgressMonitoring()
     };
 
-    const onPlayClick = (start, duration) => {
-        if (playing) return
-        requestStreaming()
-        setPlaying(true)
+    const startPlaying = () => {
         setProgress(0)
+        requestStreaming(bufferToPlay, 0)
+        setPlaying(true)
         updateCursor()()
         giveFocusToStopButton()
+        console.log("Start completed")
     }
 
-    const requestStreaming = async (track) => {
+    const onPlayClick = (start = 0, duration) => {
+        if (playing) return
+        startPlaying()
+    }
 
+    const requestStreaming = async (bufferToPlay, progress = 0) => {
+        if (streamingRef.current == true) {
+            return
+        }
+        streamingRef.current = true
+
+        console.log("Streaming started")
         let audioAsByte64String = ""
-        let cachedFile = await retrieveFileFromLocalStorage(bufferToPlay)
-
+        let cachedFile = null//await retrieveFileFromLocalStorage(bufferToPlay)
+        let startTime = buffersListRef.current.find((buffer) => buffer.uuid == bufferToPlay)?.duration * progress / 100.0
+        streamingRef.current = true
         if (cachedFile) {
             setAudionState({ loadingProgress: 100 })
             getAudioContext(cachedFile.header.sampleRate)
@@ -183,20 +224,29 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
                 cachedFile.header.sampleRate,
                 cachedFile.header.bitsPerSample
             )
-            play(0, null, audioBuffer)
+            play(startTime, null, audioBuffer)
         } else {
             socketRef.current.emit('track-play', {
                 run_id: props.runId,
                 original_file_node_id: bufferToPlay,
                 audio_file_node_id: bufferToPlay,
-                start_time: 0,
+                start_time: startTime,
                 stop_time: null,
                 authorization: localStorage.getItem("jwt_token")
             });
 
+            // remove listeners to prevent multiple handling of the same event
+            socketRef.current.off('track-stream')
             socketRef.current.on('track-stream', async (args) => {
 
-                streamIdRef.current = args['stream_id']
+                if (streamIdRef.current == null) {
+                    streamIdRef.current = args['stream_id']
+                }
+
+                if (streamIdRef.current !== args['stream_id']) {
+                    console.log("Received chunk of inactive stream")
+                    return
+                }
 
                 socketRef.current.emit('track-ack', {
                     chunk_num: args['chunk_num']
@@ -215,9 +265,62 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
                     )
                 );
 
+                console.log(`BEFORE APPEND: audioBufferRef.current.duration:${audioBufferRef.current ? audioBufferRef.current.duration : 0}, stream_id: ${args['stream_id']}, chunk: ${args['chunk_num']}, audioBufferChunk.duration: ${audioBufferChunk.duration}`)
                 audioBufferRef.current = (audioBufferRef.current)
                     ? appendBuffer(audioBufferRef.current, audioBufferChunk, audioContextRef.current)
                     : audioBufferChunk;
+                console.log(`AFTER APPEND: audioBufferRef.current.duration:${audioBufferRef.current.duration}, audioBufferChunk.duration: ${audioBufferChunk.duration}`)
+
+                try {
+                    WaveformData.createFromAudio({
+                        audio_buffer: audioBufferChunk,
+                        //scale: Math.ceil(args['n_frames'] / 1400),
+                        scale: 1,
+                        amplitude_scale: 1.0,
+                        disable_worker: false
+                    }, (err, waveform) => {
+                        if (err) {
+                            console.error(err);
+                            return;
+                        }
+                        console.log(`Waveform has ${waveform.channels} channels`);
+                        console.log(`Waveform has length ${waveform.length} points`);
+                        console.log(`Waveform min_array: ${waveform.channel(0).min_array()}`);
+                        console.log(`Waveform max_array: ${waveform.channel(0).max_array()}`);
+                        console.log(`Waveform min: ${Math.min(...waveform.channel(0).min_array())}`);
+                        console.log(`Waveform max: ${Math.max(...waveform.channel(0).max_array())}`);
+    
+                        const options = {
+                            zoomview: {
+                                container: document.getElementById('zoomview-container')
+                            },
+                            overview: {
+                                container: document.getElementById('overview-container')
+                            },
+                            mediaElement: document.getElementById('audio'),
+                            webAudio: {
+                                audioContext: audioContextRef.current,
+                                audio_buffer: audioBufferRef.current
+                            }
+                        }
+    
+                        if (!peaksInstance) {
+                            Peaks.default.init(options, function (err, peaks) {
+                                if (err) {
+                                    console.error('Failed to initialize Peaks instance: ' + err.message);
+                                    return;
+                                }
+        
+                                // Do something when the waveform is displayed and ready
+                                peaksInstance = peaks
+                                console.log('Peaks has been initialized successfully.')
+                            })
+                        }
+                    })
+                    /**/
+                } catch(err) {
+                    console.log(err)
+                }
 
                 let loadRate = audioBufferRef.current.length * 100.0 / args['n_frames']
                 durationRef.current = args['n_frames'] * 1.0 / args['sample_rate']
@@ -230,12 +333,14 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
                     stopLoadingMonitoring()
                     playWhileLoadingDurationRef.current = Math.ceil(audioBufferRef.current.duration)
                     const inSec = (Date.now() - startTimeRef.current) / 1000;
-                    play(inSec);
+                    play(inSec, null, null, handlePlayingEnd);
 
-                    storeFileIntoLocalStorage(bufferToPlay, args, audioAsByte64String)
+                    //storeFileIntoLocalStorage(bufferToPlay, args, audioAsByte64String)
                 }
             });
 
+            // remove listeners to prevent multiple handling of the same event
+            socketRef.current.off('track-stream-stopped')
             socketRef.current.on('track-stream-stopped', () => {
                 stopLoadingMonitoring()
             })
@@ -243,12 +348,19 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
     }
 
     const cancelStreaming = () => {
+        // disable listener to discard on-flight events
+        socketRef.current.off('track-stream')
+        setAudionState({ loadingProgress: 0 })
+        // stop streaming on server side
         if (streamIdRef.current) {
+            console.log(`Streaming ${streamIdRef.current} cancelled`)
             socketRef.current.emit('track-stop', {
                 stream_id: streamIdRef.current
             });
+            streamIdRef.current = null
         }
         stopLoadingMonitoring()
+        streamingRef.current = false
     }
 
     const pause = () => {
@@ -279,16 +391,26 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
             audioSourceRef.current.disconnect(audioContextRef.current.destination)
             audioSourceRef.current.onended = null
             audioSourceRef.current = null
+            audioBufferRef.current = null
             audioContextRef.current.suspend()
         }
 
+        audioContextRef.current = null
+
         cancelStreaming()
         setCursorPosition(0)
+        startTimeRef.current = null
+        playWhileLoadingDurationRef.current = null
         playingZoomedSectionRef.current = false
         window.cancelAnimationFrame(cursorAnimationRef.current);
         stopProgressMonitoring()
         setPlaying(false)
-        giveFocusToStopButton()
+        setProgress(0)
+
+        resetState()
+
+        //giveFocusToStopButton()
+        console.log("Stop completed")
     }
 
     const playZoomedInterval = () => {
@@ -330,16 +452,54 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
     const updateCursor = () => {
         return function loop() {
             if (audioContextRef.current && durationRef.current) {
-                const playbackTime = Math.min((Date.now() - startTimeRef.current) / 1000, audioBufferRef.current.duration)
+                const playbackTime = Math.min((Date.now() - startTimeRef.current) / 1000, audioBufferRef.current)
                 setCursorPosition(playbackTime)
             }
             cursorAnimationRef.current = window.requestAnimationFrame(loop);
         };
     }
 
-    const getButtons = () => {
+    const sliderMouseDownHandler = (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        if (e.buttons == 1) {
+            console.log("MouseDown, e.buttons:" + e.buttons)
+
+            slidingRef.current = true
+            //setTimeout(stop, 0)
+            stop()
+            /**/
+            document.addEventListener('mouseup', sliderMouseUpHandler, { once: true })
+        }
+    }
+
+    const sliderMouseUpHandler = (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        if (e.buttons == 0) {
+            console.log("MouseUp, e.buttons:" + e.buttons)
+
+            //setTimeout(startPlaying, 0)
+            startPlaying()
+            slidingRef.current = false
+            /**/
+        }
+    }
+
+    const sliderChangeValueHandler = (e) => {
+        if (slidingRef.current) {
+            setProgress(e.value)
+            console.log("setting progress from slidebar onChange to " + e.value)
+        }
+    }
+
+    const getStartButtons = () => {
         return (
             <React.Fragment>
+                <InputText
+                    value={durationRef.current ? (durationRef.current * progress / 100.0).toFixed(2) : ""}
+                    className="mr-2"
+                    style={{ width: "100px" }}></InputText>
                 <SplitButton
                     rounded
                     icon="pi pi-play"
@@ -349,16 +509,17 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
                     onClick={onPlayClick}
                     className="mr-2"
                     disabled={playing}
-                    style={{ height: "50px" }}></SplitButton>
-                <Button
+                    style={{ height: "50px", display: playing ? "none" : "" }}></SplitButton>
+                <SplitButton
                     rounded
                     icon="pi pi-pause"
                     tooltip="Pause"
                     tooltipOptions={{ position: 'top' }}
+                    model={getPlayableFilesButtons()}
                     onClick={pause}
                     className="mr-2"
                     disabled={!playing}
-                    style={{ height: "50px", display: "none" }}></Button>
+                    style={{ height: "50px", display: playing ? "" : "none" }}></SplitButton>
                 <Button
                     rounded
                     icon="pi pi-stop"
@@ -368,7 +529,7 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
                     onClick={stop}
                     className="mr-2"
                     disabled={!playing}
-                    style={{ height: "50px", display: "none" }}></Button>
+                    style={{ height: "50px", display: "yes" }}></Button>
                 <Button
                     rounded
                     icon="pi pi-arrows-h"
@@ -382,24 +543,51 @@ export const AudioPlayer = React.forwardRef((props, ref) => {
                     rounded
                     tooltip="Volume"
                     tooltipOptions={{ position: 'top' }}
-                    style={{ height: "50px", width: "200px"}}>
+                    style={{ height: "50px", width: "200px" }}>
                     <i className="pi pi-volume-down mr-4" style={{ fontSize: "1.0rem" }}></i>
                     <Slider value={volume} onChange={(e) => setVolume(e.value)} className="" min={0} max={100} style={{ width: "100%" }}></Slider>
                     <i className="pi pi-volume-up ml-4" style={{ fontSize: "1.2rem" }}></i>
                 </Button>
+            </React.Fragment>
+        )
+    }
 
+    const getEndButtons = () => {
+        return (
+            <React.Fragment>
+                <InputText
+                    value={durationRef.current ? (durationRef.current * (100 - progress) / 100.0).toFixed(2) : ""}
+                    className="mr-2"
+                    style={{ width: "100px", textAlign: "right" }}></InputText>
             </React.Fragment>
         )
     }
 
     return (
         <div id="AudioPlayer">
+            <Slider value={progress}
+                onMouseDown={sliderMouseDownHandler}
+                onClick={(e) => console.log("progress:" + progress)}
+                onChange={sliderChangeValueHandler}
+                className=""
+                min={0}
+                max={100}
+                step={0.01}
+                style={{ width: "100%" }}></Slider>
             <div className="p-slider p-component mb-4 mt-4 p-slider-horizontal">
                 <span className="p-slider-range" style={{ width: audionState.loadingProgress + "%", backgroundColor: "orange" }}></span>
                 <span className="p-slider-range" style={{ width: progress + "%" }}></span>
-                <span className="p-slider-handle" tabIndex="0" role="slider" aria-valuemin="0" aria-valuemax="100" aria-orientation="horizontal" style={{ left: progress + "%" }}></span>
+                <span className="p-slider-handle"
+                    tabIndex="0" role="slider"
+                    aria-valuemin="0" aria-valuemax="100"
+                    aria-orientation="horizontal"
+                    onChange={(e) => console.log("position" + e.value)}
+                    style={{ left: progress + "%" }}></span>
             </div>
-            <Toolbar start={getButtons} />
+            <Toolbar start={getStartButtons} end={getEndButtons} />
+            <div id="zoomview-container"></div>
+            <div id="overview-container"></div>
+            <audio controls id="audio" src={false ? null : "http://localhost:3000/Blues_Bass-cut.wav"}></audio>
         </div>
     )
 

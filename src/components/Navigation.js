@@ -92,6 +92,11 @@ const Navigation = (props) => {
             label: 'Run Analysis', icon: 'pi pi-bw pi-chart-bar', command: () => {
                 window.location.href = '/run/analysis'
             }
+        },
+        {
+            label: 'Run Analysis 2', icon: 'pi pi-bw pi-chart-bar', command: () => {
+                window.location.href = '/run/analysis2'
+            }
         }
     ]
 
@@ -114,6 +119,7 @@ const Navigation = (props) => {
                 className="mr-2"
                 style={{ padding: 0, borderRadius: "50%" }}>
                 <img
+                    referrerPolicy="no-referrer"
                     className='custom-target-icon'
                     size='small'
                     alt={localStorage.getItem('user').picture}

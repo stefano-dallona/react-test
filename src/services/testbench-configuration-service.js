@@ -6,7 +6,7 @@ export class ConfigurationService {
     constructor(baseUrl, axiosClient) {
         this.baseUrl = baseUrl;
         this.axiosClient = axiosClient
-        this.sseListenerController = new AbortController();
+        this.sseListenerController = null;
     }
 
     create_UUID() {
@@ -169,6 +169,8 @@ export class ConfigurationService {
         */
         class RetriableError extends Error { }
         class FatalError extends Error { }
+
+        this.sseListenerController = new AbortController()
         
         fetchEventSource(requestUrl, {
             openWhenHidden: true,
@@ -206,7 +208,9 @@ export class ConfigurationService {
             this.sseListener.close();
         }
         */
-        this.sseListenerController.abort()
+        if (this.sseListenerController) {
+            this.sseListenerController.abort()
+        }
     }
 
     async getRunHierarchy(run_id, audio_file) {

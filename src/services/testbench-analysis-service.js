@@ -40,6 +40,28 @@ export class AnalysisService {
         };
     }
 
+    async fetchWaveforms(run_id, original_file_node_id, channel, offset, num_samples, unit_of_meas, max_slices) {
+        let requestUrl = `${this.baseUrl}/analysis/runs/${run_id}/input-files/${original_file_node_id}/waveforms?jwt=${localStorage.getItem("jwt_token")}&channel=${channel}&offset=${offset}&num_samples=${num_samples}&unit_of_meas=${unit_of_meas}&max_slices=${max_slices}`
+        let response = await this.axiosClient.get(requestUrl)
+        let waveforms = response.data
+        return waveforms.map((waveform) => {
+            return {
+                uuid: waveform.uuid,
+                duration: waveform.duration,
+                sampleRate: waveform.sampleRate,
+                originalSampleRate: waveform.originalSampleRate,
+                getChannelData: (channel) => {
+                    let data = Array(offset + waveform.numSamples).fill(0)
+                    let indexes = Object.keys(waveform.data)
+                    indexes.forEach((index) => {
+                        data[Number.parseInt(offset) + Number.parseInt(index)] = waveform.data[index]
+                    })
+                    return Float32Array.from(data)
+                }
+            }
+        })
+    };
+
     async fetchSamplesFromFile(run_id, original_file_node_id, audio_file_node_id, channel, offset, num_samples, unit_of_meas) {
         let requestUrl = `${this.baseUrl}/analysis/runs/${run_id}/input-files/${original_file_node_id}/output-files/${audio_file_node_id}/samples?channel=${channel}&offset=${offset}&num_samples=${num_samples}&unit_of_meas=${unit_of_meas}`
         /*
@@ -65,10 +87,10 @@ export class AnalysisService {
     async retrieveAudioFile(run_id, original_file_node_id, audio_file_node_id) {
         let requestUrl = `${this.baseUrl}/analysis/runs/${run_id}/input-files/${original_file_node_id}/output-files/${audio_file_node_id}`
         let response = await fetch(requestUrl, {
-            headers: { "Authorization" : localStorage.getItem("jwt_token") }
+            headers: { "Authorization": localStorage.getItem("jwt_token") }
         })
         let audioFileArrayBuffer = await response.arrayBuffer()
         return audioFileArrayBuffer;
     }
-    
+
 }

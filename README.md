@@ -95,3 +95,6 @@ https://betterprogramming.pub/5-steps-to-render-d3-js-with-react-functional-comp
 npm i d3-v6@npm:d3@6.1.1 --save
 npm i d3fc@13.2.1 --save
 npm i d3fc-webgl@0.0.5 --save
+
+# react-h5-audio-player
+https://unpkg.com/browse/react-h5-audio-player@3.6.1/README.md

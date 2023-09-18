@@ -12,6 +12,7 @@ import { Button } from 'primereact/button';
 import { SplitButton } from 'primereact/splitbutton';
 import { Dropdown } from 'primereact/dropdown';
 import { Dialog } from 'primereact/dialog'
+import { Tooltip } from 'primereact/tooltip'
 
 import { BufferLoader } from '../audio/bufferloader';
 import { trackPromise } from 'react-promise-tracker';
@@ -24,7 +25,12 @@ import { CirclePicker, CompactPicker, SwatchesPicker, TwitterPicker } from 'reac
 
 import BrushZoomState from '../audio/brush-zoom'
 
+import ReactH5AudioPlayer, { RHAP_UI } from 'react-h5-audio-player'
+import { WaveformCanvas } from './WaveformCanvas';
+//import Peaks from 'peaks.js';
+
 var wavesUI = require('waves-ui');
+//var Peaks = require('peaks.js');
 
 
 class Waveforms extends Component {
@@ -33,11 +39,14 @@ class Waveforms extends Component {
 
         this.downsamplingEnabled = true
         this.loadOnlyZoomedSection = true
-        this.parallelWaveformLoading = true
+        this.parallelWaveformLoading = false
 
         this.samplesVisualizer = React.createRef();
         this.spectrogram = React.createRef();
         this.audioPlayerOnZoomOut = React.createRef();
+        this.player = React.createRef()
+        this.zoomedRegion = React.createRef()
+        this.waveformCanvasRef = React.createRef()
 
         this.audioContext = new AudioContext()
 
@@ -115,6 +124,30 @@ class Waveforms extends Component {
     async componentDidMount() {
         await this.loadInputFiles()
         this.setFilename(this.inputFiles[0])
+
+        const options = {
+            zoomview: {
+                container: document.getElementById('zoomview-container')
+            },
+            overview: {
+                container: document.getElementById('overview-container')
+            },
+            mediaElement: document.getElementById('audio'),
+            webAudio: {
+                audioContext: new AudioContext()
+            }
+        }
+        /*
+        Peaks.default.init(options, function (err, peaks) {
+            if (err) {
+                console.error('Failed to initialize Peaks instance: ' + err.message);
+                return;
+            }
+
+            // Do something when the waveform is displayed and ready
+            console.log('Peaks has been initialized successfully.')
+        })
+        */
     }
 
     setAudioFiles(audioFiles) {
@@ -166,6 +199,20 @@ class Waveforms extends Component {
         this.setState({
             audioFileToPlay: audioFileToPlay
         });
+    }
+
+    getAudioFileToPlayURL() {
+        if (this.audioFiles && this.audioFiles.length > 0) {
+            let selectedFile = this.audioFiles[this.state.audioFileToPlay]
+            if (selectedFile) {
+                let baseUrl = this.servicesContainer.configurationService.baseUrl
+                return `${baseUrl}/analysis/runs/${this.state.runId}/input-files/${selectedFile.uuid}/output-files/${selectedFile.uuid}?jwt=${localStorage.getItem("jwt_token")}`
+            } else {
+                return ""
+            }
+        } else {
+            return ""
+        }
     }
 
     giveFocusToStopButton() {
@@ -323,11 +370,19 @@ class Waveforms extends Component {
         if (!this.timeline) {
             this.timeline = new wavesUI.core.Timeline(pixelsPerSecond, width);
             //this.timeline.state = new wavesUI.states.BrushZoomState(this.timeline);
+            let sampleRate = this.buffersList[0].sampleRate
             this.timeline.state = new BrushZoomState(this.timeline,
-                this.buffersList[0].sampleRate,
+                sampleRate,
                 this.downsamplingEnabled ? async (channel, offset, numSamples) => {
+                    this.zoomedRegion.current = numSamples < 0 ? null : {
+                        startTime: offset / sampleRate,
+                        endTime: (offset + numSamples) / sampleRate,
+                        numSamples: numSamples,
+                        sampleRate: sampleRate
+                    }
                     let waveformsData = await this.fetchWaveforms.bind(this)(channel, offset, numSamples)
                     this.updateWaveforms(channel, waveformsData)
+                    this.setPlayerCurrentTime(offset / sampleRate)
                 } : null
             );
             this.timeline.on('event', this.handleSegmentEvent().bind(this));
@@ -387,6 +442,7 @@ class Waveforms extends Component {
                 return this.servicesContainer.analysisService.fetchWaveform(this.state.runId, file.uuid, file.uuid, channel, offset, numSamples, unitOfMeas, maxSlices)
             })))
         } else {
+            /*
             for (const [index, file] of this.audioFiles.entries()) {
                 //if (index != 0) continue
                 let $track = this.waveuiEl;
@@ -395,6 +451,11 @@ class Waveforms extends Component {
                 let waveform = await trackPromise(this.servicesContainer.analysisService.fetchWaveform(this.state.runId, file.uuid, file.uuid, channel, offset, numSamples, unitOfMeas, maxSlices))
                 waveforms.push(waveform)
             }
+            */
+            let $track = this.waveuiEl;
+            let maxSlices = (this.loadOnlyZoomedSection) ? Math.ceil($track.getBoundingClientRect().width) : -1;
+            let unitOfMeas = "samples"
+            waveforms = await trackPromise(this.servicesContainer.analysisService.fetchWaveforms(this.state.runId, this.audioFiles[0].uuid, channel, offset, numSamples, unitOfMeas, maxSlices))
         }
 
         return waveforms
@@ -404,10 +465,12 @@ class Waveforms extends Component {
         this.audioFiles.map((file, index) => {
             let waveformLayer = this.layersMap.get(file)
             let waveform = waveforms[index]
-            let newData = waveform.getChannelData(channel)
-            if (waveformLayer) {
-                waveformLayer.data = newData
-                waveformLayer.render()
+            if (waveform) {
+                let newData = waveform.getChannelData(channel)
+                if (waveformLayer) {
+                    waveformLayer.data = newData
+                    waveformLayer.render()
+                }
             }
         })
         this.waveformTrack.update()
@@ -503,10 +566,31 @@ class Waveforms extends Component {
         return _treeToList(root)
     }
 
+    getPlayableFilesCombo() {
+        let playableFiles = this.audioFiles.map((file, i) => {
+            return { code: i, name: file.label }
+        })
+        return (
+            <Dropdown value={this.state.audioFileToPlay}
+                options={playableFiles}
+                optionLabel="name"
+                optionValue='code'
+                onChange={(e) => this.setAudioFileToPlay(e.value)}
+                placeholder="Select a file to play"
+                className="mr-2 ml-2 w-full md:w-14rem" />
+        );
+    }
+
     getPlayableFilesButtons() {
         return this.audioFiles.map((file, i) => {
             return { label: file.label, icon: (this.state.audioFileToPlay == i) ? "pi pi-check" : "", command: () => { this.setAudioFileToPlay(i) } }
         });
+    }
+
+    setPlayerCurrentTime = (time) => {
+        if (this.player.current) {
+            this.player.current.audio.current.currentTime = time
+        }
     }
 
     handleSegmentEvent() {
@@ -518,7 +602,7 @@ class Waveforms extends Component {
             let segment = sourceLayer.getItemFromDOMElement(e.target);
             return { "segment": segment, "sourceLayer": sourceLayer }
         }
-        
+
         const highlightSelectedSegment = (selectedLoss) => {
             if (this.selectedLoss && this.selectedLoss.color) {
                 delete this.selectedLoss.color
@@ -548,7 +632,14 @@ class Waveforms extends Component {
             let eventType = e.type;
 
             const { segment, sourceLayer } = findSegmentAndLayerByEvent(e);
-            if (!segment || !sourceLayer) return;
+            if (!segment || !sourceLayer) {
+                if (eventType === 'click') {
+                    let minTime = this.timeline.timeToPixel.invert(e.x)
+                    let startTime = -this.timeline.offset + minTime
+                    this.player.current.audio.current.currentTime = startTime
+                }
+                return;
+            }
 
             let selectedLoss = sourceLayer.getDatumFromItem(segment);
             console.log("selectedLoss: (x:" + selectedLoss.lossstart + ", width:" + selectedLoss.losswidth + ")")
@@ -698,12 +789,18 @@ class Waveforms extends Component {
         this.renderLossSimulations(waveformTrackId)
     }
 
+    zoomOut() {
+        console.log("zoom out")
+        this.zoomedRegion.current = null
+        this.timeline.state.zoomOut()
+        let onZoomOutHandler = this.audioPlayerOnZoomOut.current
+        if (onZoomOutHandler) onZoomOutHandler()
+    }
+
     onKeyDownHandler(event) {
         switch (event.keyCode) {
             case 32:    //SPACE
-                console.log("zoom out")
-                let onZoomOutHandler = this.audioPlayerOnZoomOut.current
-                onZoomOutHandler()
+                this.zoomOut()
                 break;
             default:
                 break;
@@ -732,6 +829,90 @@ class Waveforms extends Component {
         }
     }
 
+    async slideWaveForm() {
+        let currentTime = JSON.parse(JSON.stringify(this.player.current.audio.current.currentTime))
+        let duration = this.player.current.audio.current.duration
+        let channel = 0
+
+        if (this.buffersList && this.buffersList.length > 0) {
+            let sampleRate = this.buffersList[0].sampleRate
+
+            if (currentTime >= duration) {
+                this.player.current.audio.current.pause()
+                this.player.current.audio.current.currentTime = 0
+                currentTime = JSON.parse(JSON.stringify(this.player.current.audio.current.currentTime))
+                if (this.zoomedRegion.current) {
+                    let numSamples = this.zoomedRegion.current.numSamples
+                    this.zoomedRegion.current = {
+                        startTime: 0,
+                        endTime: numSamples / sampleRate,
+                        numSamples: numSamples,
+                        sampleRate: sampleRate,
+                        waveformsDataOffset: 0
+                    }
+                    let waveformsData = await this.fetchWaveforms.bind(this)(channel, 0, numSamples)
+                    this.timeline.timeContext.offset = -this.zoomedRegion.current.startTime
+                    this.updateWaveforms(channel, waveformsData)
+                }
+                this.setCursorPosition(0)
+            }
+
+            console.log("audio.currentTime: " + currentTime)
+            console.log("player.listenInterval: " + this.player.current.props.listenInterval)
+
+            if (this.zoomedRegion.current) {
+                if (!this.zoomedRegion.current.waveformsData) {
+                    let offset = Math.floor(this.zoomedRegion.current.endTime * sampleRate)
+                    this.zoomedRegion.current.waveformsData = this.fetchWaveforms.bind(this)(channel, offset, this.zoomedRegion.current.numSamples)
+                    this.zoomedRegion.current.waveformsDataOffset = offset
+                }
+                if ((this.zoomedRegion.current.endTime - this.zoomedRegion.current.startTime) >= 5) {
+                    if ((currentTime - this.zoomedRegion.current.startTime) < -0.1 || currentTime >= this.zoomedRegion.current.endTime) {
+                        let offset = Math.floor(currentTime * sampleRate)
+                        let numSamples = this.zoomedRegion.current.numSamples
+                        console.log(`fetching samples ${numSamples} starting from ${offset}`)
+
+                        if (offset > this.zoomedRegion.current.waveformsDataOffset + numSamples || (offset - this.zoomedRegion.current.waveformsDataOffset) < 0.1) {
+                            this.zoomedRegion.current.waveformsData = this.fetchWaveforms.bind(this)(channel, offset, numSamples)
+                            this.zoomedRegion.current.waveformsDataOffset = offset
+                        }
+                        let waveformsData = await this.zoomedRegion.current.waveformsData
+
+                        let newZoomRegion = JSON.parse(JSON.stringify(this.zoomedRegion.current))
+                        newZoomRegion.startTime = newZoomRegion.waveformsDataOffset / sampleRate
+                        newZoomRegion.endTime = (newZoomRegion.waveformsDataOffset / sampleRate) + (numSamples * 1.0 / sampleRate)
+                        newZoomRegion.waveformsData = null
+                        this.zoomedRegion.current = newZoomRegion
+
+                        console.log(this.zoomedRegion.current)
+
+                        //let waveformsData = await this.fetchWaveforms.bind(this)(channel, offset, numSamples)
+                        this.timeline.timeContext.offset = -this.zoomedRegion.current.startTime
+                        this.setCursorPosition(this.zoomedRegion.current.startTime)
+                        this.updateWaveforms(channel, waveformsData)
+                        /**/
+                        /*
+                        if (this.waveformCanvasRef.current) {
+                            let offset = this.waveformCanvasRef.current.state.offset
+                            if (offset < currentTime * sampleRate) {
+                                this.waveformCanvasRef.current.setInterval(offset + 5 * sampleRate, numSamples, sampleRate)
+                            }
+                        }
+                        */
+                    }
+                } else {
+                    if (this.player.current.audio.current.currentTime >= this.zoomedRegion.current.endTime) {
+                        this.player.current.audio.current.pause()
+                        this.player.current.audio.current.currentTime = this.zoomedRegion.current.startTime
+                        currentTime = this.player.current.audio.current.currentTime
+                        this.zoomedRegion.current.waveformsData = null
+                    }
+                }
+            }
+        }
+        this.setCursorPosition(currentTime)
+    }
+
     showColorPicker() {
 
     }
@@ -758,25 +939,25 @@ class Waveforms extends Component {
     }
 
     // FIXME - Temporary workaround. Find a way to rerender the nested component when the parent is ready
-    onAccordionTabStatusChange(status, tabIndex)  {
+    onAccordionTabStatusChange(status, tabIndex) {
         let delay = 1000
-        switch(status) {
+        switch (status) {
             case 'opened':
                 if (tabIndex === 0) {
                     setTimeout(this.renderTrack.bind(this), delay)
                 }
                 else if (tabIndex === 1) {
                     setTimeout(this.refreshSampleVisualizer.bind(this), delay)
-                } 
+                }
                 break
             case 'closed':
                 if (tabIndex === 0) {
                     this.clearWaveforms.bind(this)()
                     this.clearTrack.bind(this)()
-                } 
+                }
                 break
             default:
-  
+
         }
     }
 
@@ -866,7 +1047,8 @@ class Waveforms extends Component {
                         tooltipOptions={{ position: 'top' }}
                         className="mr-2"
                         disabled={false}
-                        visible={true} ></Button>
+                        visible={true}
+                        onClick={() => { this.setPlayerCurrentTime(20) }} ></Button>
                 </div>
             </React.Fragment>
         );
@@ -881,8 +1063,9 @@ class Waveforms extends Component {
                 activeIndex={[0, 1, 2]}
                 onTabClose={(e) => { this.onAccordionTabStatusChange('closed', e.index) }}
                 onTabOpen={(e) => { this.onAccordionTabStatusChange('opened', e.index) }}
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
-                <AccordionTab header="Waveform" >
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            >
+                <AccordionTab header="Waveform">
                     <div className="card flex flex-wrap gap-3 p-fluid mb-6">
                         <div id="pnl-selectedAudioFile" className="flex-auto">
                             <label htmlFor='selectedAudioFile' className="font-bold block ml-2 mb-2" style={{ color: 'white' }}>Audio File</label>
@@ -946,14 +1129,21 @@ class Waveforms extends Component {
                     </div>
                     <div id="runWaveforms"
                         ref={this.setWaveformRef.bind(this)}
-                        className="block mb-2 mr-4"
+                        className="waveform block mb-2 mr-4"
                         style={{ height: "250px" }}>
                         {this.waveuiEl && this.state.lossSimulationsReady && this.state.buffersListReady && this.renderAll(this.waveformTrackId)}
                     </div>
-                    {true && (
+                    {false && (<WaveformCanvas
+                        ref={this.waveformCanvasRef}
+                        runId={this.state.runId}
+                        numSamples={this.buffersList && this.buffersList.length > 0 ? 5 * this.buffersList[0].sampleRate : 0}
+                        sampleRate={this.buffersList && this.buffersList.length > 0 ? this.buffersList[0].sampleRate : 44100}>
+                    </WaveformCanvas>
+                    )}
+                    {false && (
                         <Toolbar start={startContent} end={endContent} />
                     )}
-                    {this.state.buffersListReady && (
+                    {/*this.state.buffersListReady && (
                         <AudioPlayer
                             servicesContainer={this.servicesContainer}
                             ref={this.audioPlayerOnZoomOut}
@@ -962,7 +1152,52 @@ class Waveforms extends Component {
                             buffersList={this.buffersList}
                             timeline={this.getTimeline.bind(this)}
                             cursorLayer={this.getCursorLayer.bind(this)} />
-                    )}
+
+                    )*/}
+                    <div>
+                        <Tooltip target=".pi-search-plus" />
+                        {true && (
+                            <ReactH5AudioPlayer
+                                ref={this.player}
+                                autoPlay={false}
+                                autoPlayAfterSrcChange={false}
+                                customProgressBarSection={[RHAP_UI.PROGRESS_BAR]}
+                                customControlsSection={[RHAP_UI.CURRENT_TIME, RHAP_UI.MAIN_CONTROLS, RHAP_UI.ADDITIONAL_CONTROLS, RHAP_UI.VOLUME_CONTROLS, RHAP_UI.DURATION]}
+                                customAdditionalControls={[this.getPlayableFilesCombo(),
+                                /*<i className="mr-4 pi pi-search-plus"
+                                    data-pr-tooltip="Brush on waveform to zoom-in"></i>,*/
+                                <Button
+                                    rounded
+                                    icon="pi pi-search-plus"
+                                    tooltip="Brush on waveform to zoom-in"
+                                    tooltipOptions={{ position: 'top' }}
+                                    className="mr-2"
+                                    visible={true} ></Button>,
+                                <Button
+                                    onClick={(e) => { this.zoomOut() }}
+                                    rounded
+                                    icon="pi pi-search-minus"
+                                    tooltip="Zoom-out"
+                                    tooltipOptions={{ position: 'top' }}
+                                    className="mr-2"
+                                    disabled={false}
+                                    visible={true} ></Button>
+                                ]}
+                                customVolumeControls={[RHAP_UI.VOLUME]}
+                                showSkipControls={true}
+                                listenInterval={100}
+                                onListen={this.slideWaveForm.bind(this)}
+                                width="100%"
+                                src={this.getAudioFileToPlayURL()}
+                                layout='stacked'
+                            />
+                        )}
+                        {/*<div id="zoomview-container"></div>
+                        <div id="overview-container"></div>
+                        <audio controls autoplay id="audio" src="http://localhost:3000/Blues_Bass.wav"></audio>*/}
+                        {/*<audio src='https://localhost:5000/analysis/runs/40914666118008288/input-files/6058707010551074/output-files/6058707010551074' controls autoPlay={false} />*/}
+                    </div>
+
                 </AccordionTab>
                 <AccordionTab header="Samples">
                     {this.waveuiEl && this.state.lossSimulationsReady && this.state.buffersListReady && (

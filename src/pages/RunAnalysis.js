@@ -2,7 +2,8 @@ import '../App.css';
 import "primereact/resources/primereact.min.css";
 import "primeicons/primeicons.css";
 import 'primeflex/primeflex.css';
-import '../css/waveforms.css'
+import 'react-h5-audio-player/lib/styles.css';
+import '../css/waveforms.css';
 
 import React, { Component, forwardRef } from 'react';
 import Waveforms from '../components/Waveforms';
