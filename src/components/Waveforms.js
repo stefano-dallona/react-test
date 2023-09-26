@@ -214,7 +214,8 @@ class Waveforms extends Component {
         let selectedFile = this.getAudioFileToPlay()
         if (selectedFile) {
             let baseUrl = this.servicesContainer.configurationService.baseUrl
-            return `${baseUrl}/analysis/runs/${this.state.runId}/input-files/${selectedFile.uuid}/output-files/${selectedFile.uuid}?jwt=${localStorage.getItem("jwt_token")}`
+            //return `${baseUrl}/analysis/runs/${this.state.runId}/input-files/${selectedFile.uuid}/output-files/${selectedFile.uuid}?jwt=${localStorage.getItem("jwt_token")}`
+            return `${baseUrl}/analysis/runs/${this.state.runId}/input-files/${selectedFile.uuid}/output-files/${selectedFile.uuid}`
         } else {
             return ""
         }
@@ -466,7 +467,7 @@ class Waveforms extends Component {
                 let $track = this.waveuiEl;
                 let maxSlices = (this.loadOnlyZoomedSection) ? Math.ceil($track.getBoundingClientRect().width) : -1;
                 let unitOfMeas = "samples"
-                return this.servicesContainer.analysisService.fetchWaveform(this.state.runId, file.uuid, file.uuid, channel, offset, numSamples, unitOfMeas, maxSlices)
+                return this.servicesContainer.analysisService.fetchWaveform(this.state.runId, this.audioFiles[0].uuid, file.uuid, channel, offset, numSamples, unitOfMeas, maxSlices)
             })))
         } else {
             /*

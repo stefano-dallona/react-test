@@ -51,4 +51,21 @@ reportWebVitals();
 // If you want your app to work offline and load faster, you can change
 // unregister() to register() below. Note this comes with some pitfalls.
 // Learn more about service workers: http://bit.ly/CRA-PWA
-serviceWorker.register();
+//serviceWorker.register();
+
+
+if ('serviceWorker' in navigator) {
+  const swUrl = `${process.env.PUBLIC_URL}/custom-service-worker.js`;
+  navigator.serviceWorker.register(swUrl)
+  .then(function(registration) {
+    console.log('Registration successful, scope is:', registration.scope);
+  }).catch(function(err) {
+    console.log('Service worker registration failed, error:', err);
+  });
+  navigator.serviceWorker.ready.then((registration ) => {
+    registration.active.postMessage({
+      jwt_token: localStorage.getItem("jwt_token")
+    });
+  });
+}
+/**/

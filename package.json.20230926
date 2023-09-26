@@ -57,7 +57,7 @@
   "scripts": {
     "start": "env-cmd -f .env.local react-scripts start",
     "build-docker": "env-cmd -f .env.docker react-scripts build",
-    "build": "env-cmd -f .env.local react-scripts build && cra-append-sw --skip-compile --mode replace ./src/custom-service-worker.js",
+    "build": "env-cmd -f .env.local react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },

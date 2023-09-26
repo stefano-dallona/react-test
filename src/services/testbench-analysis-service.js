@@ -41,7 +41,8 @@ export class AnalysisService {
     }
 
     async fetchWaveforms(run_id, original_file_node_id, channel, offset, num_samples, unit_of_meas, max_slices) {
-        let requestUrl = `${this.baseUrl}/analysis/runs/${run_id}/input-files/${original_file_node_id}/waveforms?jwt=${localStorage.getItem("jwt_token")}&channel=${channel}&offset=${offset}&num_samples=${num_samples}&unit_of_meas=${unit_of_meas}&max_slices=${max_slices}`
+        //let requestUrl = `${this.baseUrl}/analysis/runs/${run_id}/input-files/${original_file_node_id}/waveforms?jwt=${localStorage.getItem("jwt_token")}&channel=${channel}&offset=${offset}&num_samples=${num_samples}&unit_of_meas=${unit_of_meas}&max_slices=${max_slices}`
+        let requestUrl = `${this.baseUrl}/analysis/runs/${run_id}/input-files/${original_file_node_id}/waveforms?channel=${channel}&offset=${offset}&num_samples=${num_samples}&unit_of_meas=${unit_of_meas}&max_slices=${max_slices}`
         let response = await this.axiosClient.get(requestUrl)
         let waveforms = response.data
         return waveforms.map((waveform) => {
@@ -84,8 +85,8 @@ export class AnalysisService {
         return metricsJson;
     }
 
-    async retrieveAudioFile(run_id, original_file_node_id, audio_file_node_id) {
-        let requestUrl = `${this.baseUrl}/analysis/runs/${run_id}/input-files/${original_file_node_id}/output-files/${audio_file_node_id}`
+    async retrieveAudioFile(run_id, original_file_node_id, audio_file_node_id, offset = 0, num_samples = -1) {
+        let requestUrl = `${this.baseUrl}/analysis/runs/${run_id}/input-files/${original_file_node_id}/output-files/${audio_file_node_id}?offset=${offset}&num_samples=${num_samples}`
         let response = await fetch(requestUrl, {
             headers: { "Authorization": localStorage.getItem("jwt_token") }
         })
