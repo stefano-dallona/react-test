@@ -18,7 +18,7 @@ class Node extends Component {
                 >
                     <circle
                         r="10"
-                        fill="red"
+                        fill="black"
                         onClick={() => { }}
                         onMouseOver={() => { }}
                         onMouseOut={() => { }}

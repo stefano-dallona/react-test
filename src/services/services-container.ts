@@ -14,6 +14,7 @@ import { trackPromise } from 'react-promise-tracker';
 //let baseUrl = `${env.HTTPS_ENABLED && env.HTTPS_ENABLED == "true" ? "https" : "http"}://${env.APP_HOST}:${env.APP_PORT}`
 let baseUrl = window.location.protocol + "//" + window.location.host
 //let baseUrl = "https://127.0.0.1:5000"
+//let baseUrl = "https://localhost:5000"
 
 class AxiosClient {
   client: Axios
@@ -53,7 +54,7 @@ class AxiosClient {
           if (window.location.pathname != "/") {
             setTimeout(() => {
               window.location.assign(window.location.protocol + "//" + window.location.hostname + ":" + window.location.port + "/")
-            }, 3000)
+            }, 1000)
           }
         } else {
           if (window["globalToast"]) {

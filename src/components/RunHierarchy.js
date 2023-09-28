@@ -157,10 +157,20 @@ class RunHierarchy extends Component {
         return [nodes, links]
     }
 
-    updateProgress(nodeId, progress) {
+    updateProgress(nodeId, progress, eta = 0) {
         let progressBarRef = this.progressBarRefs.get(nodeId)
         if (progressBarRef && progressBarRef.current) {
             progressBarRef.current.setCurrentPercentage(progress)
+            progressBarRef.current.setEta(eta)
+
+            if (nodeId === this.state.runId && progress > 0 && progress < 100) {
+                let interval = setInterval(() => {
+                    progressBarRef.current.setEta(progressBarRef.current.state.eta > 0 ? progressBarRef.current.state.eta - 1 : 0)
+                    if (!(progress > 0 && progress < 100)) {
+                        clearInterval(interval)
+                    }
+                }, 1000)
+            }
         }
         //localStorage.setItem(nodeId, progress)
     }
@@ -170,6 +180,7 @@ class RunHierarchy extends Component {
             let progressBarRef = this.progressBarRefs.get(this.state.runId)
             if (progressBarRef.current) {
                 progressBarRef.current.setCurrentPercentage(percentage)
+                progressBarRef.current.setEta(0)
             }
             //localStorage.setItem(this.state.runId, percentage)
         }
@@ -184,9 +195,19 @@ class RunHierarchy extends Component {
             let progressBarRef = this.progressBarRefs.get(node.data.uuid)
             if (progressBarRef.current) {
                 progressBarRef.current.setCurrentPercentage(percentage)
+                progressBarRef.current.setEta(0)
             }
             //localStorage.setItem(node.data.uuid, percentage)
         })
+    }
+    
+    estimateOverallEta(elapsedTime, currentPercentage) {
+        if ((currentPercentage > 0 && currentPercentage < 100)) {
+            let overall_eta =  elapsedTime * (100 - currentPercentage) / currentPercentage
+            return overall_eta
+        } else {
+            return 0
+        }
     }
 
     startListeningForExecutionEvents(task_id) {
@@ -194,8 +215,12 @@ class RunHierarchy extends Component {
         this.onExecutionStarted()
 
         let selectedInputFiles = this.run.selected_input_files
+        let startTime = null
 
         let progressCallback = async function (e) {
+            if (!startTime) {
+                startTime = Math.round(Date.now() / 1000)
+            }
             let message = JSON.parse(e.data)
 
             if (message.task_id != localStorage.getItem("runExecution:" + this.state.runId)) {
@@ -203,13 +228,17 @@ class RunHierarchy extends Component {
                 return
             }
 
-            //if (message.nodetype == "PLCTestbench") {
+            //if (message.nodetype == "DataManager") {
             //    if (message.progress.current_root_index != null && message.progress.current_root_index == this.currentFileIndex) {
             //if (message.nodetype == "OriginalTrackWorker") {
                 if (message.progress.current_root_index != null && message.progress.current_root_index > this.getCurrentFileIndex()) {
                     let newFileIndex = Math.min(selectedInputFiles.length, message.progress.current_root_index)
                     this.setCurrentFileIndex(newFileIndex)
                     let newFile = selectedInputFiles[newFileIndex]
+                    let progress = Math.floor(newFileIndex / selectedInputFiles.length * 100)
+                    let currentTime = Math.round(Date.now() / 1000)
+                    let overall_eta = this.estimateOverallEta(currentTime - startTime, progress)
+                    this.updateProgress(this.state.runId, progress, overall_eta)
                     if (this.state.filename != newFile) {
                         this.resetProgressBars(0, false)
                         console.log(`Loading new file: ${newFile}, triggered by message with revision ${message.progress.revision}`)
@@ -232,17 +261,14 @@ class RunHierarchy extends Component {
 
             for (const [nodeid, pbRef] of this.progressBarRefs) {
                 let progressMap = new Map(Object.entries(message.progress))
-                if (!progressMap.get(nodeid)) {
-                    this.updateProgress(nodeid, 0)
-                }
-                if (progressMap.get(nodeid) < message.progress) {
-                    this.updateProgress(nodeid, message.progress)
+                if (!progressMap.get(nodeid) && (nodeid != this.state.runId || message.progress.current_root_index == 0)) {
+                    this.updateProgress(nodeid, 0, 0)
                 }
             }
             for (const [nodeid, currentPercentage] of Object.entries(message.progress).filter(([key, value]) => {
                 return this.progressBarRefs.get(key) != null
             })) {
-                this.updateProgress(nodeid, currentPercentage)
+                this.updateProgress(nodeid, currentPercentage, message.eta)
             }
 
             //localStorage.setItem(message.nodeid, message.currentPercentage)
@@ -305,6 +331,7 @@ class RunHierarchy extends Component {
                                 ref={this.progressBarRefs.get(this.state.runId)}
                                 key={`pb-${this.state.runId}`}
                                 nodeId={this.state.runId}
+                                tooltip={this.state.runId}
                                 x={150}
                                 y={80}
                                 r={30}
@@ -329,6 +356,7 @@ class RunHierarchy extends Component {
                                     ref={this.progressBarRefs.get(node.data.uuid)}
                                     key={`pb-${node.key}`}
                                     nodeId={node.data.uuid}
+                                    tooltip={node.data.uuid}
                                     x={node.x}
                                     y={node.y}
                                     percentage={localStorage.getItem(node.data.uuid) || 0}
