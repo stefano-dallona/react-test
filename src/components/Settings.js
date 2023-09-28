@@ -5,6 +5,7 @@ import { Panel } from 'primereact/panel';
 import { Toolbar } from 'primereact/toolbar';
 import { Button } from 'primereact/button';
 import { Toast } from 'primereact/toast';
+import { Steps } from 'primereact/steps';
 
 import InputFilesSelector from './InputFilesSelector';
 import WorkersSettings from './WorkersSettings';
@@ -29,10 +30,10 @@ class Settings extends Component {
         this.paged = props.paged || true
 
         this.pages = ["InputFileSelection",
-                      //"GlobalSettings",
-                      "PacketLossSimulator",
-                      "PLCAlgorithm",
-                      "OutputAnalyser"]
+            //"GlobalSettings",
+            "PacketLossSimulator",
+            "PLCAlgorithm",
+            "OutputAnalyser"]
 
         this.defaultSettings = []
         this.storedSettings = []
@@ -206,8 +207,9 @@ class Settings extends Component {
             <WorkersSettings
                 key={workerType}
                 ref={this.workerSettings}
-                header={this.paged ? this.getProgress() : null}
-                toggleable={this.toggleable} toast={this.toast}
+                /*header={this.paged ? this.getProgress() : null}
+                toggleable={this.toggleable}*/
+                toast={this.toast}
                 workerType={workerType}
                 defaultSettings={this.defaultSettings.find((setting) => setting.property == workerType).value}>
             </WorkersSettings>
@@ -218,8 +220,14 @@ class Settings extends Component {
         return (
             <div className="card p-fluid">
                 <Toast ref={this.toast} />
+                <Panel>
+                    <Steps model={this.pages.map((element) => {
+                        return { label: element }
+                    })} activeIndex={this.state.currentPage} onSelect={(e) => this.setCurrentPage(e.index)} readOnly={true} />
+                </Panel>
                 {(!this.paged || this.state.currentPage == 0) && (
-                    <Panel header={this.paged ? this.getProgress() : null} toggleable={this.toggleable} >
+                    /*<Panel header={this.paged ? this.getProgress() : null} toggleable={this.toggleable} >*/
+                    <Panel>
                         <InputFilesSelector servicesContainer={this.servicesContainer} ref={this.inputFilesSelector}></InputFilesSelector>
                     </Panel>
                 )}

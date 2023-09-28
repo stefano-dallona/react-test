@@ -45,7 +45,7 @@ export const RunExecution = (props) => {
         setExecutionInProgress(false)
         runHierarchy.current.resetProgressBars(100, true)
         localStorage.removeItem("runExecution:" + runId)
-        showMessage('info', `Elaboration of run ${runId} completed successfully`, '')
+        showMessage('info', `Execution completed successfully`, '')
     }
 
     const startContent = (
@@ -67,6 +67,31 @@ export const RunExecution = (props) => {
                 className="mr-2"
                 onClick={analyse}
                 disabled={executionInProgress}></Button>
+            <Button
+                rounded
+                icon="pi pi-search"
+                tooltip="Use mouse wheel on the tree\nto zoom in/out"
+                tooltipOptions={{ position: 'top' }}
+                className="mr-2"></Button>
+            <Button
+                rounded
+                icon="pi pi-arrows-v"
+                tooltip="Drag on the tree to pan (only vertical allowed)"
+                tooltipOptions={{ position: 'top' }}
+                className="mr-2"></Button>
+            <Button
+                rounded
+                icon="pi pi-info"
+                tooltip="Place the mouse pointer over a node to get more info"
+                tooltipOptions={{ position: 'top' }}
+                className="mr-2"></Button>
+            <Button
+                rounded
+                icon="pi pi-delete-left"
+                severity='error'
+                tooltip="Right click on node and select 'Delete' item from the context menu"
+                tooltipOptions={{ position: 'top' }}
+                className="mr-2"></Button>
 
             <i className="pi p-toolbar-separator mr-2" />
         </React.Fragment>

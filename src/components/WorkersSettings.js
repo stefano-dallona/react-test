@@ -162,7 +162,7 @@ class WorkersSettings extends Component {
     render() {
         return (
             <div className="card p-fluid">
-                <Panel header={this.header} toggleable={this.toggleable}>
+                <Panel /*header={this.header} toggleable={this.toggleable}*/>
                     {this.defaultSettings.length > 1 && (
                         <div className="p-inputgroup">
                             <label style={{ textAlign: 'left', color: 'white', width: '20%' }}>Algorithm</label>
