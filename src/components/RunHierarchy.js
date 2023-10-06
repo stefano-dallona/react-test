@@ -36,12 +36,13 @@ class RunHierarchy extends Component {
         super(props);
 
         this.contextMenuRef = React.createRef(null)
+        this.rightClickedNodeRef = React.createRef(null)
 
         this.servicesContainer = props.servicesContainer
 
         this.progressBarRefs = new Map()
 
-        this.onExecutionStarted = props.onExecutionStarted || (() => {})
+        this.onExecutionStarted = props.onExecutionStarted || (() => { })
         this.onExecutionCompleted = props.onExecutionCompleted || this.executionCompletedDefaultHandler
 
         this.nodes = []
@@ -55,7 +56,7 @@ class RunHierarchy extends Component {
             runId: props.runId,
             filename: props.filename,
             data: null,
-            selectedKeys: null
+            selectedKeys: null,
         };
     }
 
@@ -200,10 +201,10 @@ class RunHierarchy extends Component {
             //localStorage.setItem(node.data.uuid, percentage)
         })
     }
-    
+
     estimateOverallEta(elapsedTime, currentPercentage) {
         if ((currentPercentage > 0 && currentPercentage < 100)) {
-            let overall_eta =  elapsedTime * (100 - currentPercentage) / currentPercentage
+            let overall_eta = elapsedTime * (100 - currentPercentage) / currentPercentage
             return overall_eta
         } else {
             return 0
@@ -231,20 +232,20 @@ class RunHierarchy extends Component {
             //if (message.nodetype == "DataManager") {
             //    if (message.progress.current_root_index != null && message.progress.current_root_index == this.currentFileIndex) {
             //if (message.nodetype == "OriginalTrackWorker") {
-                if (message.progress.current_root_index != null && message.progress.current_root_index > this.getCurrentFileIndex()) {
-                    let newFileIndex = Math.min(selectedInputFiles.length, message.progress.current_root_index)
-                    this.setCurrentFileIndex(newFileIndex)
-                    let newFile = selectedInputFiles[newFileIndex]
-                    let progress = Math.floor(newFileIndex / selectedInputFiles.length * 100)
-                    let currentTime = Math.round(Date.now() / 1000)
-                    let overall_eta = this.estimateOverallEta(currentTime - startTime, progress)
-                    this.updateProgress(this.state.runId, progress, overall_eta)
-                    if (this.state.filename != newFile) {
-                        this.resetProgressBars(0, false)
-                        console.log(`Loading new file: ${newFile}, triggered by message with revision ${message.progress.revision}`)
-                        this.setFilename(newFile)
-                    }
+            if (message.progress.current_root_index != null && message.progress.current_root_index > this.getCurrentFileIndex()) {
+                let newFileIndex = Math.min(selectedInputFiles.length, message.progress.current_root_index)
+                this.setCurrentFileIndex(newFileIndex)
+                let newFile = selectedInputFiles[newFileIndex]
+                let progress = Math.floor(newFileIndex / selectedInputFiles.length * 100)
+                let currentTime = Math.round(Date.now() / 1000)
+                let overall_eta = this.estimateOverallEta(currentTime - startTime, progress)
+                this.updateProgress(this.state.runId, progress, overall_eta)
+                if (this.state.filename != newFile) {
+                    this.resetProgressBars(0, false)
+                    console.log(`Loading new file: ${newFile}, triggered by message with revision ${message.progress.revision}`)
+                    this.setFilename(newFile)
                 }
+            }
             //}
             /*
             if (!(message.nodetype == "PLCTestbench" || message.nodeid == this.state.runId
@@ -307,10 +308,42 @@ class RunHierarchy extends Component {
         d3.select('svg').call(zoom);
     }
 
+    async deleteNode(run_id, node_id) {
+        let deleteResult = await this.servicesContainer.configurationService.deleteRunNode(run_id, node_id)
+        if (!deleteResult) {
+            await this.loadData()
+        }
+    }
+
+    findNodeAtPosition(x, y) {
+        this.progressBarRefs.current.filter((progressBar) => {
+            console.log(progressBar)
+        })
+    }
+
     getMenuItems() {
         return [
-            { label: 'Delete', icon: 'pi pi-fw pi-trash', severity: 'warning', command: () => { alert("Delete !") } }
+            {
+                label: 'Delete', icon: 'pi pi-fw pi-trash', severity: 'warning', command: (e) => {
+                    if (this.rightClickedNodeRef.current) {
+                        let node_id = this.rightClickedNodeRef.current
+                        this.deleteNode(this.state.runId, node_id)
+                    }
+                }
+            }
         ]
+    }
+
+    handleContextMenu(e) {
+        /*
+        e.preventDefault();
+        e.stopPropagation();
+        alert(e.clientX + "," + e.clientY)
+        */
+    }
+
+    rightClickHandler(node_id){
+        this.rightClickedNodeRef.current = node_id
     }
 
     render() {
@@ -318,12 +351,13 @@ class RunHierarchy extends Component {
         this.links.forEach((link, i) => { link.key = "link-" + i })
         return (
             <div className="runHierarchy">
-                <ContextMenu model={this.getMenuItems()} ref={this.contextMenuRef} />
                 <svg
                     className="hierarchy"
                     width="100%"
                     height="500"
+                    onContextMenu={this.handleContextMenu}
                 >
+                    <ContextMenu model={this.getMenuItems()} ref={this.contextMenuRef} />
                     <g>
                         {
                             (this.progressBarRefs.has(this.state.runId) || this.progressBarRefs.set(this.state.runId, React.createRef())) &&
@@ -336,6 +370,7 @@ class RunHierarchy extends Component {
                                 y={80}
                                 r={30}
                                 contextMenuRef={this.contextMenuRef}
+                                rightClickHandler={(node_id) => { this.rightClickHandler(node_id) }}                                
                             />
                         }
                     </g>
@@ -361,6 +396,7 @@ class RunHierarchy extends Component {
                                     y={node.y}
                                     percentage={localStorage.getItem(node.data.uuid) || 0}
                                     contextMenuRef={this.contextMenuRef}
+                                    rightClickHandler={(node_id) => { this.rightClickHandler(node_id) }}
                                 />
                             )
                         })}
