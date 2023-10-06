@@ -996,6 +996,26 @@ class Waveforms extends Component {
         }
     }
 
+    previousTrack() {
+        console.log("Previous clicked")
+        let currentIndex = this.inputFiles.indexOf(this.state.filename)
+        let previousIndex = Math.max(0, currentIndex - 1)
+        let newFilename = this.inputFiles[previousIndex]
+        if (newFilename && newFilename !== this.state.filename) {
+            this.setFilename(newFilename)
+        }
+    }
+
+    nextTrack() {
+        console.log("Next clicked")
+        let currentIndex = this.inputFiles.indexOf(this.state.filename)
+        let nextIndex = Math.min(this.inputFiles.length, currentIndex + 1)
+        let newFilename = this.inputFiles[nextIndex]
+        if (newFilename && newFilename !== this.state.filename) {
+            this.setFilename(newFilename)
+        }    
+    } 
+
     render() {
         const startContent = (
             <React.Fragment>
@@ -1070,7 +1090,7 @@ class Waveforms extends Component {
                     <Button
                         rounded
                         icon="pi pi-step-backward"
-                        tooltip="Previous Loss"
+                        tooltip="Previous Track"
                         tooltipOptions={{ position: 'top' }}
                         className="mr-2"
                         disabled={false}
@@ -1078,7 +1098,7 @@ class Waveforms extends Component {
                     <Button
                         rounded
                         icon="pi pi-step-forward"
-                        tooltip="Next Loss"
+                        tooltip="Next Track"
                         tooltipOptions={{ position: 'top' }}
                         className="mr-2"
                         disabled={false}
@@ -1199,6 +1219,8 @@ class Waveforms extends Component {
                             <ReactH5AudioPlayer
                                 ref={this.player}
                                 autoPlay={false}
+                                showSkipControls={true}
+                                showJumpControls={true}
                                 autoPlayAfterSrcChange={false}
                                 customProgressBarSection={[RHAP_UI.PROGRESS_BAR]}
                                 customControlsSection={[RHAP_UI.CURRENT_TIME, RHAP_UI.MAIN_CONTROLS, RHAP_UI.ADDITIONAL_CONTROLS, RHAP_UI.VOLUME_CONTROLS, RHAP_UI.DURATION]}
@@ -1223,7 +1245,6 @@ class Waveforms extends Component {
                                     visible={true} ></Button>
                                 ]}
                                 customVolumeControls={[RHAP_UI.VOLUME]}
-                                showSkipControls={true}
                                 listenInterval={100}
                                 onListen={this.slideWaveForm.bind(this)}
                                 onPlay={() => {
@@ -1237,6 +1258,8 @@ class Waveforms extends Component {
                                     console.log("Play paused")
                                     this.setSelectedAudioFiles(this.audioFiles.map((file, index) => file.uuid))
                                 }}
+                                onClickPrevious={this.previousTrack.bind(this)}
+                                onClickNext={this.nextTrack.bind(this)}
                                 width="100%"
                                 src={this.getAudioFileToPlayURL()}
                                 layout='stacked'

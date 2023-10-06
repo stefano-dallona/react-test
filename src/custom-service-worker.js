@@ -14,7 +14,8 @@ self.addEventListener('fetch', function (event) {
                 "Authorization": jwt_token
             },
             mode: "cors",
-            credentials: "omit"
+            credentials: "omit",
+            signal: event.request.signal
         });
         return event.respondWith(fetch(newRequest));
     } else {

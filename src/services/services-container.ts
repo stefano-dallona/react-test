@@ -67,7 +67,11 @@ class AxiosClient {
   }
 
   get = (url, config) => {
-    return trackPromise(this.client.get(url, config))
+    if (config && config.skipTracking) {
+      return this.client.get(url, config)
+    } else {
+      return trackPromise(this.client.get(url, config))
+    }
   }
 
   post = (url, data, config) => {

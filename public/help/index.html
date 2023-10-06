@@ -1,0 +1,86 @@
+<h1>PLC Testbench UI</h1>
+<p>
+    The purpose of the user interface for the Testbench PLC is to make it easier to use, reduce the time required to
+    consult results and increase the quantity and quality of information obtained from the analysis of results.
+</p>
+Before the implementation of this user interface, the only available interaction took place directly in a Jupyter
+Notebook, where inputs are given directly by modifying the code. Moreover, there was no aid in the interpretation of
+results, so the only way was to consult the raw output audio files and images. This type of interaction is suboptimal,
+especially in terms of consulting the results, as one is forced to consider one element at a time, precluding the
+possibility of increasing the quality of the analysis by considering multiple aspects at once.
+<p>
+    The user interface can be conceptually divided into three parts:
+</p>
+<h2>Input selection</h2>
+<p>
+    This part groups all the interactions that occur before program execution that are aimed at input selection. As
+    detailed in the previous discussion, the program inputs are a collection of modules with the associated set of
+    settings.
+</p>
+<p>
+    User interaction in this section is intended to simplify and speed up the input process and ends with the start of
+    program execution.
+</p>
+<h2>Progress Monitoring</h2>
+<p>
+    This part represents the program feedback aimed at informing the user about the status of the execution of the
+    various modules of the testbench.
+</p>
+<p>
+    The layout of this interface is strongly related to the choices in the previous section and is mainly focused on the
+    loading bars.
+</p>
+<h2>Results Analysis</h2>
+<p>
+    Results consultation is the most relevant part of this project in terms of its impact on the user experience of this
+    program. At the same time, it is also the most challenging part in terms of design and implementation.
+</p>
+<p>
+    The results consultation groups all the interactions that occur once the program execution is finished and is
+    characterized by browsing waveforms, series of lost packets, and listening to the audio files involved.
+</p>
+<p>
+    Since for each input audio file, there are potentially many results to show, it would be ideal to be able to overlay
+    as
+    many results as possible on the same graph. This is made possible by the fact that all results for the same audio
+    file
+    share the same time axis.
+</p>
+<h2>Architecture</h2>
+<p>
+    The user interface application is made of a Web application which is composed of two layers: one managing the user
+    interface representation and the interaction with the user and the other providing the backend services to be
+    consumed
+    by the graphical components.
+</p>
+<p>
+    The application therefore can be used both as a standalone application by deploying it on the user machine or in a
+    multi-user environment where the application is deployed on a remote server.
+</p>
+<p>
+    The layers exchange information via a RESTFul API which, if needed, can be exploited also by third-party services.
+    The
+    API is secured by using OAuth 2 protocol.
+</p>
+<p>
+    In the presentation layer, modularity has been achieved through the creation of specialized but highly customizable
+    components that can easily be reused across different pages.
+</p>
+<p>
+    In the backend layer, modularity is provided by the extensibility of the RESTFul API where new functions can be
+    “plugged
+    in” by simply adding new endpoints. This layer is also hiding the details of the interaction with the PLC Testbench
+    from
+    the presentation layer, providing an abstract and stable view of the library functions.
+</p>
+<p>
+    Persistence is based on a NoSQL database, where the data are stored in JSON format in order to provide higher
+    flexibility to accommodate future evolution of the schema. Both on-premise and cloud databases are supported.
+</p>
+<p>
+    The GUI adapts automatically to the PLC Testbench library by using introspection to retrieve the list of the
+    algorithms
+    used for packet loss, PLC, and output analysis. This way any extension made to the underlying tool does not require
+    any
+    manual change to the UI code.
+</p>

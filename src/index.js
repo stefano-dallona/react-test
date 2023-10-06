@@ -62,7 +62,7 @@ if ('serviceWorker' in navigator) {
   }).catch(function(err) {
     console.log('Service worker registration failed, error:', err);
   });
-  navigator.serviceWorker.ready.then((registration ) => {
+  navigator.serviceWorker.ready.then((registration) => {
     registration.active.postMessage({
       jwt_token: localStorage.getItem("jwt_token")
     });

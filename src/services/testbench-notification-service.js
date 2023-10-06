@@ -63,21 +63,35 @@ export class NotificationService {
             },
             signal: sseListenerController.signal
         })
-
+        console.log("NotificationService: connected")
         return sseListenerController
-        
     }
 
     stopListeningForExecutionEvents(sseListenerController) {
         if (sseListenerController) {
+            console.log("NotificationService: disconnecting")
             sseListenerController.abort()
         }
     }
 
     async loadHelpPage(url) {
-        let requestUrl = `${this.baseUrl.replace("https", "http").replace(":5000", ":3000")}/help/run/history.html`
-        let response = await this.axiosClient.get(requestUrl);
+        let currenLocation = document.location.href.split("/")
+        let currenPage = currenLocation[currenLocation.length - 1]
+        currenPage = currenPage && currenPage.length > 0 ? currenPage : "index"
+        let helpPageUrl = `${this.baseUrl.replace("https", "http").replace(":5000", ":3000")}/help/${currenPage}.html`
+        //let helpPageUrl = `${this.baseUrl.replace("https", "http").replace(":5000", ":3000")}/help/index.html`
+        //let helpPageUrl = `${this.baseUrl.replace("https", "http").replace(":5000", ":3000")}/help/history.html`
+        //let helpPageUrl = `${this.baseUrl.replace("https", "http").replace(":5000", ":3000")}/help/configuration.html`
+        //let helpPageUrl = `${this.baseUrl.replace("https", "http").replace(":5000", ":3000")}/help/execution.html`
+        let response = await this.axiosClient.get(helpPageUrl);
         let helpPage = response.data
         return helpPage
+    }
+
+    async loadNotifications(run_ids) {
+        let requestUrl = `${this.baseUrl}/notifications?run_ids=${run_ids}`
+        let response = await this.axiosClient.get(requestUrl, { skipTracking: true });
+        let notifications = response.data
+        return notifications
     }
 }

@@ -17,6 +17,8 @@ import { useNavigate } from "react-router";
 import { useContainer } from "../components/ServicesContextProvider"
 import { Fragment } from 'react';
 
+import NotificationMenu from "../components/NotificationMenu"
+
 var parse = require('html-react-parser');
 
 
@@ -30,6 +32,7 @@ const Navigation = (props) => {
     const messagesRef = useRef(null);
     const [messages, setMessages] = useState([]);
     const [helpPage, setHelpPage] = useState("");
+    const [sidebarFullScreen, setSidebarFullScreen] = useState(false);
 
     const login = useGoogleLogin({
         onSuccess: (codeResponse) => {
@@ -88,10 +91,16 @@ const Navigation = (props) => {
     );
 
     useMountEffect(() => {
-        let msgs = [{ sticky: true, uuid: "a", content: "Message Content", severity: "success", buttonSeverity: "success" },
-                    { sticky: true, uuid: "b", content: "Message Content", severity: "warn", buttonSeverity: "warning" },
-                    { sticky: true, uuid: "c", content: "Message Content", severity: "error", buttonSeverity: "danger" },
-                    { sticky: true, uuid: "d", content: "Message Content", severity: "info", buttonSeverity: "info" }]
+        let msgs = [{
+            sticky: true, uuid: "a", content: "Message Content", severity: "success", buttonSeverity: "success", content: (
+                <Fragment>
+                    <div className="ml-2" onClick={(e) => { console.log(e.target) }}><a href={"/run/history"}>Message Content</a></div>
+                </Fragment>
+            )
+        },
+        { sticky: true, uuid: "b", content: "Message Content", severity: "warn", buttonSeverity: "warning" },
+        { sticky: true, uuid: "c", content: "Message Content", severity: "error", buttonSeverity: "danger" },
+        { sticky: true, uuid: "d", content: "Message Content", severity: "info", buttonSeverity: "info" }]
         /*
         msgs = msgs.map((message) => {
             return {
@@ -193,6 +202,19 @@ const Navigation = (props) => {
         return helpPage
     }
 
+    const customIcons = (
+        <Fragment>
+            <button style={{display: (!sidebarFullScreen) ? "" : "none"}} className="p-sidebar-icon p-link mr-2"
+                onClick={(e) => { setSidebarFullScreen(true) }}>
+                <span className="pi pi-window-maximize" />
+            </button>
+            <button style={{display: (sidebarFullScreen) ? "" : "none"}} className="p-sidebar-icon p-link mr-2"
+                onClick={(e) => { setSidebarFullScreen(false) }}>
+                <span className="pi pi-window-minimize" />
+            </button>
+        </Fragment>
+    );
+
     const end = <>
         {!localStorage.getItem('user') && (
             /*<button onClick={() => login()}>Sign in with Google 🚀 </button>*/
@@ -218,49 +240,53 @@ const Navigation = (props) => {
                 />
             </Button>
         )}
-        <Button
-            rounded
-            tooltip="Notifications"
-            tooltipOptions={{ position: 'top' }}
-            icon="pi pi-bell"
-            className="mr-2"
-            onClick={(e) => {
-                toggleMessages(e)
-            }}
-            style={{ height: 39 }}>
-            <Badge
-                value={messages.length}
-                severity="info"></Badge>
-        </Button>
-        <OverlayPanel ref={overlayPanelRef} messages={messages}
-            style={{ width: "30rem", alignContent: "right" }}
-            onShow={() => {
-                if (messagesRef.current && getMessages().length > 0) {
-                    messagesRef.current.show(getMessages());
-                }
-            }}>
-            <Messages ref={messagesRef} onRemove={(item) => {
-                console.log("Remove:" + item)
-                if (messages.length === 1) {
-                    overlayPanelRef.current.hide()
-                }
-                removeMessage(item)
-            }} />
+        {false && (<>
             <Button
                 rounded
-                tooltip="Clear all"
+                tooltip="Notifications"
                 tooltipOptions={{ position: 'top' }}
-                icon="pi pi-trash"
-                severity='danger'
+                icon="pi pi-bell"
                 className="mr-2"
-                onClick={() => {
-                    if (overlayPanelRef.current) {
-                        setMessages([])
-                        messagesRef.current.clear()
+                onClick={(e) => {
+                    toggleMessages(e)
+                }}
+                style={{ height: 39 }}>
+                <Badge
+                    value={messages.length}
+                    severity="info"></Badge>
+            </Button>
+            <OverlayPanel ref={overlayPanelRef} messages={messages}
+                style={{ width: "30rem", alignContent: "right" }}
+                onShow={() => {
+                    if (messagesRef.current && getMessages().length > 0) {
+                        messagesRef.current.show(getMessages());
+                    }
+                }}>
+                <Messages ref={messagesRef} onRemove={(item) => {
+                    console.log("Remove:" + item)
+                    if (messages.length === 1) {
                         overlayPanelRef.current.hide()
                     }
-                }}></Button>
-        </OverlayPanel>
+                    removeMessage(item)
+                }} />
+                <Button
+                    rounded
+                    tooltip="Clear all"
+                    tooltipOptions={{ position: 'top' }}
+                    icon="pi pi-trash"
+                    severity='danger'
+                    className="mr-2"
+                    onClick={() => {
+                        if (overlayPanelRef.current) {
+                            setMessages([])
+                            messagesRef.current.clear()
+                            overlayPanelRef.current.hide()
+                        }
+                    }}></Button>
+            </OverlayPanel>
+        </>
+        )}
+        <NotificationMenu filter={[]} servicesContainer={servicesContainer}></NotificationMenu>
         <Button
             rounded
             tooltip="Log out"
@@ -278,13 +304,15 @@ const Navigation = (props) => {
                 end={end}
             />
             <Sidebar visible={sidebarVisible}
+                fullScreen={sidebarFullScreen}
+                icons={customIcons}
                 onShow={async () => {
                     let helpPage = await loadHelpPage()
                     setHelpPage(helpPage)
                 }}
                 onHide={() => setSidebarVisible(false)}>
                 <ScrollPanel style={{ width: '100%', height: '100%', textAlign: 'justify' }} className="custombar1">
-                { (<div>{parse(helpPage)}</div>) }
+                    {(<div>{parse(helpPage)}</div>)}
                 </ScrollPanel>
             </Sidebar>
         </div>

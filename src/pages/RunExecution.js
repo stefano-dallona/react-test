@@ -27,8 +27,15 @@ export const RunExecution = (props) => {
         navigate(`/run/${runId}/analysis`)
     }
 
+    const addToPendingElaborations = (runId) => {
+        let pendingElaborations = JSON.parse(localStorage.getItem("pendingElaborations"))
+        pendingElaborations.push(runId)
+        localStorage.setItem("pendingElaborations", JSON.stringify(pendingElaborations))
+    }
+
     const execute = () => {
         setExecutionInProgress(true)
+        addToPendingElaborations(runId)
         runHierarchy.current.setFilename("", 0, () => {
             let task_id = servicesContainer.configurationService.create_UUID()
             localStorage.setItem("runExecution:" + runId, task_id)
