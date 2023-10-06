@@ -155,6 +155,11 @@ class RunHierarchy extends Component {
             this.progressBarRefs.set(node.data.uuid, React.createRef())
         });
 
+        links.forEach((link, i) => {
+            //console.log(`link.id: ${link.source.data.uuid}`)
+            link.id = link.source.data.uuid
+        });
+
         return [nodes, links]
     }
 
@@ -369,22 +374,22 @@ class RunHierarchy extends Component {
                             />
                         }
                     </g>
-                    <g id="hierarchy" transform={`translate(${window.innerWidth / 2}, 50)`}>
+                    <g filename={this.state.filename} id="hierarchy" transform={`translate(${window.innerWidth / 2}, 50)`}>
                         {this.links.map((link, i) => {
                             return (
-                                <Link key={link.key} source={link.source} target={link.target} />
+                                <Link key={link.uuid} source={link.source} target={link.target} />
                             )
                         })}
                         {this.nodes.map((node, i) => {
                             return (
-                                <Node key={node.key} nodeId={node.id} label={node.data.name} transform={`translate(${node.x}, ${node.y})`} />
+                                <Node key={node.data.uuid} nodeId={node.data.uuid} label={node.data.name} transform={`translate(${node.x}, ${node.y})`} />
                             )
                         })}
                         {this.nodes.map((node, i) => {
                             return (
                                 <ProgressSpinner
                                     ref={this.progressBarRefs.get(node.data.uuid)}
-                                    key={`pb-${node.key}`}
+                                    key={`pb-${node.data.uuid}`}
                                     nodeId={node.data.uuid}
                                     tooltip={node.data.uuid}
                                     x={node.x}
