@@ -650,6 +650,11 @@ class Waveforms extends Component {
             highlightSelectedSegment(selectedLoss)
 
             sourceLayer.updateShapes();
+
+            if (!this.samplesVisualizer.current) {
+                return
+            }
+            
             this.samplesVisualizer.current.fetchSamples(this.audioFiles, this.colors, selectedLoss.start_sample, selectedLoss.num_samples);
             if (this.segmentEventHandler) {
                 this.segmentEventHandler.apply(null, [selectedLoss])
@@ -1090,7 +1095,7 @@ class Waveforms extends Component {
 
         return (
             <Accordion multiple
-                activeIndex={[0, 1, 2]}
+                activeIndex={[0, 1]}
                 onTabClose={(e) => { this.onAccordionTabStatusChange('closed', e.index) }}
                 onTabOpen={(e) => { this.onAccordionTabStatusChange('opened', e.index) }}
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}

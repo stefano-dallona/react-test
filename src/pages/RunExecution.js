@@ -63,6 +63,7 @@ export const RunExecution = (props) => {
                 rounded
                 icon="pi pi-chart-bar"
                 tooltip="Analyse"
+                severity="success"
                 tooltipOptions={{ position: 'top' }}
                 className="mr-2"
                 onClick={analyse}
