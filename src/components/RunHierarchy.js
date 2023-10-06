@@ -126,7 +126,7 @@ class RunHierarchy extends Component {
     setFilename(filename, currentPercentage = 0, callback = () => { }) {
         this.setState({
             filename: filename
-        }, async (currentPercentage) => {
+        }, async () => {
             await this.loadData(currentPercentage)
             callback()
         })
@@ -171,9 +171,11 @@ class RunHierarchy extends Component {
 
             if (nodeId === this.state.runId && progress > 0 && progress < 100) {
                 let interval = setInterval(() => {
-                    progressBarRef.current.setEta(progressBarRef.current.state.eta > 0 ? progressBarRef.current.state.eta - 1 : 0)
-                    if (!(progress > 0 && progress < 100)) {
-                        clearInterval(interval)
+                    if (progressBarRef.current) {
+                        progressBarRef.current.setEta(progressBarRef.current.state.eta > 0 ? progressBarRef.current.state.eta - 1 : 0)
+                        if (!(progress > 0 && progress < 100)) {
+                            clearInterval(interval)
+                        }
                     }
                 }, 1000)
             }

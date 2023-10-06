@@ -64,7 +64,8 @@ export const RunExecution = (props) => {
             if (previousIndex !== currentFileIndex) {
                 let newFilename = inputFiles[previousIndex]
                 setCurrentFileIndex(previousIndex)
-                runHierarchy.current.setFilename(newFilename)
+                let percentage = runHierarchy.current.state.data[0].status === "COMPLETED" ? 100 : 0
+                runHierarchy.current.setFilename(newFilename, percentage)
             }
         }
     }
@@ -77,7 +78,8 @@ export const RunExecution = (props) => {
             if (nextIndex !== currentFileIndex) {
                 let newFilename = inputFiles[nextIndex]
                 setCurrentFileIndex(nextIndex)
-                runHierarchy.current.setFilename(newFilename)
+                let percentage = runHierarchy.current.state.data[0].status === "COMPLETED" ? 100 : 0
+                runHierarchy.current.setFilename(newFilename, percentage)
             }
         }
     }
