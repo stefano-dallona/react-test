@@ -315,12 +315,6 @@ class RunHierarchy extends Component {
         }
     }
 
-    findNodeAtPosition(x, y) {
-        this.progressBarRefs.current.filter((progressBar) => {
-            console.log(progressBar)
-        })
-    }
-
     getMenuItems() {
         return [
             {
@@ -342,7 +336,8 @@ class RunHierarchy extends Component {
         */
     }
 
-    rightClickHandler(node_id){
+    rightClickHandler(node_id) {
+        console.log("Click on node " + node_id)
         this.rightClickedNodeRef.current = node_id
     }
 

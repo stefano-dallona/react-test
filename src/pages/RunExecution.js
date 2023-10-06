@@ -22,6 +22,7 @@ export const RunExecution = (props) => {
     let toast = useRef()
     let [executionInProgress, setExecutionInProgress] = useState(false)
     let servicesContainer = useContainer()
+    let [currentFileIndex, setCurrentFileIndex] = useState(0)
 
     const analyse = () => {
         navigate(`/run/${runId}/analysis`)
@@ -55,6 +56,32 @@ export const RunExecution = (props) => {
         showMessage('info', `Execution completed successfully`, '')
     }
 
+    const previousTrack = () => {
+        console.log("previousTrack")
+        if (runHierarchy.current) {
+            let inputFiles = runHierarchy.current.run.selected_input_files
+            let previousIndex = Math.max(0, currentFileIndex - 1)
+            if (previousIndex !== currentFileIndex) {
+                let newFilename = inputFiles[previousIndex]
+                setCurrentFileIndex(previousIndex)
+                runHierarchy.current.setFilename(newFilename)
+            }
+        }
+    }
+
+    const nextTrack = () => {
+        console.log("nextTrack")
+        if (runHierarchy.current) {
+            let inputFiles = runHierarchy.current.run.selected_input_files
+            let nextIndex = Math.min(inputFiles.length - 1, currentFileIndex + 1)
+            if (nextIndex !== currentFileIndex) {
+                let newFilename = inputFiles[nextIndex]
+                setCurrentFileIndex(nextIndex)
+                runHierarchy.current.setFilename(newFilename)
+            }
+        }
+    }
+
     const startContent = (
         <React.Fragment>
             <Button
@@ -75,6 +102,24 @@ export const RunExecution = (props) => {
                 className="mr-2"
                 onClick={analyse}
                 disabled={executionInProgress}></Button>
+            <Button
+                rounded
+                icon="pi pi-step-backward"
+                tooltip="Previous"
+                severity="info"
+                tooltipOptions={{ position: 'top' }}
+                className="mr-2"
+                onClick={previousTrack}
+                disabled={false}></Button>
+            <Button
+                rounded
+                icon="pi pi-step-forward"
+                tooltip="Next"
+                severity="info"
+                tooltipOptions={{ position: 'top' }}
+                className="mr-2"
+                onClick={nextTrack}
+                disabled={false}></Button>
             <Button
                 rounded
                 icon="pi pi-search"
