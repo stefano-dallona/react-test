@@ -138,8 +138,8 @@ export const RunHistory = (props) => {
                 <RunAwesomeQueryBuilder
                     servicesContainer={servicesContainer}
                     searchHandler={search}
-                    saveFilterHandler={saveFilter}
-                    loadSavedFiltersHandler={loadSavedFilters} />
+                    /*saveFilterHandler={saveFilter}
+                    loadSavedFiltersHandler={loadSavedFilters}*/ />
             </Panel>
             <Panel header="Run List">
                 <RunList servicesContainer={servicesContainer} ref={runList} query={null} parentChangeHandler={onChange}></RunList>

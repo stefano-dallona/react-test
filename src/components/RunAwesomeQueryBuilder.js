@@ -674,10 +674,10 @@ class RunAwesomeQueryBuilder extends Component {
         super(props)
 
         this.servicesContainer = props.servicesContainer
-        this.fieldsLoader = props.fieldsLoader || (() => { })
+        //this.fieldsLoader = props.fieldsLoader || (() => { })
         this.searchHandler = props.searchHandler || (() => { })
-        this.saveFilterHandler = props.saveFilterHandler || (() => { })
-        this.loadSavedFiltersHandler = props.loadSavedFiltersHandler || (() => { })
+        //this.saveFilterHandler = props.saveFilterHandler || (() => { })
+        //this.loadSavedFiltersHandler = props.loadSavedFiltersHandler || (() => { })
 
         this.toolbarRef = React.createRef()
         this.newFilterName = ""
@@ -718,7 +718,7 @@ class RunAwesomeQueryBuilder extends Component {
         let filters = await this.servicesContainer.configurationService.getFilters()
         this.setFilters(filters, this.setSelectedFilter(filters.length > 0 ? this.state.filters[this.state.filters.length - 1] : null))
         this.setState({
-            tree: filters.length > 0 ? checkTree(loadTree(filters[0].query), this.state.config) : null
+            tree: filters.length > 0 ? checkTree(loadTree(filters[0].query), this.state.config) : {}
         })
     }
 
@@ -733,7 +733,6 @@ class RunAwesomeQueryBuilder extends Component {
 
         let initTree = checkTree(loadTree(initValue), config);
         //let initTree = checkTree(loadFromJsonLogic(initLogic, config), config);
-        // <<<
 
         this.setState({
             tree: initTree,
@@ -752,7 +751,7 @@ class RunAwesomeQueryBuilder extends Component {
     setSelectedFilter(selectedFilter) {
         this.setState({
             selectedFilter: selectedFilter,
-            tree: selectedFilter ? checkTree(loadTree(selectedFilter.query), this.state.config) : null
+            tree: selectedFilter ? checkTree(loadTree(selectedFilter.query), this.state.config) : {}
         })
     }
 
@@ -764,7 +763,12 @@ class RunAwesomeQueryBuilder extends Component {
 
     saveFilter = async (filterString, user, filterName) => {
         console.log(`filterString:${filterString}, user:${user}, filterName:${filterName}`)
+        if (!(filterName && filterName)) {
+            window.globalToast.current.show({ severity: "error", summary: "Filter name and filter must be defined", detail: "" });
+            return
+        }
         let filter = await this.servicesContainer.configurationService.saveFilter(filterName, filterString)
+        this.loadFilters()
         return filter
     }
 
