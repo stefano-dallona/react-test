@@ -861,7 +861,7 @@ class RunAwesomeQueryBuilder extends Component {
             />
             {this.renderResult(this.state)}
             {this.state.filters && (
-                <Toolbar filters={this.state.filters} selectedFilter={this.state.selectedFilter} start={this.toolbarStartContent} />
+                <Toolbar filters={this.state.filters} selectedfilter={this.state.selectedFilter} start={this.toolbarStartContent} />
             )
             }
             <Dialog
