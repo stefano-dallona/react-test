@@ -29,7 +29,7 @@ export const RunExecution = (props) => {
     }
 
     const addToPendingElaborations = (runId) => {
-        let pendingElaborations = JSON.parse(localStorage.getItem("pendingElaborations"))
+        let pendingElaborations = localStorage.getItem("pendingElaborations") ? JSON.parse(localStorage.getItem("pendingElaborations")) : []
         pendingElaborations.push(runId)
         localStorage.setItem("pendingElaborations", JSON.stringify(pendingElaborations))
     }
@@ -112,7 +112,7 @@ export const RunExecution = (props) => {
                 tooltipOptions={{ position: 'top' }}
                 className="mr-2"
                 onClick={previousTrack}
-                disabled={false}></Button>
+                disabled={executionInProgress}></Button>
             <Button
                 rounded
                 icon="pi pi-step-forward"
@@ -121,7 +121,7 @@ export const RunExecution = (props) => {
                 tooltipOptions={{ position: 'top' }}
                 className="mr-2"
                 onClick={nextTrack}
-                disabled={false}></Button>
+                disabled={executionInProgress}></Button>
             <Button
                 rounded
                 icon="pi pi-search"

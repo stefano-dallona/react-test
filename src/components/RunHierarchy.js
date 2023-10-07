@@ -336,9 +336,12 @@ class RunHierarchy extends Component {
     }
 
     handleContextMenu(e) {
+        if (this.isExecuting()) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log("Execution in progress. Context menu is disabled.")
+        }
         /*
-        e.preventDefault();
-        e.stopPropagation();
         alert(e.clientX + "," + e.clientY)
         */
     }
