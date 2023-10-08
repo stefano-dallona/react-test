@@ -48,6 +48,8 @@ export const RunHistory = (props) => {
 
     const saveFilter = async (filterString, user, filterName) => {
         console.log(`filterString:${filterString}, user:${user}, filterName:${filterName}`)
+        let filter = await servicesContainer.configurationService.saveFilter(filterName, filterString)
+        return filter
     }
 
     const loadSavedFilters = async (user) => {
@@ -120,6 +122,7 @@ export const RunHistory = (props) => {
                 rounded
                 icon="pi pi-chart-bar"
                 tooltip="Analyse"
+                severity="success"
                 tooltipOptions={{ position: 'top' }}
                 className="mr-2"
                 onClick={analyse}
@@ -131,11 +134,12 @@ export const RunHistory = (props) => {
 
     return (
         <div id="runHistory" className="card p-fluid">
-            <Panel header="Search" toggleable collapsed={true}>
+            <Panel header="Search" toggleable collapsed={true} >
                 <RunAwesomeQueryBuilder
+                    servicesContainer={servicesContainer}
                     searchHandler={search}
-                    saveFilterHandler={saveFilter}
-                    loadSavedFiltersHandler={loadSavedFilters} />
+                    /*saveFilterHandler={saveFilter}
+                    loadSavedFiltersHandler={loadSavedFilters}*/ />
             </Panel>
             <Panel header="Run List">
                 <RunList servicesContainer={servicesContainer} ref={runList} query={null} parentChangeHandler={onChange}></RunList>

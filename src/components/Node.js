@@ -4,6 +4,11 @@ import { tree as d3tree, hierarchy } from 'd3-hierarchy';
 import { select } from 'd3-selection';
 
 class Node extends Component {
+    constructor(props) {
+        super(props)
+
+        this.nodeId = props.nodeId
+    }
     /*
     state = {
         label: this.props.label,
@@ -17,6 +22,7 @@ class Node extends Component {
                     transform={this.props.transform}
                 >
                     <circle
+                        id={`n-${this.nodeId}`}
                         r="10"
                         fill="black"
                         onClick={() => { }}

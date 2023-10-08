@@ -7,6 +7,7 @@ import React, { Component } from 'react';
 import { DropzoneComponent } from 'react-dropzone-component';
 
 import { PickList } from 'primereact/picklist';
+import { Splitter, SplitterPanel } from 'primereact/splitter';
 
 import { ConfigurationService } from '../services/testbench-configuration-service'
 
@@ -48,7 +49,7 @@ class InputFilesSelector extends Component {
                 let progressElement = file.previewElement.querySelector("[data-dz-uploadprogress]");
                 progressElement.style.width = progressPercentage + "%";
                 console.log("file:" + file + ", progress:" + progressPercentage)
-                
+
                 if (file.upload.chunked && progressPercentage >= 100) {
                     this.loadInputFiles()
                     return;
@@ -71,7 +72,7 @@ class InputFilesSelector extends Component {
 
     loadInputFiles = async () => {
         let availableInputFiles = await this.servicesContainer.configurationService.getInputFiles()
-        this.setAvailableInputFiles(availableInputFiles)        
+        this.setAvailableInputFiles(availableInputFiles)
     }
 
     dropzoneInit = (dropzone) => {
@@ -99,13 +100,19 @@ class InputFilesSelector extends Component {
     render() {
         return (
             <div className="card">
-                <DropzoneComponent config={this.dropzoneConfig}
-                    djsConfig={this.djsConfig}
-                    eventHandlers={this.dropzoneEventHandlers}
-                    className="mb-2"></DropzoneComponent>
-                <PickList source={this.state.availableInputFiles} target={this.state.selectedInputFiles} onChange={this.onChange} filter filterBy="name" breakpoint="1400px"
-                    sourceHeader="Available" targetHeader="Selected" sourceStyle={{ height: '30rem' }} targetStyle={{ height: '30rem' }}
-                    sourceFilterPlaceholder="Search by name" targetFilterPlaceholder="Search by name" />
+                <Splitter>
+                    <SplitterPanel size={50} className="flex align-items-center justify-content-center">
+                        <DropzoneComponent config={this.dropzoneConfig}
+                            djsConfig={this.djsConfig}
+                            eventHandlers={this.dropzoneEventHandlers}
+                            className="mb-2"></DropzoneComponent>
+                    </SplitterPanel>
+                    <SplitterPanel size={50} className="flex align-items-center justify-content-center">
+                        <PickList source={this.state.availableInputFiles} target={this.state.selectedInputFiles} onChange={this.onChange} filter filterBy="name" breakpoint="1400px"
+                            sourceHeader="Available" targetHeader="Selected" sourceStyle={{ height: '30rem' }} targetStyle={{ height: '30rem' }}
+                            sourceFilterPlaceholder="Search by name" targetFilterPlaceholder="Search by name" />
+                    </SplitterPanel>
+                </Splitter>
             </div>
         )
     }

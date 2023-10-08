@@ -1,0 +1,61 @@
+<img src="/plc-testbench-data-tree.png" style="background-size: contain;" />
+<h1>Architecture</h1>
+<p>
+    We designed this tool to be as flexible as possible. It is fully configurable, meaning that each execution receives
+    a complete set of inputs (as described before), that fully describes which audio files to consider, which packet
+    loss distribution to generate, which PLC algorithm to use, and which metrics to compute on the outputs. Each of
+    these inputs includes the configurable settings of the related component. It is also fully modular, meaning that the
+    execution pipeline is decoupled from the units performing the computations. There is an abstract base class for
+    every kind of worker: <b><i>OriginalAudio</i></b>, <b><i>PacketLossSimulator</i></b>, <b><i>PLCAlgorithm</i></b>, and <b><i>OutputMetric</i></b>. Any implementation
+    of such classes is a module so adding a new one is as easy as inheriting from the base class.
+</p>
+<h1>Modules</h1>
+<p>
+    There are four module types: <b><i>OriginalAudio</i></b>, <b><i>PacketLossSimulator</i></b>, <b><i>PLCAlgorithm</i></b>, and <b><i>OutputMetric</i></b>.
+</p>
+<h2>
+    OriginalAudio
+</h2>
+<p>
+    For this type, we built just one simple module that loads the audio content into memory and extracts metadata
+    information (i.e. Sampling Frequency).
+</p>
+<h2>
+    PacketLossSimulator
+</h2>
+<p>
+    This family of modules represents all the available ways of generating packet loss sequences.
+</p>
+<ul>
+    <li>
+        <p>
+        <h4>BinomialPLS:</h4> this is the simplest model for PLS as it is the implementation of
+        a uniform distribution. Its only parameters are the Packet Error Ratio (PER) and the seed of the random
+        function.
+        </p>
+    </li>
+    <li>
+        <p>
+        <h4>GilbertElliotPLS:</h4> this is a more realistic model for PLS as in most cases there is no packet
+        loss in the network. On the other hand, it may happen that when a packet is eventually lost, subsequent packets
+        will be lost as well creating a bust of lost packets. The Gilbert-Elliot model (cite) models that using a
+        two-state machine. These two states represent the situations where the channel is behaving correctly and when
+        the packet loss burst happens respectively. There are four probabilities governing the transitions between the
+        states. Each state has a probability of transitioning back to itself and a probability of transitioning to the
+        other state. These four probabilities are configurable parameters and govern the behavior of the model.
+        </p>
+    </li>
+
+</ul>
+<h2>
+    PLCAlgorithm
+</h2>
+<p>
+    This family of modules represents all the available PLC algorithms.
+</p>
+<h2>
+    OutputMetric
+</h2>
+<p>
+    This family of modules represents all the available output metrics.
+</p>

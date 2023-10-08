@@ -5,6 +5,7 @@ import { useGoogleLogin } from '@react-oauth/google';
 
 import { AnalysisService } from "./testbench-analysis-service";
 import { ConfigurationService } from "./testbench-configuration-service";
+import { NotificationService } from "./testbench-notification-service";
 
 import { trackPromise } from 'react-promise-tracker';
 
@@ -58,7 +59,7 @@ class AxiosClient {
           }
         } else {
           if (window["globalToast"]) {
-            window["globalToast"].current.show({ severity: "error", summary: error.message, detail: "" });
+            window["globalToast"].current.show({ severity: "error", summary: (error.response.data) ? error.response.data : error.message, detail: "" });
           }
         }
       }
@@ -66,7 +67,11 @@ class AxiosClient {
   }
 
   get = (url, config) => {
-    return trackPromise(this.client.get(url, config))
+    if (config && config.skipTracking) {
+      return this.client.get(url, config)
+    } else {
+      return trackPromise(this.client.get(url, config))
+    }
   }
 
   post = (url, data, config) => {
@@ -96,7 +101,8 @@ export const container = {
     return response
   },
   configurationService: new ConfigurationService(baseUrl, createAxiosClient()),
-  analysisService: new AnalysisService(baseUrl, createAxiosClient())
+  analysisService: new AnalysisService(baseUrl, createAxiosClient()),
+  notificationService: new NotificationService(baseUrl, createAxiosClient())
 };
 
 export type ServiceContainer = typeof container;

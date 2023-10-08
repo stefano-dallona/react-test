@@ -151,13 +151,13 @@ class Waveforms extends Component {
         */
     }
 
-    setAudioFiles(audioFiles) {
+    setAudioFiles(audioFiles, lossModelNodeId, channel=0) {
         this.audioFiles = audioFiles
         this.audioFiles.forEach((file, index) => {
             let parent = this.findParent(this.hierarchy, file)
             file.label = file.name + (parent ? " - " + parent.name : "")
         });
-        this.loadBuffers()
+        this.loadBuffers(channel, 0, -1, lossModelNodeId)
         //this.setSelectedAudioFiles(audioFiles)
     }
 
@@ -165,7 +165,7 @@ class Waveforms extends Component {
         this.lossSimulationFiles = lossSimulationFiles
         this.selectedLossSimulation = this.lossSimulationFiles[0].uuid
         this.clearWaveforms()
-        this.refreshAudioFiles()
+        this.refreshAudioFiles(this.lossSimulationFiles[0].uuid)
         this.setState({
             selectedLossSimulations: this.lossSimulationFiles[0].uuid,
             lossSimulationsReady: true
@@ -189,7 +189,7 @@ class Waveforms extends Component {
     setSelectedLossSimulations(lossSimulations) {
         this.selectedLossSimulation = lossSimulations
         this.clearWaveforms()
-        this.refreshAudioFiles()
+        this.refreshAudioFiles(lossSimulations)
         this.setState({
             selectedLossSimulations: lossSimulations,
             selectedAudioFiles: this.audioFiles.map((x) => x.uuid)
@@ -214,8 +214,8 @@ class Waveforms extends Component {
         let selectedFile = this.getAudioFileToPlay()
         if (selectedFile) {
             let baseUrl = this.servicesContainer.configurationService.baseUrl
-            //return `${baseUrl}/analysis/runs/${this.state.runId}/input-files/${selectedFile.uuid}/output-files/${selectedFile.uuid}?jwt=${localStorage.getItem("jwt_token")}`
-            return `${baseUrl}/analysis/runs/${this.state.runId}/input-files/${selectedFile.uuid}/output-files/${selectedFile.uuid}`
+            return `${baseUrl}/analysis/runs/${this.state.runId}/input-files/${selectedFile.uuid}/output-files/${selectedFile.uuid}?jwt=${localStorage.getItem("jwt_token")}`
+            //return `${baseUrl}/analysis/runs/${this.state.runId}/input-files/${selectedFile.uuid}/output-files/${selectedFile.uuid}`
         } else {
             return ""
         }
@@ -374,7 +374,7 @@ class Waveforms extends Component {
         this.hierarchy = await trackPromise(this.servicesContainer.configurationService.getRunHierarchy(this.state.runId, this.state.filename));
     }
 
-    async loadBuffers(channel = 0, offset = 0, numSamples = -1) {
+    async loadBuffers(channel = 0, offset = 0, numSamples = -1, lossModelNodeId) {
         if (!this.downsamplingEnabled) {
             let bufferLoader = new BufferLoader(
                 this.audioContext,
@@ -385,7 +385,7 @@ class Waveforms extends Component {
             );
             bufferLoader.load();
         } else {
-            let waveforms = await this.fetchWaveforms(channel, offset, numSamples)
+            let waveforms = await this.fetchWaveforms(channel, offset, numSamples, lossModelNodeId)
             this.setBuffersList(waveforms)
         }
 
@@ -457,7 +457,7 @@ class Waveforms extends Component {
         }
     }
 
-    fetchWaveforms = async (channel, offset, numSamples) => {
+    fetchWaveforms = async (channel, offset, numSamples, lossModelNodeId) => {
         let waveforms = []
 
         if (this.parallelWaveformLoading) {
@@ -467,7 +467,7 @@ class Waveforms extends Component {
                 let $track = this.waveuiEl;
                 let maxSlices = (this.loadOnlyZoomedSection) ? Math.ceil($track.getBoundingClientRect().width) : -1;
                 let unitOfMeas = "samples"
-                return this.servicesContainer.analysisService.fetchWaveform(this.state.runId, this.audioFiles[0].uuid, file.uuid, channel, offset, numSamples, unitOfMeas, maxSlices)
+                return this.servicesContainer.analysisService.fetchWaveform(this.state.runId, this.audioFiles[0].uuid, file.uuid, channel, offset, numSamples, unitOfMeas, maxSlices, lossModelNodeId)
             })))
         } else {
             /*
@@ -483,7 +483,7 @@ class Waveforms extends Component {
             let $track = this.waveuiEl;
             let maxSlices = (this.loadOnlyZoomedSection) ? Math.ceil($track.getBoundingClientRect().width) : -1;
             let unitOfMeas = "samples"
-            waveforms = await trackPromise(this.servicesContainer.analysisService.fetchWaveforms(this.state.runId, this.audioFiles[0].uuid, channel, offset, numSamples, unitOfMeas, maxSlices))
+            waveforms = await trackPromise(this.servicesContainer.analysisService.fetchWaveforms(this.state.runId, this.audioFiles[0].uuid, channel, offset, numSamples, unitOfMeas, maxSlices, lossModelNodeId))
         }
 
         return waveforms
@@ -504,12 +504,12 @@ class Waveforms extends Component {
         this.waveformTrack.update()
     }
 
-    refreshAudioFiles() {
+    refreshAudioFiles(lossModelNodeId) {
         const parentIsSelectedLoss = (x) => {
-            return !x.parent_id || x.parent_id == this.selectedLossSimulation
+            return !x.parent_id || x.parent_id == lossModelNodeId
         }
         let audioFiles = this.findAudioFiles(this.hierarchy, parentIsSelectedLoss);
-        this.setAudioFiles(audioFiles)
+        this.setAudioFiles(audioFiles, lossModelNodeId)
     }
 
     async loadLossSimulation() {
@@ -650,6 +650,11 @@ class Waveforms extends Component {
             highlightSelectedSegment(selectedLoss)
 
             sourceLayer.updateShapes();
+
+            if (!this.samplesVisualizer.current) {
+                return
+            }
+            
             this.samplesVisualizer.current.fetchSamples(this.audioFiles, this.colors, selectedLoss.start_sample, selectedLoss.num_samples);
             if (this.segmentEventHandler) {
                 this.segmentEventHandler.apply(null, [selectedLoss])
@@ -991,6 +996,26 @@ class Waveforms extends Component {
         }
     }
 
+    previousTrack() {
+        console.log("Previous clicked")
+        let currentIndex = this.inputFiles.indexOf(this.state.filename)
+        let previousIndex = Math.max(0, currentIndex - 1)
+        let newFilename = this.inputFiles[previousIndex]
+        if (newFilename && newFilename !== this.state.filename) {
+            this.setFilename(newFilename)
+        }
+    }
+
+    nextTrack() {
+        console.log("Next clicked")
+        let currentIndex = this.inputFiles.indexOf(this.state.filename)
+        let nextIndex = Math.min(this.inputFiles.length, currentIndex + 1)
+        let newFilename = this.inputFiles[nextIndex]
+        if (newFilename && newFilename !== this.state.filename) {
+            this.setFilename(newFilename)
+        }    
+    } 
+
     render() {
         const startContent = (
             <React.Fragment>
@@ -1065,7 +1090,7 @@ class Waveforms extends Component {
                     <Button
                         rounded
                         icon="pi pi-step-backward"
-                        tooltip="Previous Loss"
+                        tooltip="Previous Track"
                         tooltipOptions={{ position: 'top' }}
                         className="mr-2"
                         disabled={false}
@@ -1073,7 +1098,7 @@ class Waveforms extends Component {
                     <Button
                         rounded
                         icon="pi pi-step-forward"
-                        tooltip="Next Loss"
+                        tooltip="Next Track"
                         tooltipOptions={{ position: 'top' }}
                         className="mr-2"
                         disabled={false}
@@ -1090,7 +1115,7 @@ class Waveforms extends Component {
 
         return (
             <Accordion multiple
-                activeIndex={[0, 1, 2]}
+                activeIndex={[0, 1]}
                 onTabClose={(e) => { this.onAccordionTabStatusChange('closed', e.index) }}
                 onTabOpen={(e) => { this.onAccordionTabStatusChange('opened', e.index) }}
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
@@ -1194,6 +1219,8 @@ class Waveforms extends Component {
                             <ReactH5AudioPlayer
                                 ref={this.player}
                                 autoPlay={false}
+                                showSkipControls={true}
+                                showJumpControls={true}
                                 autoPlayAfterSrcChange={false}
                                 customProgressBarSection={[RHAP_UI.PROGRESS_BAR]}
                                 customControlsSection={[RHAP_UI.CURRENT_TIME, RHAP_UI.MAIN_CONTROLS, RHAP_UI.ADDITIONAL_CONTROLS, RHAP_UI.VOLUME_CONTROLS, RHAP_UI.DURATION]}
@@ -1218,7 +1245,6 @@ class Waveforms extends Component {
                                     visible={true} ></Button>
                                 ]}
                                 customVolumeControls={[RHAP_UI.VOLUME]}
-                                showSkipControls={true}
                                 listenInterval={100}
                                 onListen={this.slideWaveForm.bind(this)}
                                 onPlay={() => {
@@ -1232,6 +1258,8 @@ class Waveforms extends Component {
                                     console.log("Play paused")
                                     this.setSelectedAudioFiles(this.audioFiles.map((file, index) => file.uuid))
                                 }}
+                                onClickPrevious={this.previousTrack.bind(this)}
+                                onClickNext={this.nextTrack.bind(this)}
                                 width="100%"
                                 src={this.getAudioFileToPlayURL()}
                                 layout='stacked'

@@ -11,6 +11,7 @@ class ProgressSpinner extends Component {
         super(props);
 
         this.contextMenuRef = props.contextMenuRef || null
+        this.rightClickHandler = props.rightClickHandler || ((node_id) => {})
 
         this.state = {
             nodeId: props.nodeId || "",
@@ -81,7 +82,9 @@ class ProgressSpinner extends Component {
     handleContextMenu(e) {
         e.preventDefault()
         e.stopPropagation()
+        let node_id = e.currentTarget.id.replace("pb-", "")
         if (this.contextMenuRef && this.contextMenuRef.current) {
+            this.rightClickHandler(node_id)
             this.contextMenuRef.current.show(e)
         }
     }

@@ -237,6 +237,24 @@ export class ConfigurationService {
         return settings_metadata
     }
 
+    async getSearchFields() {
+        let requestUrl = this.baseUrl + "/search_fields"
+        /*
+        let response = await fetch(requestUrl)
+        let settings_metadata = await response.json()
+        */
+        let response = await this.axiosClient.get(requestUrl);
+        let search_fields = response.data
+        return search_fields
+    }
+
+    async getFilters() {
+        let requestUrl = this.baseUrl + `/filters`
+        let response = await this.axiosClient.get(requestUrl)
+        let filters = response.data
+        return filters
+    }
+
     async getLossSimulators() {
         let requestUrl = this.baseUrl + "/loss_simulators"
         /*
@@ -302,6 +320,32 @@ export class ConfigurationService {
         let response = await this.axiosClient.get(requestUrl)
         let run = response.data
         return run
+    }
+
+
+    async saveFilter(name, query) {
+        let requestUrl = this.baseUrl + `/filters`
+        const requestOptions = {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+            },
+            body: {
+                'name': name,
+                'query': query
+            }
+        };
+        let response = await this.axiosClient.post(requestUrl, requestOptions)
+        let filter = response.data
+        return filter
+    }
+
+    async deleteRunNode(run_id, node_id) {
+        let requestUrl = `${this.baseUrl}/runs/${run_id}/nodes/${node_id}`
+        let response = await this.axiosClient.delete(requestUrl)
+        let result = response.data
+        return result
     }
 
 }

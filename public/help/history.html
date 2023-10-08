@@ -1,0 +1,29 @@
+<h1>Packet Loss Concealment</h1>
+<p>
+    PLC algorithms are typically needed in real-time data transmission contexts, and their job is to mask
+    (“conceal”) any loss that may occur to one or more packets in a manner that is transparent to the
+    application consuming the data stream. Any PLC algorithm needs to satisfy the following requirements:
+</p>
+<ul>
+    <li>
+        Its execution time needs to be smaller than the period between the consumption of packets.
+    </li>
+    <li>
+        Its output doesn’t need to match exactly the content of the corresponding packet. However, when put back
+        in place of the lost packet, it needs to be perceptually indistinguishable from the original audio
+        stream.
+    </li>
+</ul>
+<p>
+    There are many ways to perform PLC on audio signals. From simpler waveform-based solutions such as
+    waveform repetition and PSOLA to more advanced autoregressive models. Recently, Deep Learning based PLC
+    has begun to arise in the literature with some noticeable examples both in speech and music.
+</p>
+<p>
+    Regardless of the type, they all use the audio data received immediately before the lost packet as the
+    input to the algorithm, which will output the number of samples contained in the lost packet.
+</p>
+<p>
+    In this paper, we present a software tool to study packet loss in audio streams and study, compare, and
+    evaluate PLC algorithms for audio.
+</p>

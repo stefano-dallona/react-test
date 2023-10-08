@@ -1,0 +1,48 @@
+<h1>PLC Testbench</h1>
+<p>
+    The testbench for these algorithms has the task of measuring the performance of different algorithms to compare them
+    with each other. The performance of these algorithms can vary according to the time distribution of lost packets but
+    also according to the type of musical audio on which they are applied. This introduces the need to measure the
+    performance of each algorithm by varying both the distribution of lost packets and the type of audio considered.
+    Finally, there are several techniques for measuring the performance of PLC algorithms, so it is necessary to be able
+    to choose which one to use.
+</p>
+<h2>Inputs</h2>
+<p>
+    This testbed needs several pieces of information before measurements can be made:
+</p>
+<ul>
+    <li><b><i>Audio files:</i></b> which audio files to consider.</li>
+    <li><b><i>Distributions of lost packets:</i></b> what temporal distributions to use to simulate packet loss.</li>
+    <li><b><i>PLC algorithms:</i></b> which PLC algorithms to apply to the signal where packets are missing.</li>
+    <li><b><i>Performance evaluation metrics:</i></b> what metrics to use to measure the performance of PLC algorithms.</li>
+</ul>
+<p>
+    With this information, the testbench can form all possible combinations and measure the performance of each
+    according to the tree structure in Figure:
+</p>
+<p>
+    The tree structure of the test bench for evaluating PLC algorithms. All specified lost packet distributions are
+    applied to each audio file; in turn, all specified PLC algorithms are applied to each “damaged” audio. Finally, all
+    specified performance evaluation metrics are applied to each “reconstructed” audio.
+</p>
+<h2>Outputs</h2>
+<p>
+    Once all the above combinations have been completed, the testbed produces different types of results. The final
+    results are represented by all the performance evaluation metrics calculated for each combination. However,
+    intermediate results may also be of interest to the researcher who is studying and developing a PLC algorithm.
+    Intermediate results include the realizations extracted from the time distributions that were used and the audio
+    files to which a PLC algorithm was applied. Although they are not modified in any way, the original audio files can
+    also be considered an interesting output of this testbed, as they represent the ground truth for PLC algorithms.
+</p>
+<p>
+    In summary, these are all the outputs provided by this testbed:
+</p>
+<p>
+<ul>
+    <li><b><i>Original audio files:</i></b> the same audio files provided as input.</li>
+    <li><b><i>Realizations of lost packet distributions:</i></b> the time series of lost packets used by the testbed.</li>
+    <li><b><i>Reconstructed audio files:</i></b> the audio files to which a PLC algorithm was applied.</li>
+    <li><b><i>Performance evaluation metrics:</i></b> the metrics calculated for each combination.</li>
+</ul>
+</p>

@@ -22,13 +22,21 @@ export const RunExecution = (props) => {
     let toast = useRef()
     let [executionInProgress, setExecutionInProgress] = useState(false)
     let servicesContainer = useContainer()
+    let [currentFileIndex, setCurrentFileIndex] = useState(0)
 
     const analyse = () => {
         navigate(`/run/${runId}/analysis`)
     }
 
+    const addToPendingElaborations = (runId) => {
+        let pendingElaborations = localStorage.getItem("pendingElaborations") ? JSON.parse(localStorage.getItem("pendingElaborations")) : []
+        pendingElaborations.push(runId)
+        localStorage.setItem("pendingElaborations", JSON.stringify(pendingElaborations))
+    }
+
     const execute = () => {
         setExecutionInProgress(true)
+        addToPendingElaborations(runId)
         runHierarchy.current.setFilename("", 0, () => {
             let task_id = servicesContainer.configurationService.create_UUID()
             localStorage.setItem("runExecution:" + runId, task_id)
@@ -48,6 +56,34 @@ export const RunExecution = (props) => {
         showMessage('info', `Execution completed successfully`, '')
     }
 
+    const previousTrack = () => {
+        console.log("previousTrack")
+        if (runHierarchy.current) {
+            let inputFiles = runHierarchy.current.run.selected_input_files
+            let previousIndex = Math.max(0, currentFileIndex - 1)
+            if (previousIndex !== currentFileIndex) {
+                let newFilename = inputFiles[previousIndex]
+                setCurrentFileIndex(previousIndex)
+                let percentage = runHierarchy.current.state.data[0].status === "COMPLETED" ? 100 : 0
+                runHierarchy.current.setFilename(newFilename, percentage)
+            }
+        }
+    }
+
+    const nextTrack = () => {
+        console.log("nextTrack")
+        if (runHierarchy.current) {
+            let inputFiles = runHierarchy.current.run.selected_input_files
+            let nextIndex = Math.min(inputFiles.length - 1, currentFileIndex + 1)
+            if (nextIndex !== currentFileIndex) {
+                let newFilename = inputFiles[nextIndex]
+                setCurrentFileIndex(nextIndex)
+                let percentage = runHierarchy.current.state.data[0].status === "COMPLETED" ? 100 : 0
+                runHierarchy.current.setFilename(newFilename, percentage)
+            }
+        }
+    }
+
     const startContent = (
         <React.Fragment>
             <Button
@@ -63,9 +99,28 @@ export const RunExecution = (props) => {
                 rounded
                 icon="pi pi-chart-bar"
                 tooltip="Analyse"
+                severity="success"
                 tooltipOptions={{ position: 'top' }}
                 className="mr-2"
                 onClick={analyse}
+                disabled={executionInProgress}></Button>
+            <Button
+                rounded
+                icon="pi pi-step-backward"
+                tooltip="Previous"
+                severity="info"
+                tooltipOptions={{ position: 'top' }}
+                className="mr-2"
+                onClick={previousTrack}
+                disabled={executionInProgress}></Button>
+            <Button
+                rounded
+                icon="pi pi-step-forward"
+                tooltip="Next"
+                severity="info"
+                tooltipOptions={{ position: 'top' }}
+                className="mr-2"
+                onClick={nextTrack}
                 disabled={executionInProgress}></Button>
             <Button
                 rounded

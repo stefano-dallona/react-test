@@ -13,6 +13,8 @@ import { Toolbar } from 'primereact/toolbar';
 import { Button } from 'primereact/button';
 import { Dropdown } from 'primereact/dropdown';
 import { Tooltip } from 'primereact/tooltip';
+import { Dialog } from 'primereact/dialog';
+import { InputText } from 'primereact/inputtext';
 
 const { elasticSearchFormat, queryBuilderFormat, jsonLogicFormat, queryString, _mongodbFormat, _sqlFormat, _spelFormat, getTree, checkTree, loadTree, uuid, loadFromJsonLogic, loadFromSpel, isValidTree } = QbUtils;
 const emptyInitValue = { "id": QbUtils.uuid(), "type": "group" };
@@ -403,7 +405,7 @@ const fields = {
 // Postprocessing of query (replace "_" with ".", replace *** \{"([^"_]+)_Settings\.([^"]+)" *** with *** {"worker":"\1","\2" ***)
 // {"lostSamplesMasks_reconstructedTracks":{"$elemMatch":{"LowCostPLC_Settings.max_frequency":1}}} =>
 // {"lostSamplesMasks.reconstructedTracks":{"$elemMatch":{"worker":"LowCostPLC", "max_frequency":4800}}}
-const fields = {
+const hardwiredFields = {
     run_id: {
         label: "ID",
         type: "text",
@@ -657,7 +659,8 @@ const InitialConfig = MuiConfig;
 
 const config = {
     ...InitialConfig,
-    fields: fields
+    //fields: hardwiredFields
+    fields: {}
 };
 
 let initTree = checkTree(loadTree(initValue), config);
@@ -669,14 +672,110 @@ class RunAwesomeQueryBuilder extends Component {
 
     constructor(props) {
         super(props)
-        this.searchHandler = props.searchHandler
-        this.saveFilterHandler = props.saveFilterHandler
-        this.loadSavedFiltersHandler = props.loadSavedFiltersHandler
+
+        this.servicesContainer = props.servicesContainer
+        //this.fieldsLoader = props.fieldsLoader || (() => { })
+        this.searchHandler = props.searchHandler || (() => { })
+        //this.saveFilterHandler = props.saveFilterHandler || (() => { })
+        //this.loadSavedFiltersHandler = props.loadSavedFiltersHandler || (() => { })
+
+        this.toolbarRef = React.createRef()
+        this.newFilterName = ""
 
         this.state = {
+            filterCreationPopupIsVisible: false,
+            newFilterName: "",
+            tree: initTree,
+            config: config,
+            filters: []/*[
+                {
+                    _id: "1",
+                    name: "Filter 1",
+                    query: "{run_id: ''}"
+                },
+                {
+                    _id: "2",
+                    name: "Filter 2",
+                    query: "{created_on: ''}"
+                }
+            ]*/,
+            selectedFilter: null
+        };
+    }
+
+    componentDidMount() {
+        console.log("RunAwesomeQueryBuilder mounted")
+        this.loadFields()
+        this.loadFilters()
+    }
+
+    loadFields = async () => {
+        let fields = await this.servicesContainer.configurationService.getSearchFields()
+        this.setFields(fields)
+    }
+
+    loadFilters = async () => {
+        let filters = await this.servicesContainer.configurationService.getFilters()
+        this.setFilters(filters, this.setSelectedFilter(filters.length > 0 ? this.state.filters[this.state.filters.length - 1] : null))
+        this.setState({
+            tree: filters.length > 0 ? checkTree(loadTree(filters[0].query), this.state.config) : {}
+        })
+    }
+
+    setFields(fields) {
+        const initLogic = loadedInitLogic && Object.keys(loadedInitLogic).length > 0 ? loadedInitLogic : undefined;
+        const InitialConfig = MuiConfig;
+
+        const config = {
+            ...InitialConfig,
+            fields: fields
+        };
+
+        let initTree = checkTree(loadTree(initValue), config);
+        //let initTree = checkTree(loadFromJsonLogic(initLogic, config), config);
+
+        this.setState({
             tree: initTree,
             config: config
-        };
+        })
+    }
+
+    setFilters(filters) {
+        this.setState({
+            filters: filters
+        }, () => {
+            console.log(`filters: ${JSON.stringify(this.state.filters)}`)
+        })
+    }
+
+    setSelectedFilter(selectedFilter) {
+        this.setState({
+            selectedFilter: selectedFilter,
+            tree: selectedFilter ? checkTree(loadTree(selectedFilter.query), this.state.config) : {}
+        })
+    }
+
+    setNewFilterName(newFilterName) {
+        this.setState({
+            newFilterName: newFilterName
+        })
+    }
+
+    saveFilter = async (filterString, user, filterName) => {
+        console.log(`filterString:${filterString}, user:${user}, filterName:${filterName}`)
+        if (!(filterName && filterName)) {
+            window.globalToast.current.show({ severity: "error", summary: "Filter name and filter must be defined", detail: "" });
+            return
+        }
+        let filter = await this.servicesContainer.configurationService.saveFilter(filterName, filterString)
+        this.loadFilters()
+        return filter
+    }
+
+    setFilterCreationPopupIsVisible(visible) {
+        this.setState({
+            filterCreationPopupIsVisible: visible
+        })
     }
 
     onChange = (immutableTree, config) => {
@@ -703,15 +802,23 @@ class RunAwesomeQueryBuilder extends Component {
                 tooltip="Save Filter"
                 tooltipOptions={{ position: 'top' }}
                 className="mr-2"
-                onClick={() => { this.saveFilterHandler(JSON.stringify(this.state.tree), "", "") }}></Button>
+                onClick={() => this.setFilterCreationPopupIsVisible(true)}></Button>
+            <Button
+                rounded
+                icon="pi pi-refresh"
+                tooltip="Load filters"
+                tooltipOptions={{ position: 'top' }}
+                className="mr-2"
+                onClick={() => { this.loadFilters() }}></Button>
             <Dropdown
-                value={this.loadSavedFiltersHandler("")}
-                onChange={(e) => { if (e.value) this.setState({ tree: e.value }) }}
-                options={[]}
+                value={this.state.selectedFilter}
+                onChange={(e) => { this.setSelectedFilter(e.value) }}
+                options={this.state.filters}
                 optionLabel="name"
                 placeholder="Select a saved filter"
                 className="w-full md:w-14rem" />
             <i className="pi p-toolbar-separator mr-2" />
+            {false && JSON.stringify(this.state.filters)}
         </React.Fragment>
     )
 
@@ -724,7 +831,7 @@ class RunAwesomeQueryBuilder extends Component {
     )
 
     getMongoDbQuery = (tree) => {
-        return this.queryPostProcessing(JSON.stringify(QbUtils.mongodbFormat(tree, config)))
+        return this.queryPostProcessing(JSON.stringify(QbUtils.mongodbFormat(tree, this.state.config)))
     }
 
     queryPostProcessing = (queryString) => {
@@ -747,13 +854,57 @@ class RunAwesomeQueryBuilder extends Component {
     render = () => (
         <div>
             <Query
-                {...config}
+                {...this.state.config}
                 value={this.state.tree}
                 onChange={this.onChange}
                 renderBuilder={this.renderBuilder}
             />
             {this.renderResult(this.state)}
-            <Toolbar start={this.toolbarStartContent} />
+            {this.state.filters && (
+                <Toolbar filters={this.state.filters} selectedfilter={this.state.selectedFilter} start={this.toolbarStartContent} />
+            )
+            }
+            <Dialog
+                header="Save new filter"
+                visible={this.state.filterCreationPopupIsVisible}
+                style={{ width: '50vw' }}
+                closable={false}
+                onHide={() => this.setFilterCreationPopupIsVisible(false)}>
+                <div className="p-inputgroup" style={{ width: '100%', height: '50px', border: "none" }}>
+                    <label className="mt-2" style={{ textAlign: 'left', color: 'white', width: '20%' }}>Filter name</label>
+                    <InputText value={ this.state.newFilterName } onChange={(e) => {
+                        this.setNewFilterName(e.target.value)
+                    }} />
+                </div>
+                <Toolbar className="mt-4" center={() => {
+                    return (
+                        <React.Fragment>
+                            <Button
+                                rounded
+                                icon="pi pi-times"
+                                severity="success"
+                                tooltip="Cancel"
+                                tooltipOptions={{ position: 'top' }}
+                                className="ml-4 mr-2 mb-2"
+                                onClick={() => { this.setFilterCreationPopupIsVisible(false) }}></Button>
+                            <Button
+                                rounded
+                                icon="pi pi-save"
+                                severity="success"
+                                tooltip="Save"
+                                tooltipOptions={{ position: 'top' }}
+                                className="ml-4 mr-2 mb-2"
+                                onClick={() => {
+                                    this.saveFilter(JSON.stringify(this.state.tree), "", this.state.newFilterName)
+                                    this.setFilterCreationPopupIsVisible(false)
+                                    this.loadFilters()
+                                }}></Button>
+                        </React.Fragment>
+                    )
+                }}>
+
+                </Toolbar>
+            </Dialog>
         </div>
     )
 }
