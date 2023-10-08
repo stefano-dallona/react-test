@@ -317,7 +317,7 @@ class RunHierarchy extends Component {
 
     async deleteNode(run_id, node_id) {
         let deleteResult = await this.servicesContainer.configurationService.deleteRunNode(run_id, node_id)
-        if (!deleteResult) {
+        if (deleteResult) {
             await this.loadData()
         }
     }
