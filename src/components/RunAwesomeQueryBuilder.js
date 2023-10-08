@@ -64,6 +64,7 @@ initValue = {
 }
 //``
 
+let defaultQuery = "{\"type\":\"group\",\"id\":\"9a99988a-0123-4456-b89a-b1607f326fd8\",\"children1\":{\"abb9aaba-cdef-4012-b456-718b11661809\":{\"type\":\"rule\",\"id\":\"abb9aaba-cdef-4012-b456-718b11661809\",\"properties\":{\"field\":\"run_id\",\"operator\":\"equal\",\"value\":[\"\"],\"valueSrc\":[\"value\"],\"operatorOptions\":null,\"valueType\":[\"text\"]},\"path\":[\"9a99988a-0123-4456-b89a-b1607f326fd8\",\"abb9aaba-cdef-4012-b456-718b11661809\"]}},\"properties\":{\"conjunction\":\"AND\",\"not\":false},\"path\":[\"9a99988a-0123-4456-b89a-b1607f326fd8\"]}"
 
 // You need to provide your own config. See below 'Config format'
 
@@ -718,7 +719,7 @@ class RunAwesomeQueryBuilder extends Component {
         let filters = await this.servicesContainer.configurationService.getFilters()
         this.setFilters(filters, this.setSelectedFilter(filters.length > 0 ? this.state.filters[this.state.filters.length - 1] : null))
         this.setState({
-            tree: filters.length > 0 ? checkTree(loadTree(filters[0].query), this.state.config) : {}
+            tree: checkTree(loadTree(filters.length > 0 ? filters[0].query: defaultQuery), this.state.config)
         })
     }
 
