@@ -78,11 +78,8 @@ export class NotificationService {
         let currenLocation = document.location.href.split("/")
         let currenPage = currenLocation[currenLocation.length - 1]
         currenPage = currenPage && currenPage.length > 0 ? currenPage : "index"
-        let helpPageUrl = `${this.baseUrl.replace("https", "http").replace(":5000", ":3000")}/help/${currenPage}.html`
-        //let helpPageUrl = `${this.baseUrl.replace("https", "http").replace(":5000", ":3000")}/help/index.html`
-        //let helpPageUrl = `${this.baseUrl.replace("https", "http").replace(":5000", ":3000")}/help/history.html`
-        //let helpPageUrl = `${this.baseUrl.replace("https", "http").replace(":5000", ":3000")}/help/configuration.html`
-        //let helpPageUrl = `${this.baseUrl.replace("https", "http").replace(":5000", ":3000")}/help/execution.html`
+        //let helpPageUrl = `${this.baseUrl.replace("https", "http").replace(":5000", ":3000")}/help/${currenPage}.html`
+        let helpPageUrl = `${this.baseUrl}/help/${currenPage}.html`
         let response = await this.axiosClient.get(helpPageUrl);
         let helpPage = response.data
         return helpPage
