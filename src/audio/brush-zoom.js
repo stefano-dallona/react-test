@@ -77,7 +77,7 @@ export default class BrushZoomState extends BaseState {
     this.timeline.zoom *= zoom;
 
     if (this.loadingFunction) {
-      await this.loadingFunction(this.channel, startSample, numSamples)
+      await this.loadingFunction(this.channel, startSample, numSamples, this.timeline.zoom)
     } else {
       this.tracks.update();
     }
