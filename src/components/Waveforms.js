@@ -32,6 +32,7 @@ import { WaveformCanvas } from './WaveformCanvas';
 var wavesUI = require('waves-ui');
 //var Peaks = require('peaks.js');
 
+//https://wavesjs.github.io/waves-ui/examples/time-contexts.html
 
 class Waveforms extends Component {
     constructor(props) {
@@ -151,13 +152,16 @@ class Waveforms extends Component {
         */
     }
 
-    setAudioFiles(audioFiles, lossModelNodeId, channel=0) {
+    setAudioFiles(audioFiles, lossModelNodeId, channel = 0) {
         this.audioFiles = audioFiles
         this.audioFiles.forEach((file, index) => {
             let parent = this.findParent(this.hierarchy, file)
             file.label = file.name + (parent ? " - " + parent.name : "")
         });
-        this.loadBuffers(channel, 0, -1, lossModelNodeId)
+        let offset = this.zoomedRegion.current ? this.zoomedRegion.current.waveformsDataOffset - this.zoomedRegion.current.numSamples : 0
+        let numSamples = this.zoomedRegion.current ? this.zoomedRegion.current.numSamples : -1
+        this.loadBuffers(channel, offset, numSamples, lossModelNodeId)
+        //this.loadBuffers(channel, 0, -1, lossModelNodeId)
         //this.setSelectedAudioFiles(audioFiles)
     }
 
@@ -194,6 +198,10 @@ class Waveforms extends Component {
             selectedLossSimulations: lossSimulations,
             selectedAudioFiles: this.audioFiles.map((x) => x.uuid)
         });
+    }
+
+    getSelectedLossSimulation() {
+        return this.state.selectedLossSimulations
     }
 
     setAudioFileToPlay(audioFileToPlay) {
@@ -394,6 +402,7 @@ class Waveforms extends Component {
         let height = 200;
         let duration = this.buffersList.length > 0 ? this.buffersList[0].duration : 0;
         let pixelsPerSecond = width / duration;
+        
 
         if (!this.timeline) {
             this.timeline = new wavesUI.core.Timeline(pixelsPerSecond, width);
@@ -401,14 +410,17 @@ class Waveforms extends Component {
             let sampleRate = this.buffersList[0].sampleRate
             this.timeline.state = new BrushZoomState(this.timeline,
                 sampleRate,
-                this.downsamplingEnabled ? async (channel, offset, numSamples) => {
+                this.downsamplingEnabled ? async (channel, offset, numSamples, zoom) => {
                     this.zoomedRegion.current = numSamples < 0 ? null : {
                         startTime: offset / sampleRate,
                         endTime: (offset + numSamples) / sampleRate,
                         numSamples: numSamples,
-                        sampleRate: sampleRate
+                        sampleRate: sampleRate,
+                        //zoom: (duration * sampleRate) / numSamples
+                        zoom: zoom
                     }
-                    let waveformsData = await this.fetchWaveforms.bind(this)(channel, offset, numSamples)
+                    let lossModelNodeId = this.getSelectedLossSimulation()
+                    let waveformsData = await this.fetchWaveforms.bind(this)(channel, offset, numSamples, lossModelNodeId)
                     this.updateWaveforms(channel, waveformsData)
                     this.setPlayerCurrentTime(offset / sampleRate)
                 } : null
@@ -421,9 +433,13 @@ class Waveforms extends Component {
             this.waveformTrack.render();
         }
 
+        this.timeline.offset = 0
+        this.timeline.zoom = 1
+
         this.lossSimulations
-            .filter((lossSimulation, index) => this.layersMap.get(this.lossSimulationFiles[index]) == null)
-            .map((lossSimulation, index) => {
+            .filter((lossSimulation, index) => {
+                return this.layersMap.get(this.lossSimulationFiles[index]) == null
+            }).map((lossSimulation, index) => {
                 let lossSimulationLayer = new wavesUI.helpers.SegmentLayer(lossSimulation.lost_intervals, {
                     height: 200,
                     displayHandlers: false,
@@ -455,6 +471,13 @@ class Waveforms extends Component {
             });
             this.timeline.addLayer(this.cursorLayer, this.waveformTrackId);
         }
+        
+        if (this.zoomedRegion.current) {
+            this.timeline.offset = -this.zoomedRegion.current.startTime
+            this.timeline.zoom = this.zoomedRegion.current.zoom
+            this.timeline.tracks.update()
+        }
+
     }
 
     fetchWaveforms = async (channel, offset, numSamples, lossModelNodeId) => {
@@ -654,7 +677,7 @@ class Waveforms extends Component {
             if (!this.samplesVisualizer.current) {
                 return
             }
-            
+
             this.samplesVisualizer.current.fetchSamples(this.audioFiles, this.colors, selectedLoss.start_sample, selectedLoss.num_samples);
             if (this.segmentEventHandler) {
                 this.segmentEventHandler.apply(null, [selectedLoss])
@@ -756,7 +779,7 @@ class Waveforms extends Component {
         this.waveformTrack.update();
     }
 
-    renderTrack(waveformTrackId) {
+    renderTrack() {
         let $track = this.waveuiEl;
         let width = $track.getBoundingClientRect().width;
         let duration = this.buffersList.length > 0 ? this.buffersList[0].duration : 0;
@@ -769,7 +792,7 @@ class Waveforms extends Component {
             this.timeline.state = new BrushZoomState(this.timeline,
                 this.buffersList[0].sampleRate,
                 this.downsamplingEnabled ? async (channel, offset, numSamples) => {
-                    let waveformsData = await this.fetchWaveforms.bind(this)(channel, offset, numSamples)
+                    let waveformsData = await this.fetchWaveforms.bind(this)(channel, offset, numSamples, this.getSelectedLossSimulation())
                     this.updateWaveforms(channel, waveformsData)
                 } : null
             );
@@ -782,7 +805,10 @@ class Waveforms extends Component {
         }
 
         this.lossSimulations
-            .filter((lossSimulation, index) => this.layersMap.get(this.lossSimulationFiles[index]) == null)
+            .filter((lossSimulation, index) => {
+                return this.lossSimulationFiles[index].uuid === this.getSelectedLossSimulation()
+                    && this.layersMap.get(this.lossSimulationFiles[index]) == null
+            })
             .map((lossSimulation, index) => {
                 let lossSimulationLayer = new wavesUI.helpers.SegmentLayer(lossSimulation.lost_intervals, {
                     height: 200,
@@ -824,10 +850,14 @@ class Waveforms extends Component {
 
     zoomOut() {
         console.log("zoom out")
+        
         this.zoomedRegion.current = null
         this.timeline.state.zoomOut()
+
         let onZoomOutHandler = this.audioPlayerOnZoomOut.current
-        if (onZoomOutHandler) onZoomOutHandler()
+        if (onZoomOutHandler) {
+            onZoomOutHandler()
+        }
     }
 
     onKeyDownHandler(event) {
@@ -883,7 +913,7 @@ class Waveforms extends Component {
                         sampleRate: sampleRate,
                         waveformsDataOffset: 0
                     }
-                    let waveformsData = await this.fetchWaveforms.bind(this)(channel, 0, numSamples)
+                    let waveformsData = await this.fetchWaveforms.bind(this)(channel, 0, numSamples, this.getSelectedLossSimulation())
                     this.timeline.timeContext.offset = -this.zoomedRegion.current.startTime
                     this.updateWaveforms(channel, waveformsData)
                 }
@@ -896,7 +926,7 @@ class Waveforms extends Component {
             if (this.zoomedRegion.current) {
                 if (!this.zoomedRegion.current.waveformsData) {
                     let offset = Math.floor(this.zoomedRegion.current.endTime * sampleRate)
-                    this.zoomedRegion.current.waveformsData = this.fetchWaveforms.bind(this)(channel, offset, this.zoomedRegion.current.numSamples)
+                    this.zoomedRegion.current.waveformsData = this.fetchWaveforms.bind(this)(channel, offset, this.zoomedRegion.current.numSamples, this.getSelectedLossSimulation())
                     this.zoomedRegion.current.waveformsDataOffset = offset
                 }
                 if ((this.zoomedRegion.current.endTime - this.zoomedRegion.current.startTime) >= 5) {
@@ -906,7 +936,7 @@ class Waveforms extends Component {
                         console.log(`fetching samples ${numSamples} starting from ${offset}`)
 
                         if (offset > this.zoomedRegion.current.waveformsDataOffset + numSamples || (offset - this.zoomedRegion.current.waveformsDataOffset) < 0.1) {
-                            this.zoomedRegion.current.waveformsData = this.fetchWaveforms.bind(this)(channel, offset, numSamples)
+                            this.zoomedRegion.current.waveformsData = this.fetchWaveforms.bind(this)(channel, offset, numSamples, this.getSelectedLossSimulation())
                             this.zoomedRegion.current.waveformsDataOffset = offset
                         }
                         let waveformsData = await this.zoomedRegion.current.waveformsData
@@ -919,7 +949,7 @@ class Waveforms extends Component {
 
                         console.log(this.zoomedRegion.current)
 
-                        //let waveformsData = await this.fetchWaveforms.bind(this)(channel, offset, numSamples)
+                        //let waveformsData = await this.fetchWaveforms.bind(this)(channel, offset, numSamples, this.getSelectedLossSimulation())
                         this.timeline.timeContext.offset = -this.zoomedRegion.current.startTime
                         this.setCursorPosition(this.zoomedRegion.current.startTime)
                         this.updateWaveforms(channel, waveformsData)
@@ -1013,8 +1043,8 @@ class Waveforms extends Component {
         let newFilename = this.inputFiles[nextIndex]
         if (newFilename && newFilename !== this.state.filename) {
             this.setFilename(newFilename)
-        }    
-    } 
+        }
+    }
 
     render() {
         const startContent = (
@@ -1233,6 +1263,12 @@ class Waveforms extends Component {
                                     tooltip="Brush on waveform to zoom-in"
                                     tooltipOptions={{ position: 'top' }}
                                     className="mr-2"
+                                    onClick={() => {/*
+                                        this.timeline.offset = -75
+                                        this.timeline.zoom *= 2
+                                        console.log(`this.timeline.zoom:${this.timeline.zoom}`)
+                                        this.renderAll()
+                                    */}}
                                     visible={true} ></Button>,
                                 <Button
                                     onClick={(e) => { this.zoomOut() }}

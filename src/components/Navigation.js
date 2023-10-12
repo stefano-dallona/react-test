@@ -153,12 +153,6 @@ const Navigation = (props) => {
             }
         },
         {
-            label: 'History', icon: 'pi pi-fw pi-history', command: () => {
-                navigate('/run/history')
-                window.location.href = '/run/history';
-            }
-        },
-        {
             label: 'Configuration', icon: 'pi pi-fw pi-sitemap', command: () => {
                 window.location.href = '/run/configuration';
             }
@@ -171,6 +165,12 @@ const Navigation = (props) => {
         {
             label: 'Analysis', icon: 'pi pi-bw pi-chart-bar', command: () => {
                 window.location.href = '/run/analysis'
+            }
+        },
+        {
+            label: 'History', icon: 'pi pi-fw pi-history', command: () => {
+                navigate('/run/history')
+                window.location.href = '/run/history';
             }
         },
         /*{
