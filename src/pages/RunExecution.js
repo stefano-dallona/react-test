@@ -49,11 +49,12 @@ export const RunExecution = (props) => {
         toast.current.show({ severity: severity, summary: summary, detail: detail });
     }
 
-    const onExecutionCompleted = (runId, task_id) => {
+    const onExecutionCompleted = async (runId, task_id, success, errorMessage) => {
         setExecutionInProgress(false)
         runHierarchy.current.resetProgressBars(100, true)
         localStorage.removeItem("runExecution:" + runId)
-        showMessage('info', `Execution completed successfully`, '')
+        let ok = success === 'true'
+        showMessage(ok ? 'info' : 'error', ok ? `Execution completed successfully` : `Execution failed! ${errorMessage}`, '')
     }
 
     const previousTrack = () => {

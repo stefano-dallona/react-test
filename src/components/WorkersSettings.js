@@ -15,6 +15,25 @@ import { ScrollPanel } from 'primereact/scrollpanel';
 import cloneDeep from 'lodash/cloneDeep';
 import create_UUID from '../utils/Uuid';
 
+var parse = require('html-react-parser');
+
+/*
+
+//https://stackoverflow.com/questions/14829708/most-pythonic-way-to-provide-function-metadata-at-compile-time
+//https://docs.python-cerberus.org/validation-rules.html
+//https://towardsdatascience.com/6-approaches-to-validate-class-attributes-in-python-b51cffb8c4ea
+//https://docs.pydantic.dev/latest/concepts/validators/
+//https://docs.pydantic.dev/1.10/usage/validators/
+//Useful ideas to manage validation
+
+// https://primereact.org/message/
+#Form for displaying messages
+
+Validation REST endpoint
+//https://stackoverflow.com/questions/11676550/how-to-expose-a-validation-api-in-a-restful-way
+
+*/
+
 class WorkersSettings extends Component {
 
     constructor(props) {
@@ -30,7 +49,7 @@ class WorkersSettings extends Component {
         this.state = {
             currentWorker: null,
             currentWorkerSettings: null,
-            selectedWorkers: [],
+            selectedWorkers: props.selectedWorkers || [],
             confirmationMessage: null
         };
     }
@@ -120,15 +139,17 @@ class WorkersSettings extends Component {
     }
 
     showMessage = (severity, summary, detail) => {
-        if (this.toast && this.toast.current)
+        if (this.toast && this.toast.current) {
             this.toast.current.show({ severity: severity, summary: summary, detail: detail });
+        }
     }
 
     deleteWorker = () => {
         if (!this.state.currentWorker) return;
         let currentWorkerSettings = this.state.currentWorkerSettings
         if (this.state.selectedWorkers) {
-            this.setSelectedWorkers(this.state.selectedWorkers.filter((oa) => (oa.uuid != currentWorkerSettings.uuid)))
+            let clonedSelectedWorkers = cloneDeep(this.state.selectedWorkers)
+            this.setSelectedWorkers(clonedSelectedWorkers.filter((oa) => (oa.uuid != currentWorkerSettings.uuid)))
         }
         this.setCurrentWorker(null)
     }
@@ -213,11 +234,27 @@ class WorkersSettings extends Component {
             onChange={(e) => this.setPropertyValue(setting, e.value)} />
     }
 
+    getSettingsAsHtmlTable(settings) {
+        return (
+            <table style={{ width: "80%", tableLayout: "fixed" }}>
+                {
+                    settings.map((setting) => {
+                        return (<tr>
+                            <td style={{ width: "45%" }}><b>{setting.property}:</b></td>
+                            <td style={{ width: "55%" }}>{setting.value}</td>
+                        </tr>)
+                    })
+                }
+            </table>
+        )
+    }
+
     configurationItem = (option) => {
         return (
             <div className="p-inputgroup" style={{ display: "flex", flexWrap: "wrap" }}>
-                <span className="justify-content-left" style={{ width: "80%" }}>{option.name}</span>
-                <span className="justify-content-left" style={{ width: "20%" }}>
+                <span className="justify-content-left" style={{ width: "20%" }}>{option.name}</span>
+                <span className="justify-content-left" style={{ width: "65%" }}>{this.getSettingsAsHtmlTable(option.settings)}</span>
+                <span className="justify-content-left" style={{ width: "15%" }}>
                     <ConfirmDialog
                         visible={this.state.confirmationMessage}
                         onHide={() => this.setConfirmationMessage(null)}
@@ -249,12 +286,12 @@ class WorkersSettings extends Component {
             <div className="card p-fluid">
                 <Splitter style={{ height: '30rem' }}>
                     <SplitterPanel size={50} className="flex align-items-center justify-content-center">
-                        <Panel /*header={this.header} toggleable={this.toggleable}*/ style={{ position: "relative", width: "100%", height: '30rem', border: 'none'}}>
+                        <Panel /*header={this.header} toggleable={this.toggleable}*/ style={{ position: "relative", width: "100%", height: '30rem', border: 'none' }}>
                             {this.defaultSettings.length > 1 && (
                                 <div className="p-inputgroup" style={{ width: '100%', height: '50px', border: "none" }}>
                                     <label className="mt-2" style={{ textAlign: 'left', color: 'white', width: '20%' }}>Algorithm</label>
                                     <Dropdown value={this.state.currentWorker} onChange={(e) => this.setCurrentWorker(e.target.value)} options={this.getWorkers()}
-                                        placeholder={this.workerType} className="w-full md:w-14rem" style={{height: "2.1rem"}}/>
+                                        placeholder={this.workerType} className="w-full md:w-14rem" style={{ height: "2.1rem" }} />
                                     <Button
                                         rounded
                                         icon="pi pi-plus"
@@ -294,7 +331,7 @@ class WorkersSettings extends Component {
                         {this.defaultSettings.length > 1 && (
                             <Panel header={"Selected algorithms"}
                                 /*toggleable={this.toggleable}*/
-                                style={{ position: "relative", width: "100%", height: "100%"}}>
+                                style={{ position: "relative", width: "100%", height: "100%" }}>
                                 <ListBox value={this.state.selectedWorkers}
                                     onChange={(e) => this.loadSelectedWorker(e.value)}
                                     options={this.state.selectedWorkers}

@@ -107,6 +107,10 @@ export const RunHistory = (props) => {
         }
     }
 
+    const editHandler = (runId) => {
+        navigate(`/run/configuration`)
+    }
+
     const startContent = (
         <React.Fragment>
             <Button
@@ -142,7 +146,12 @@ export const RunHistory = (props) => {
                     loadSavedFiltersHandler={loadSavedFilters}*/ />
             </Panel>
             <Panel header="Run List">
-                <RunList servicesContainer={servicesContainer} ref={runList} query={null} parentChangeHandler={onChange}></RunList>
+                <RunList
+                    servicesContainer={servicesContainer}
+                    ref={runList}
+                    query={null}
+                    parentChangeHandler={onChange}
+                    rowEditHandler={editHandler}></RunList>
             </Panel>
             <Toast ref={toast} />
             {(!location.state || !location.state.nextPage) && (

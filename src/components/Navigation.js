@@ -148,7 +148,7 @@ const Navigation = (props) => {
 
     const navlist = [
         {
-            label: '', icon: 'pi pi-bars', command: () => {
+            label: '', icon: 'pi pi-info-circle', command: () => {
                 setSidebarVisible(true)
             }
         },
@@ -204,11 +204,11 @@ const Navigation = (props) => {
 
     const customIcons = (
         <Fragment>
-            <button style={{display: (!sidebarFullScreen) ? "" : "none"}} className="p-sidebar-icon p-link mr-2"
+            <button style={{ display: (!sidebarFullScreen) ? "" : "none" }} className="p-sidebar-icon p-link mr-2"
                 onClick={(e) => { setSidebarFullScreen(true) }}>
                 <span className="pi pi-window-maximize" />
             </button>
-            <button style={{display: (sidebarFullScreen) ? "" : "none"}} className="p-sidebar-icon p-link mr-2"
+            <button style={{ display: (sidebarFullScreen) ? "" : "none" }} className="p-sidebar-icon p-link mr-2"
                 onClick={(e) => { setSidebarFullScreen(false) }}>
                 <span className="pi pi-window-minimize" />
             </button>
@@ -240,6 +240,17 @@ const Navigation = (props) => {
                 />
             </Button>
         )}
+        <Button
+            rounded
+            tooltip="Home"
+            tooltipOptions={{ position: 'top' }}
+            icon="pi pi-home"
+            className="mr-2"
+            onClick={(e) => {
+                navigate("")
+            }}
+            style={{ height: 39 }}>
+        </Button>
         {false && (<>
             <Button
                 rounded

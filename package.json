@@ -41,6 +41,7 @@
     "react-dropzone-component": "^3.2.0",
     "react-h5-audio-player": "^3.8.6",
     "react-loader-spinner": "^5.3.4",
+    "react-markdown": "^9.0.0",
     "react-notifications-menu": "^1.0.6",
     "react-promise-tracker": "^2.1.1",
     "react-querybuilder": "^6.3.0",

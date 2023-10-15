@@ -62,7 +62,7 @@ class InputFilesSelector extends Component {
 
         this.state = {
             availableInputFiles: [],
-            selectedInputFiles: []
+            selectedInputFiles: props.selectedInputFiles && props.selectedInputFiles.settings ? props.selectedInputFiles.settings: []
         }
     }
 

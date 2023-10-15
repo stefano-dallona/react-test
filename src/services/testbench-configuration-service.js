@@ -313,15 +313,17 @@ export class ConfigurationService {
 
     async getRun(run_id) {
         let requestUrl = `${this.baseUrl}/runs/${run_id}`
-        /*
-        let response = await fetch(requestUrl)
-        let run = await response.json()
-        */
         let response = await this.axiosClient.get(requestUrl)
         let run = response.data
         return run
     }
 
+    async getRunConfiguration(run_id) {
+        let requestUrl = `${this.baseUrl}/runs/${run_id}/configuration`
+        let response = await this.axiosClient.get(requestUrl)
+        let run_configuration = response.data
+        return run_configuration
+    }
 
     async saveFilter(name, query) {
         let requestUrl = this.baseUrl + `/filters`

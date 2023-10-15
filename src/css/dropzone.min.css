@@ -10,3 +10,9 @@
     top: 45% !important;
 }
 
+.filepicker-file-icon {
+    content:url(../assets/icons/compact-disc-2.svg);
+    transform: scale(5);
+    padding: 0px;
+}
+

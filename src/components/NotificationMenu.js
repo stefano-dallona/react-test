@@ -114,7 +114,7 @@ class NotificationMenu extends Component {
             return {
                 ...message, sticky: true, buttonSeverity: getButtonSeverity(message.severity), content: (
                     <Fragment>
-                        <div className="ml-2" onClick={(e) => { console.log(e.target) }}><a href={"/run/history"}>{message.text}</a></div>
+                        <div className="ml-2" onClick={(e) => { console.log(e.target) }}>{message.text}</div>
                     </Fragment>
                 )
             }

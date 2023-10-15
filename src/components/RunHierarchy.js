@@ -50,9 +50,9 @@ class RunHierarchy extends Component {
 
         this.run = null
         this.currentFileIndex = 0
-        this.executing = false
 
         this.state = {
+            executing: false,
             runId: props.runId,
             filename: props.filename,
             data: null,
@@ -110,11 +110,13 @@ class RunHierarchy extends Component {
     }
 
     isExecuting() {
-        return this.executing
+        return this.state.executing
     }
 
     setExecuting(executing) {
-        this.executing = executing
+        this.setState({
+            executing: executing
+        })
     }
 
     setRunId(runId) {
@@ -138,6 +140,26 @@ class RunHierarchy extends Component {
         });
     }
 
+    //REFERENCE: https://gist.github.com/mootari/64ff2d2b0b68c7e1ae6c6475f1015e1c
+    zoomToFit() {
+        let box = document.getElementById("runHierarchy").node().getBBox()
+        console.log("svg box: " + box)
+        /*
+        const box = $groupsContainer.node().getBBox();
+        const scale = Math.min(window.innerWidth / box.width, window.innerHeight / box.height);
+        
+        // Reset transform.
+        let transform = d3.zoomIdentity;
+        // Center [0, 0].
+        transform = transform.translate(window.innerWidth / 2, window.innerHeight / 2);
+        // Apply scale.
+        transform = transform.scale(scale);
+        // Center elements.
+        transform = transform.translate(-box.x - box.width / 2, -box.y - box.height / 2);
+        zoom.transform($svg, transform);
+        */
+    }
+
     generateTree(data) {
         const tree = d3tree().size([window.innerWidth, window.innerWidth / 3])
             .nodeSize([100, 100])
@@ -157,7 +179,7 @@ class RunHierarchy extends Component {
 
         links.forEach((link, i) => {
             //console.log(`link.id: ${link.source.data.uuid}`)
-            link.id = link.source.data.uuid
+            link.uuid = link.source.data.uuid
         });
 
         return [nodes, links]
@@ -287,14 +309,19 @@ class RunHierarchy extends Component {
                 this.onExecutionCompleted(this.state.runId)
             }
             */
-            if (message.nodetype == "RunExecution" && this.isExecuting()) {
+            if (message.nodetype === "RunExecution" && this.isExecuting()) {
+                this.loadData()
+                this.initZoom()
                 this.setExecuting(false)
                 this.servicesContainer.configurationService.stopListeningForExecutionEvents();
                 let lastFile = selectedInputFiles[selectedInputFiles.length - 1]
-                if (this.state.filename != lastFile) {
+                if (this.state.filename !== lastFile) {
                     this.setFilename(lastFile, 100)
                 }
-                this.onExecutionCompleted(this.state.runId, task_id)
+                if (message.success !== 'true') {
+                    this.loadRun()
+                }
+                this.onExecutionCompleted(this.state.runId, task_id, message.success, message.errorMessage)
             }
         }
         this.servicesContainer.configurationService.startListeningForExecutionEvents(this.state.runId, this.state.runId, progressCallback.bind(this), task_id)
@@ -351,17 +378,53 @@ class RunHierarchy extends Component {
         this.rightClickedNodeRef.current = node_id
     }
 
+    overallProgressTextHandler(currentPercentage) {
+        if (!this.run) {
+            return ""
+        }
+        let currentFileIndex = currentPercentage < 100 ? this.currentFileIndex : this.run.selected_input_files.length
+        let totalFiles = this.run.selected_input_files.length
+        return `${currentFileIndex} of ${totalFiles}`
+    }
+
+    getRunStatusColor() {
+        let color = 'yellow'
+
+        if (this.run) {
+            switch (this.run.status) {
+                case "COMPLETED":
+                    color = 'green'
+                    break;
+                case "FAILED":
+                    color = 'red'
+                    break;
+                case "CREATED":
+                    color = 'white'
+                    break;
+                default:
+            }
+        }
+        return color
+    }
+
     render() {
         this.nodes.forEach((node, i) => { node.key = "node-" + i })
         this.links.forEach((link, i) => { link.key = "link-" + i })
         return (
             <div className="runHierarchy">
                 <svg
+                    id="runHierarchy"
                     className="hierarchy"
                     width="100%"
                     height="500"
                     onContextMenu={this.handleContextMenu}
+                    onLoad={this.zoomToFit.bind(this)}
                 >
+                    <text visibility={this.isExecuting() ? 'hidden' : 'visible'}
+                        textAnchor="middle"
+                        stroke={this.getRunStatusColor()}
+                        className="hierarchy-title"
+                        transform={`translate(${window.innerWidth / 2}, 20)`}>Current status: {this.run ? `${this.run.status}` : ""}</text>
                     <ContextMenu model={this.getMenuItems()} ref={this.contextMenuRef} />
                     <g>
                         {
@@ -369,13 +432,16 @@ class RunHierarchy extends Component {
                             <ProgressSpinner
                                 ref={this.progressBarRefs.get(this.state.runId)}
                                 key={`pb-${this.state.runId}`}
+                                title="Files processed"
+                                visibilityHandler={() => { return !this.isExecuting() ? 'hidden' : 'visible' }}
                                 nodeId={this.state.runId}
                                 tooltip={this.state.runId}
                                 x={150}
-                                y={80}
+                                y={150}
                                 r={30}
+                                textHandler={this.overallProgressTextHandler.bind(this)}
                                 contextMenuRef={this.contextMenuRef}
-                                rightClickHandler={(node_id) => { this.rightClickHandler(node_id) }}                                
+                                rightClickHandler={(node_id) => { this.rightClickHandler(node_id) }}
                             />
                         }
                     </g>
@@ -401,6 +467,7 @@ class RunHierarchy extends Component {
                                     y={node.y}
                                     percentage={localStorage.getItem(node.data.uuid) || 0}
                                     contextMenuRef={this.contextMenuRef}
+                                    textHandler={(currentPercentage) => { return currentPercentage > 0 && currentPercentage < 100 ? `${currentPercentage} %` : "" }}
                                     rightClickHandler={(node_id) => { this.rightClickHandler(node_id) }}
                                 />
                             )

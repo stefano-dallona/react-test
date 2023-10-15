@@ -33,6 +33,29 @@ var wavesUI = require('waves-ui');
 //var Peaks = require('peaks.js');
 
 //https://wavesjs.github.io/waves-ui/examples/time-contexts.html
+/*
+//// Main wave-ui.js operations
+
+// Modify the layer data and refresh the layer
+this.timeline.layers[2].data = Float32Array.from(Array(3900000).fill(-1)); this.timeline.layers[2].render(); this.timeline.layers[2].update();
+
+// Modify layer's start point of the track segment and refresh the layer
+this.timeline.layers[2].start = 10; this.timeline.layers[2].updateContainer()
+
+// Modify layer's duration of the track segment and refresh the layer
+this.timeline.layers[2].duration = 50; this.timeline.layers[2].updateContainer()
+
+// Modify layer's offset of the track segment and refresh the layer
+this.timeline.layers[2].offset = 10; this.timeline.layers[2].updateContainer()
+
+// Modify layer's zoom of the track segment and refresh the layer
+this.timeline.layers[2].stretchRatio = 10; this.timeline.layers[2].update()
+
+// Modify track's offset and refresh the track, including all its layers
+this.timeline.offset = 10; this.timeline.tracks.update()
+// Modify track's zoom and refresh the track, including all its layers
+this.timeline.zoom = 0.5; this.timeline.tracks.update()
+*/
 
 class Waveforms extends Component {
     constructor(props) {

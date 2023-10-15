@@ -23,14 +23,14 @@ class Node extends Component {
                 >
                     <circle
                         id={`n-${this.nodeId}`}
-                        r="10"
+                        r="26"
                         fill="black"
                         onClick={() => { }}
                         onMouseOver={() => { }}
                         onMouseOut={() => { }}
                     ></circle>
                     <g className="rd3t-label">
-                        <text textAnchor="middle" y={-30} fill={"#ffffff"} className="rd3t-label__title">
+                        <text textAnchor="middle" y={-40} fill={"#ffffff"} className="rd3t-label__title">
                             {this.props.label}
                         </text>
                     </g>

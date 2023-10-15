@@ -10,7 +10,10 @@ class ProgressSpinner extends Component {
     constructor(props) {
         super(props);
 
+        this.visibilityHandler = props.visibilityHandler || (() => { return 'visible' })
+        this.title = props.title || ""
         this.contextMenuRef = props.contextMenuRef || null
+        this.textHandler = props.textHandler || ((progress) => { return `${progress}`})
         this.rightClickHandler = props.rightClickHandler || ((node_id) => {})
 
         this.state = {
@@ -54,7 +57,7 @@ class ProgressSpinner extends Component {
     }    
 
     drawMainArc() {
-        const outerRadius = this.state.r * 2;
+        const outerRadius = this.state.r * 3.2;
         const thickness = outerRadius / 5;
 
         const mainArc = d3arc()
@@ -67,7 +70,7 @@ class ProgressSpinner extends Component {
     }
 
     drawProgressArc() {
-        const outerRadius = this.state.r * 2;
+        const outerRadius = this.state.r * 3.2;
         const thickness = outerRadius / 5;
 
         const progressArc = d3arc()
@@ -99,6 +102,7 @@ class ProgressSpinner extends Component {
 
     render() {
         return (
+            this.visibilityHandler() === 'visible' ?
             <g id={`pb-${this.state.nodeId}`}
                 style={{cursor: 'pointer'}}
                 transform={`translate(${this.state.x}, ${this.state.y})`}
@@ -109,10 +113,12 @@ class ProgressSpinner extends Component {
                         hidden={(this.state.currentPercentage === 0 || this.state.currentPercentage === 100)}>
                             {this.state.eta > 0 ? `ETA: ${ this.formatTime(this.state.eta) }` : ""}</span><br/>
                 </Tooltip>
+                <text textAnchor="middle" stroke="white" className="progress-title" transform={`translate(0, -120)`}>{this.title}</text>
                 <path fill="white" className="progress-bar-bg" d={this.drawMainArc()} />
-                <path fill="green" className="progress-bar" d={this.drawProgressArc()} />
-                <text textAnchor="middle" stroke="white" className="progress-label" transform={`translate(0, 5)`}>{this.state.currentPercentage}</text>
+                <path fill={this.state.currentPercentage < 100 ? "orange" : "green"} className="progress-bar" d={this.drawProgressArc()} />
+                <text textAnchor="middle" stroke="white" className="progress-label" transform={`translate(0, 5)`}>{this.textHandler(this.state.currentPercentage ? this.state.currentPercentage : 0)}</text>
             </g>
+            : ""
         )
     }
 }
