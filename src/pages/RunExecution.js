@@ -2,7 +2,7 @@ import "primereact/resources/primereact.min.css";
 import "primeicons/primeicons.css";
 import 'primeflex/primeflex.css';
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import { Panel } from 'primereact/panel';
 import { Toolbar } from 'primereact/toolbar';
@@ -14,6 +14,7 @@ import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { Toast } from 'primereact/toast'
 
 import { useContainer } from "../components/ServicesContextProvider"
+import { Tooltip } from "primereact/tooltip";
 
 export const RunExecution = (props) => {
     let navigate = useNavigate()
@@ -23,6 +24,9 @@ export const RunExecution = (props) => {
     let [executionInProgress, setExecutionInProgress] = useState(false)
     let servicesContainer = useContainer()
     let [currentFileIndex, setCurrentFileIndex] = useState(0)
+
+    useEffect(() => {
+    }, [])
 
     const analyse = () => {
         navigate(`/run/${runId}/analysis`)
@@ -123,46 +127,86 @@ export const RunExecution = (props) => {
                 className="mr-2"
                 onClick={nextTrack}
                 disabled={executionInProgress}></Button>
+        </React.Fragment>
+    )
+
+
+    const middleContent = (
+        <React.Fragment>
+        </React.Fragment>
+    )
+
+    const endContent = (
+        <React.Fragment>
             <Button
                 rounded
+                text
                 icon="pi pi-search"
-                tooltip="Use mouse wheel on the tree\nto zoom in/out"
+                tooltip="Use mouse wheel on the tree to zoom in/out"
+                tooltipOptions={{ position: 'top' }}
+                className="mr-2"
+                onClick={() => {
+                    runHierarchy.current.scaleFactor = null
+                    runHierarchy.current.zoomToFit()
+                }}></Button>
+            <Button
+                rounded
+                text
+                icon="pi pi-arrows-alt"
+                tooltip="Drag on the tree to pan"
                 tooltipOptions={{ position: 'top' }}
                 className="mr-2"></Button>
             <Button
                 rounded
-                icon="pi pi-arrows-v"
-                tooltip="Drag on the tree to pan (only vertical allowed)"
-                tooltipOptions={{ position: 'top' }}
-                className="mr-2"></Button>
-            <Button
-                rounded
-                icon="pi pi-info"
+                text
+                icon="pi pi-list"
                 tooltip="Place the mouse pointer over a node to get more info"
                 tooltipOptions={{ position: 'top' }}
                 className="mr-2"></Button>
             <Button
                 rounded
+                text
                 icon="pi pi-delete-left"
                 severity='error'
                 tooltip="Right click on node and select 'Delete' item from the context menu"
                 tooltipOptions={{ position: 'top' }}
                 className="mr-2"></Button>
-
-            <i className="pi p-toolbar-separator mr-2" />
         </React.Fragment>
-    );
+    )
+
+    const headerTemplate = (options) => {
+        return (
+            <React.Fragment>
+                <div className={options.className}>
+                    <span className={options.titleClassName}>Run Execution</span>
+                    <span>
+                    <Button
+                        rounded
+                        size="large"
+                        text
+                        icon="pi pi-info-circle"
+                        iconPos="right"
+                        severity='info'
+                        tooltip="Inspect the structure of the elaboration, run it and monitor progress"
+                        tooltipOptions={{ position: 'top' }}
+                        className={options.titleClassName + ' mr-2'}></Button>
+                        {endContent}
+                    </span>
+                </div>
+            </React.Fragment>
+        )
+    }
 
     return (
         runId ? (
             <div id="runExecution" className="card p-fluid">
-                <Toast ref={toast}/>
-                <Panel header="Run Hierarchy">
-                    <RunHierarchy servicesContainer={servicesContainer} ref={runHierarchy} runId={runId} filename={""} onExecutionStarted={() => {setExecutionInProgress(true)}} onExecutionCompleted={onExecutionCompleted}/>
+                <Toast ref={toast} />
+                <Panel id="panel" headerTemplate={headerTemplate}>
+                    <RunHierarchy servicesContainer={servicesContainer} ref={runHierarchy} runId={runId} filename={""} onExecutionStarted={() => { setExecutionInProgress(true) }} onExecutionCompleted={onExecutionCompleted} />
                 </Panel>
-                <Toolbar start={startContent} />
+                <Toolbar start={startContent} center={middleContent} />
             </div>
-        ) : <Navigate to={`/run/history`} state={{nextPage: "RunExecution"}} />
+        ) : <Navigate to={`/run/history`} state={{ nextPage: "RunExecution" }} />
     )
 
 }

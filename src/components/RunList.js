@@ -16,7 +16,7 @@ class RunList extends Component {
         super(props);
 
         this.servicesContainer = props.servicesContainer
-        this.rowEditHandler = props.editHandler || ((runId) => {})
+        this.rowEditHandler = props.rowEditHandler || ((runId) => {})
 
         this.state = {
             query: null,
@@ -80,8 +80,8 @@ class RunList extends Component {
     async modifyRun(runId) {
         let runConfiguration = await trackPromise(this.servicesContainer.configurationService.getRunConfiguration(runId));
         let key = "plc-testbench-ui.configuration"
-        localStorage.setItem(key, runConfiguration)
-        this.editHandler(runId)
+        localStorage.setItem(key, JSON.stringify(runConfiguration))
+        this.rowEditHandler(runId)
     }
 
     onPageChange = (event) => {

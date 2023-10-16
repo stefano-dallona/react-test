@@ -1,6 +1,6 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "PLC Testbench UI",
+  "name": "PLC Testbench UI",
   "icons": [
     {
       "src": "favicon.ico",

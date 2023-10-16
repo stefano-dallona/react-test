@@ -56,6 +56,11 @@ export const RunHistory = (props) => {
         console.log(`user:${user}`);
     }
 
+    const refresh = () => {
+        runList.current.setQuery(null)
+        runList.current.loadData()
+    }
+
     const execute = () => {
         if (!runList.current.state.selectedRun) {
             showMessage('info', `Please select a run for execution`, '')
@@ -108,11 +113,20 @@ export const RunHistory = (props) => {
     }
 
     const editHandler = (runId) => {
-        navigate(`/run/configuration`)
+        navigate(`/run/configuration?runId=${runId}`)
     }
 
     const startContent = (
         <React.Fragment>
+            <Button
+                rounded
+                icon="pi pi-refresh"
+                severity='info'
+                tooltip="Refresh"
+                tooltipOptions={{ position: 'top' }}
+                className="mr-2"
+                onClick={refresh}
+                disabled={false}></Button>
             <Button
                 rounded
                 icon="pi pi-cog"

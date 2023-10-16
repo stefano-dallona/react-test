@@ -13,6 +13,7 @@ import WorkersSettings from './WorkersSettings';
 //import defaultSettings from '../assets/settings.json';
 
 import cloneDeep from 'lodash/cloneDeep';
+import startCase from 'lodash/startCase';
 
 class Settings extends Component {
 
@@ -36,8 +37,8 @@ class Settings extends Component {
             "OutputAnalyser"]
 
         this.defaultSettings = []
-        this.storedSettings = []
-        this.runId = null
+        this.runId = props.runId
+        this.storedSettings = this.runId ? this.loadConfigurationFromTemporaryStorage() : [[], [{ "name": "ZerosPLC", "settings" : [] }], [], []]
 
         this.state = {
             currentPage: 0
@@ -265,7 +266,7 @@ class Settings extends Component {
                 <Toast ref={this.toast} />
                 <Panel>
                     <Steps model={this.pages.map((element) => {
-                        return { label: element }
+                        return { label: startCase(element) }
                     })} activeIndex={this.state.currentPage} onSelect={(e) => this.setCurrentPage(e.index)} readOnly={true} />
                 </Panel>
                 {(!this.paged || this.state.currentPage == 0) && (

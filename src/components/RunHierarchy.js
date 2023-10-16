@@ -50,6 +50,7 @@ class RunHierarchy extends Component {
 
         this.run = null
         this.currentFileIndex = 0
+        this.scaleFactor = null
 
         this.state = {
             executing: false,
@@ -63,6 +64,10 @@ class RunHierarchy extends Component {
     async componentDidMount() {
         this.loadData()
         this.initZoom()
+    }
+
+    async componentDidUpdate() {
+        this.zoomToFit()
     }
 
     componentWillUnmount() {
@@ -140,24 +145,33 @@ class RunHierarchy extends Component {
         });
     }
 
+    getScaleFactor() {
+        return this.scaleFactor
+    }
+
     //REFERENCE: https://gist.github.com/mootari/64ff2d2b0b68c7e1ae6c6475f1015e1c
-    zoomToFit() {
-        let box = document.getElementById("runHierarchy").node().getBBox()
-        console.log("svg box: " + box)
-        /*
-        const box = $groupsContainer.node().getBBox();
-        const scale = Math.min(window.innerWidth / box.width, window.innerHeight / box.height);
-        
-        // Reset transform.
-        let transform = d3.zoomIdentity;
-        // Center [0, 0].
-        transform = transform.translate(window.innerWidth / 2, window.innerHeight / 2);
-        // Apply scale.
-        transform = transform.scale(scale);
-        // Center elements.
-        transform = transform.translate(-box.x - box.width / 2, -box.y - box.height / 2);
-        zoom.transform($svg, transform);
-        */
+    zoomToFit(transform = d3.zoomIdentity) {
+        let html = d3.select('svg').node()
+        let hierarchy = d3.select('#hierarchy').node()
+        if (!hierarchy || this.getScaleFactor()) {
+            return
+        }
+        let box = hierarchy.getBBox()
+        console.log("svg box: " + JSON.stringify(box))
+
+        if (box.width > 0 && box.height > 0) {
+            const scale = Math.min((html.clientWidth) / box.width, html.clientHeight / 1.5 / box.height);
+            // Center [0, 0].
+            transform = transform.translate(html.clientWidth / 2, html.clientHeight / 2.5);
+            // Apply scale.
+            transform = transform.scale(scale);
+            // Center elements.
+            transform = transform.translate(-box.x - box.width / 2, -box.y - box.height / 2);
+            
+            d3.select('#hierarchy').attr('transform', transform.toString());
+            
+            this.scaleFactor = scale
+        }
     }
 
     generateTree(data) {
@@ -179,7 +193,7 @@ class RunHierarchy extends Component {
 
         links.forEach((link, i) => {
             //console.log(`link.id: ${link.source.data.uuid}`)
-            link.uuid = link.source.data.uuid
+            link.uuid = link.target.data.uuid
         });
 
         return [nodes, links]
@@ -333,11 +347,21 @@ class RunHierarchy extends Component {
 
     handleZoom() {
         let transform = d3.zoomTransform(this)
-        transform.x = window.innerWidth / 2
-        d3.select('#hierarchy').attr('transform', transform.toString());
+
+        let svg = d3.select('svg').node()
+        let hierarchy = d3.select('#hierarchy')
+        let box = hierarchy.node().getBBox()
+        const scale = Math.min((svg.clientWidth - 80) / box.width, svg.clientHeight / 1.5 / box.height);
+        transform = transform.translate(svg.clientWidth / 2, svg.clientHeight / 2.5);
+        transform = transform.scale(scale);
+        transform = transform.translate(-box.x - box.width / 2, -box.y - box.height / 2);
+        //transform.x = window.innerWidth / 2
+
+        hierarchy.attr('transform', transform.toString());
     }
 
     initZoom() {
+        d3.select('#hierarchy').attr('transform')
         let zoom = d3.zoom().on('zoom', this.handleZoom);
         d3.select('svg').call(zoom);
     }
@@ -408,8 +432,6 @@ class RunHierarchy extends Component {
     }
 
     render() {
-        this.nodes.forEach((node, i) => { node.key = "node-" + i })
-        this.links.forEach((link, i) => { link.key = "link-" + i })
         return (
             <div className="runHierarchy">
                 <svg
@@ -417,9 +439,7 @@ class RunHierarchy extends Component {
                     className="hierarchy"
                     width="100%"
                     height="500"
-                    onContextMenu={this.handleContextMenu}
-                    onLoad={this.zoomToFit.bind(this)}
-                >
+                    onContextMenu={this.handleContextMenu.bind(this)}>
                     <text visibility={this.isExecuting() ? 'hidden' : 'visible'}
                         textAnchor="middle"
                         stroke={this.getRunStatusColor()}
@@ -461,6 +481,7 @@ class RunHierarchy extends Component {
                                 <ProgressSpinner
                                     ref={this.progressBarRefs.get(node.data.uuid)}
                                     key={`pb-${node.data.uuid}`}
+                                    node={node.data}
                                     nodeId={node.data.uuid}
                                     tooltip={node.data.uuid}
                                     x={node.x}

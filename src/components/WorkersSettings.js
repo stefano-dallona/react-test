@@ -13,6 +13,7 @@ import { ScrollPanel } from 'primereact/scrollpanel';
 
 
 import cloneDeep from 'lodash/cloneDeep';
+import startCase from 'lodash/startCase';
 import create_UUID from '../utils/Uuid';
 
 var parse = require('html-react-parser');
@@ -107,7 +108,9 @@ class WorkersSettings extends Component {
     }
 
     getWorkers = () => {
-        let workers = this.defaultSettings.map((worker) => worker.name)
+        let workers = this.defaultSettings.map((worker) => {
+            return { "label": startCase(worker.name), "value": worker.name }
+        })
         return workers
     }
 
@@ -145,7 +148,12 @@ class WorkersSettings extends Component {
     }
 
     deleteWorker = () => {
-        if (!this.state.currentWorker) return;
+        if (!this.state.currentWorker) {
+            return;
+        }
+        if (this.state.currentWorker === 'ZerosPLC') {
+            throw new Error("Cannot delete Zeros PLC instance !")
+        }
         let currentWorkerSettings = this.state.currentWorkerSettings
         if (this.state.selectedWorkers) {
             let clonedSelectedWorkers = cloneDeep(this.state.selectedWorkers)
@@ -154,8 +162,16 @@ class WorkersSettings extends Component {
         this.setCurrentWorker(null)
     }
 
+    handleDelete = () => {
+        try {
+            this.deleteWorker()
+        } catch (err) {
+            this.showMessage('error', err.message)
+        }
+    }
+
     isNewWorker = (workerSettings) => {
-        return !this.state.selectedWorkers.find((ws) => ws.uuid == workerSettings.uuid)
+        return !this.state.selectedWorkers.find((ws) => workerSettings && ws.uuid === workerSettings.uuid)
     }
 
     isDuplicatedWorker = (workerSettings) => {
@@ -240,7 +256,7 @@ class WorkersSettings extends Component {
                 {
                     settings.map((setting) => {
                         return (<tr>
-                            <td style={{ width: "45%" }}><b>{setting.property}:</b></td>
+                            <td style={{ width: "45%" }}><b>{setting.property.replaceAll('_', ' ')}:</b></td>
                             <td style={{ width: "55%" }}>{setting.value}</td>
                         </tr>)
                     })
@@ -252,14 +268,14 @@ class WorkersSettings extends Component {
     configurationItem = (option) => {
         return (
             <div className="p-inputgroup" style={{ display: "flex", flexWrap: "wrap" }}>
-                <span className="justify-content-left" style={{ width: "20%" }}>{option.name}</span>
+                <span className="justify-content-left" style={{ width: "20%" }}>{startCase(option.name)}</span>
                 <span className="justify-content-left" style={{ width: "65%" }}>{this.getSettingsAsHtmlTable(option.settings)}</span>
                 <span className="justify-content-left" style={{ width: "15%" }}>
                     <ConfirmDialog
                         visible={this.state.confirmationMessage}
                         onHide={() => this.setConfirmationMessage(null)}
                         message="Are you sure you want to proceed?" icon="pi pi-exclamation-triangle"
-                        accept={() => { this.deleteWorker() }} />
+                        accept={this.handleDelete} />
                     <Button
                         rounded
                         icon="pi pi-pencil"
@@ -290,25 +306,29 @@ class WorkersSettings extends Component {
                             {this.defaultSettings.length > 1 && (
                                 <div className="p-inputgroup" style={{ width: '100%', height: '50px', border: "none" }}>
                                     <label className="mt-2" style={{ textAlign: 'left', color: 'white', width: '20%' }}>Algorithm</label>
-                                    <Dropdown value={this.state.currentWorker} onChange={(e) => this.setCurrentWorker(e.target.value)} options={this.getWorkers()}
-                                        placeholder={this.workerType} className="w-full md:w-14rem" style={{ height: "2.1rem" }} />
+                                    <Dropdown value={this.state.currentWorker}
+                                        onChange={(e) => this.setCurrentWorker(e.target.value)}
+                                        options={this.getWorkers()}
+                                        optionLabel='label'
+                                        optionValue='value'
+                                        placeholder={startCase(this.workerType)}
+                                        className="w-full md:w-14rem"
+                                        style={{ height: "2.1rem" }} />
                                     <Button
                                         rounded
-                                        icon="pi pi-plus"
-                                        severity="success"
-                                        tooltip="Add"
+                                        icon="pi pi-info-circle"
+                                        severity="info"
+                                        tooltip={""}
                                         tooltipOptions={{ position: 'top' }}
                                         className="ml-4 mr-2 mb-2"
-                                        style={{ display: (!this.state.currentWorker || !this.isNewWorker(this.state.currentWorkerSettings)) ? "none" : "" }}
-                                        onClick={(e) => this.saveWorker()}></Button>
+                                        disabled={!this.state.currentWorkerSettings}></Button>
                                     <Button
                                         rounded
-                                        icon="pi pi-save"
+                                        icon={this.isNewWorker(this.state.currentWorkerSettings) ? "pi pi-plus": "pi pi-save"}
                                         severity="success"
-                                        tooltip="Save"
+                                        tooltip={this.isNewWorker(this.state.currentWorkerSettings) ? "Add": "Save"}
                                         tooltipOptions={{ position: 'top' }}
                                         className="ml-4 mr-2 mb-2"
-                                        style={{ display: (!this.state.currentWorker || this.isNewWorker(this.state.currentWorkerSettings)) ? "none" : "" }}
                                         onClick={(e) => this.saveWorker()}></Button>
                                 </div>
                             )}
@@ -318,7 +338,7 @@ class WorkersSettings extends Component {
                                     {this.state.currentWorkerSettings && this.state.currentWorkerSettings.settings.map((setting) => {
                                         return (
                                             <div key={"group-" + setting.property} className="p-inputgroup">
-                                                <label key={"label-" + setting.property} htmlFor={setting.property} style={{ textAlign: 'left', color: 'white', width: '20%' }}>{setting.property}</label>
+                                                <label key={"label-" + setting.property} htmlFor={setting.property} style={{ textAlign: 'left', color: 'white', width: '20%' }}>{setting.property.replaceAll('_', ' ')}</label>
                                                 {this.cellEditor(setting)}
                                             </div>
                                         )

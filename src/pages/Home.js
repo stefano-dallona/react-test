@@ -16,6 +16,7 @@ import Markdown from 'react-markdown';
 import settings_icon from '../assets/icons/settings.svg'
 import reports_icon from '../assets/icons/reports.svg'
 import edit_icon from '../assets/icons/pencil.svg'
+import search_icon from '../assets/icons/search.svg'
 
 import '../css/home.css'
 
@@ -30,9 +31,10 @@ export const Home = (props) => {
 
     useEffect(() => {
         setTasks([
-            { id: "1", name: "Configure new Run", img: settings_icon, description: "Configure a new elaboration", command: () => { navigate("/run/configuration") } },
-            { id: "2", name: "Analyze existing Run", img: reports_icon, description: "Analyze an existing elaboration", command: () => { navigate("/run/execution") } },
-            { id: "3", name: "Modify new Run", img: edit_icon, description: "Modify an existing new elaboration", command: () => { navigate("/run/analysis") } },
+            { id: "1", name: "Configure new Run", img: settings_icon, description: "Configure a new elaboration, choosing input files, setting algorithms and parameters", command: () => { navigate("/run/configuration") } },
+            { id: "2", name: "Analyze existing Run", img: reports_icon, description: "Analyze an existing elaboration, navigate waveforms, play files, compare metrics and spectrograms", command: () => { navigate("/run/analysis") } },
+            { id: "3", name: "Edit Run", img: edit_icon, description: "Modify an existing elaboration by changing worker settings or input files", command: () => { navigate("/run/execution") } },
+            { id: "4", name: "Find Run", img: search_icon, description: "Search an existing new elaboration composing your own queries", command: () => { navigate("/run/history") } },
         ])
     }, []);
 
