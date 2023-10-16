@@ -16,6 +16,8 @@ import { Toast } from 'primereact/toast'
 import { useContainer } from "../components/ServicesContextProvider"
 import { Tooltip } from "primereact/tooltip";
 
+import brain_icon from "../assets/icons/brain-electricity.svg"
+
 export const RunExecution = (props) => {
     let navigate = useNavigate()
     let { runId } = useParams()
@@ -24,6 +26,7 @@ export const RunExecution = (props) => {
     let [executionInProgress, setExecutionInProgress] = useState(false)
     let servicesContainer = useContainer()
     let [currentFileIndex, setCurrentFileIndex] = useState(0)
+    let [runStatus, setRunStatus] = useState(0)
 
     useEffect(() => {
     }, [])
@@ -57,6 +60,7 @@ export const RunExecution = (props) => {
         setExecutionInProgress(false)
         runHierarchy.current.resetProgressBars(100, true)
         localStorage.removeItem("runExecution:" + runId)
+        setRunStatus(runHierarchy.current.run.status)
         let ok = success === 'true'
         showMessage(ok ? 'info' : 'error', ok ? `Execution completed successfully` : `Execution failed! ${errorMessage}`, '')
     }
@@ -89,11 +93,17 @@ export const RunExecution = (props) => {
         }
     }
 
+    const isRunCompleted = () => {
+        return !runHierarchy.current ||
+            !runHierarchy.current.run ||
+            runHierarchy.current.run.status !== 'COMPLETED'
+    }
+
     const startContent = (
         <React.Fragment>
             <Button
                 rounded
-                icon="pi pi-cog"
+                icon="pi pi-play"
                 tooltip="Execute"
                 severity='warning'
                 tooltipOptions={{ position: 'top' }}
@@ -108,11 +118,11 @@ export const RunExecution = (props) => {
                 tooltipOptions={{ position: 'top' }}
                 className="mr-2"
                 onClick={analyse}
-                disabled={executionInProgress}></Button>
+                disabled={executionInProgress || runStatus !== 'COMPLETED'}></Button>
             <Button
                 rounded
                 icon="pi pi-step-backward"
-                tooltip="Previous"
+                tooltip="Previous Audio File"
                 severity="info"
                 tooltipOptions={{ position: 'top' }}
                 className="mr-2"
@@ -121,7 +131,7 @@ export const RunExecution = (props) => {
             <Button
                 rounded
                 icon="pi pi-step-forward"
-                tooltip="Next"
+                tooltip="Next Audio File"
                 severity="info"
                 tooltipOptions={{ position: 'top' }}
                 className="mr-2"
@@ -180,16 +190,16 @@ export const RunExecution = (props) => {
                 <div className={options.className}>
                     <span className={options.titleClassName}>Run Execution</span>
                     <span>
-                    <Button
-                        rounded
-                        size="large"
-                        text
-                        icon="pi pi-info-circle"
-                        iconPos="right"
-                        severity='info'
-                        tooltip="Inspect the structure of the elaboration, run it and monitor progress"
-                        tooltipOptions={{ position: 'top' }}
-                        className={options.titleClassName + ' mr-2'}></Button>
+                        <Button
+                            rounded
+                            size="large"
+                            text
+                            icon="pi pi-info-circle"
+                            iconPos="right"
+                            severity='info'
+                            tooltip="Inspect the structure of the elaboration, run it and monitor progress"
+                            tooltipOptions={{ position: 'top' }}
+                            className={options.titleClassName + ' mr-2'}></Button>
                         {endContent}
                     </span>
                 </div>

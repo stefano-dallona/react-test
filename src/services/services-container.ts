@@ -59,7 +59,10 @@ class AxiosClient {
           }
         } else {
           if (window["globalToast"]) {
-            window["globalToast"].current.show({ severity: "error", summary: (error.response.data) ? error.response.data : error.message, detail: "" });
+            let errorMessage = error.response.data && this.connectionToDbFailed(error.response.data) ?
+                              "Cannot connect to DB !" :
+                              ((error.response.data) ?error.response.data : error.message)
+            window["globalToast"].current.show({ severity: "error", summary: errorMessage, detail: "" });
           }
         }
       }
@@ -84,6 +87,10 @@ class AxiosClient {
 
   delete = (url, config) => {
     return trackPromise(this.client.delete(url, config))
+  }
+
+  connectionToDbFailed = (errorMessage) => {
+    return errorMessage.indexOf("[Errno 10061] WSAECONNREFUSED")
   }
 
 }

@@ -129,7 +129,8 @@ export const RunHistory = (props) => {
                 disabled={false}></Button>
             <Button
                 rounded
-                icon="pi pi-cog"
+                /*icon="pi pi-cog"*/
+                icon="pi pi-play"
                 severity='warning'
                 tooltip="Execute"
                 tooltipOptions={{ position: 'top' }}

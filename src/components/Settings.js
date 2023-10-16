@@ -38,7 +38,7 @@ class Settings extends Component {
 
         this.defaultSettings = []
         this.runId = props.runId
-        this.storedSettings = this.runId ? this.loadConfigurationFromTemporaryStorage() : [[], [{ "name": "ZerosPLC", "settings" : [] }], [], []]
+        this.storedSettings = this.runId ? this.loadConfigurationFromTemporaryStorage() : [[], [], [{ "name": "ZerosPLC", "settings" : [] }], []]
 
         this.state = {
             currentPage: 0
@@ -101,14 +101,14 @@ class Settings extends Component {
             if (workerSettings) {
                 let workersSettings = (workerSettings instanceof Array) ? workerSettings : [workerSettings]
                 if (workersSettings.length == 0) {
-                    errors.push(`${this.getCurrentPageName()}: Settings need to be filled in`)
+                    errors.push(`${this.getCurrentPageName()}: Add at least one module`)
                 } else {
                     errors = workersSettings.flatMap((workerSettings) => {
                         return validate(workerSettings)
                     })
                 }
             } else {
-                errors.push(`${this.getCurrentPageName()}: Settings need to be filled in`)
+                errors.push(`${this.getCurrentPageName()}: Add at least one module`)
             }
         }
         return errors

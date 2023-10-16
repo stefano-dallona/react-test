@@ -58,6 +58,7 @@ class RunHierarchy extends Component {
             filename: props.filename,
             data: null,
             selectedKeys: null,
+            runStatus: null
         };
     }
 
@@ -89,6 +90,9 @@ class RunHierarchy extends Component {
 
     async loadRun() {
         this.run = await this.servicesContainer.configurationService.getRun(this.state.runId)
+        if (this.run) {
+            this.setRunStatus(this.run.status)
+        }
     }
 
     async loadData(currentPercentage = 0) {
@@ -142,6 +146,12 @@ class RunHierarchy extends Component {
     setData(data) {
         this.setState({
             data: data
+        });
+    }
+
+    setRunStatus(runStatus) {
+        this.setState({
+            runStatus: runStatus
         });
     }
 
@@ -334,6 +344,8 @@ class RunHierarchy extends Component {
                 }
                 if (message.success !== 'true') {
                     this.loadRun()
+                } else {
+                    this.setRunStatus('COMPLETED')
                 }
                 this.onExecutionCompleted(this.state.runId, task_id, message.success, message.errorMessage)
             }

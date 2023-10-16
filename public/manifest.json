@@ -1,6 +1,6 @@
 {
-  "short_name": "PLC Testbench UI",
-  "name": "PLC Testbench UI",
+  "short_name": "UI",
+  "name": "PLC Testbench",
   "icons": [
     {
       "src": "favicon.ico",

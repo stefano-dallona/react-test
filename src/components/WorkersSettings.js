@@ -265,6 +265,14 @@ class WorkersSettings extends Component {
         )
     }
 
+    getWorkerInfo(worker) {
+        return worker ? this.defaultSettings.filter((workerSettings) => {
+            return workerSettings.name === worker
+        }).map((workerSettings) => {
+            return workerSettings.doc
+        })[0]: ""
+    }
+
     configurationItem = (option) => {
         return (
             <div className="p-inputgroup" style={{ display: "flex", flexWrap: "wrap" }}>
@@ -318,7 +326,7 @@ class WorkersSettings extends Component {
                                         rounded
                                         icon="pi pi-info-circle"
                                         severity="info"
-                                        tooltip={""}
+                                        tooltip={this.getWorkerInfo(this.state.currentWorker)}
                                         tooltipOptions={{ position: 'top' }}
                                         className="ml-4 mr-2 mb-2"
                                         disabled={!this.state.currentWorkerSettings}></Button>
@@ -328,7 +336,7 @@ class WorkersSettings extends Component {
                                         severity="success"
                                         tooltip={this.isNewWorker(this.state.currentWorkerSettings) ? "Add": "Save"}
                                         tooltipOptions={{ position: 'top' }}
-                                        className="ml-4 mr-2 mb-2"
+                                        className="mr-2 mb-2"
                                         onClick={(e) => this.saveWorker()}></Button>
                                 </div>
                             )}
