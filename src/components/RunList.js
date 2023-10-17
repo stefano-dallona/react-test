@@ -8,7 +8,7 @@ import { Tooltip } from 'primereact/tooltip';
 import { Button } from 'primereact/button';
 
 import { ConfigurationService } from '../services/testbench-configuration-service';
-import EventBus from '../services/service-integration-bus'
+import EventBus from '../services/event-bus'
 
 
 class RunList extends Component {

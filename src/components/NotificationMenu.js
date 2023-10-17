@@ -9,7 +9,7 @@ import { OverlayPanel } from 'primereact/overlaypanel';
 import { Messages } from 'primereact/messages';
 import { useMountEffect } from 'primereact/hooks';
 
-import EventBus from '../services/service-integration-bus'
+import EventBus from '../services/event-bus'
 
 class NotificationMenu extends Component {
 
