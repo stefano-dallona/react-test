@@ -56,6 +56,11 @@ export const RunHistory = (props) => {
         console.log(`user:${user}`);
     }
 
+    const refresh = () => {
+        runList.current.setQuery(null)
+        runList.current.loadData()
+    }
+
     const execute = () => {
         if (!runList.current.state.selectedRun) {
             showMessage('info', `Please select a run for execution`, '')
@@ -107,11 +112,25 @@ export const RunHistory = (props) => {
         }
     }
 
+    const editHandler = (runId) => {
+        navigate(`/run/configuration?runId=${runId}`)
+    }
+
     const startContent = (
         <React.Fragment>
             <Button
                 rounded
-                icon="pi pi-cog"
+                icon="pi pi-refresh"
+                severity='info'
+                tooltip="Refresh"
+                tooltipOptions={{ position: 'top' }}
+                className="mr-2"
+                onClick={refresh}
+                disabled={false}></Button>
+            <Button
+                rounded
+                /*icon="pi pi-cog"*/
+                icon="pi pi-play"
                 severity='warning'
                 tooltip="Execute"
                 tooltipOptions={{ position: 'top' }}
@@ -142,7 +161,12 @@ export const RunHistory = (props) => {
                     loadSavedFiltersHandler={loadSavedFilters}*/ />
             </Panel>
             <Panel header="Run List">
-                <RunList servicesContainer={servicesContainer} ref={runList} query={null} parentChangeHandler={onChange}></RunList>
+                <RunList
+                    servicesContainer={servicesContainer}
+                    ref={runList}
+                    query={null}
+                    parentChangeHandler={onChange}
+                    rowEditHandler={editHandler}></RunList>
             </Panel>
             <Toast ref={toast} />
             {(!location.state || !location.state.nextPage) && (

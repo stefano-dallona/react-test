@@ -4,8 +4,11 @@ import { trackPromise } from 'react-promise-tracker';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { Paginator } from 'primereact/paginator'
+import { Tooltip } from 'primereact/tooltip';
+import { Button } from 'primereact/button';
 
 import { ConfigurationService } from '../services/testbench-configuration-service';
+import EventBus from '../services/event-bus'
 
 
 class RunList extends Component {
@@ -14,6 +17,7 @@ class RunList extends Component {
         super(props);
 
         this.servicesContainer = props.servicesContainer
+        this.rowEditHandler = props.rowEditHandler || ((runId) => {})
 
         this.state = {
             query: null,
@@ -43,7 +47,7 @@ class RunList extends Component {
         this.setState({
             page: page,
             pageSize: pageSize
-        }, callback) 
+        }, callback)
     }
 
     setSelectedRun(runId) {
@@ -65,6 +69,21 @@ class RunList extends Component {
                 runId: "bf1a641d-ff68-4715-a897-d4b96dd70150"
             }]
         });*/
+        this.startListeningForRunUpdates()
+    }
+
+    componentWillUnmount() {
+        this.stopListeningForRunUpdates()
+    }
+
+    startListeningForRunUpdates() {
+        EventBus.on("runCompleted", (data) => {
+            this.updateRunStatus(data.detail.runId, data.detail.status)
+        })
+    }
+
+    stopListeningForRunUpdates() {
+        EventBus.remove("runCompleted")
     }
 
     async loadData(page = 0) {
@@ -72,6 +91,26 @@ class RunList extends Component {
         let result = await trackPromise(this.state.query ? this.servicesContainer.configurationService.findRunsByFilter(this.state.query, {}, pagination) : this.servicesContainer.configurationService.findAllRuns(pagination));
         result.data.forEach((row) => { row.input_files = row.selected_input_files.join(",") })
         this.setData(result.data, page, result.totalRecords);
+    }
+
+    updateRunStatus(runId, status) {
+        let newData = this.state.data.map((row) => {
+            return (runId !== row.run_id) ? row : {
+                ...row,
+                status: status
+            }
+        })
+        let modified = JSON.stringify(this.state.data) !== JSON.stringify(newData)
+        if (modified) {
+            this.setData(newData, this.state.page, this.state.totalRecords);
+        }
+    }
+
+    async modifyRun(runId) {
+        let runConfiguration = await trackPromise(this.servicesContainer.configurationService.getRunConfiguration(runId));
+        let key = "plc-testbench-ui.configuration"
+        localStorage.setItem(key, JSON.stringify(runConfiguration))
+        this.rowEditHandler(runId)
     }
 
     onPageChange = (event) => {
@@ -82,21 +121,23 @@ class RunList extends Component {
     getStatusIcon = (status) => {
         switch (status) {
             case 'CREATED':
-                return null;
+                return (
+                    <i className="pi pi-minus status" data-pr-tooltip={status} style={{ fontSize: '1rem' }}></i>
+                );
 
             case 'RUNNING':
                 return (
-                    <i className="pi pi-spin pi-spinner" style={{ fontSize: '1rem' }}></i>
+                    <i className="pi pi-spin pi-spinner status" data-pr-tooltip={status} style={{ fontSize: '1rem' }}></i>
                 );
 
             case 'COMPLETED':
                 return (
-                    <i className="pi pi-check" style={{ color: 'white', fontSize: '1rem' }}></i>
+                    <i className="pi pi-check status" data-pr-tooltip={status} style={{ color: 'white', fontSize: '1rem' }}></i>
                 );
 
             case 'FAILED':
                 return (
-                    <i className="pi pi-times" style={{ color: 'red', fontSize: '1rem' }}></i>
+                    <i className="pi pi-times" data-pr-tooltip={status} style={{ color: 'red', fontSize: '1rem' }}></i>
                 );
 
             default:
@@ -107,7 +148,23 @@ class RunList extends Component {
     statusBodyTemplate = (rowData) => {
         return (
             <div className="flex align-items-center gap-2">
+                <Tooltip target=".status" />
                 {this.getStatusIcon(rowData.status)}
+            </div>
+        );
+    }
+
+    actionsBodyTemplate = (rowData) => {
+        return (
+            <div className="flex align-items-center gap-2">
+                <Button
+                    rounded
+                    icon="pi pi-pencil"
+                    tooltip="Modify"
+                    severity='warning'
+                    tooltipOptions={{ position: 'top' }}
+                    className="mr-2"
+                    onClick={() => {this.modifyRun(rowData["run_id"])}}></Button>
             </div>
         );
     }
@@ -115,7 +172,7 @@ class RunList extends Component {
     selectedInputFilesBodyTemplate = (run) => {
         return (
             <ul>
-                { run.selected_input_files.map((file) => <li key={file}>{file}</li>) }
+                {run.selected_input_files.map((file) => <li key={file}>{file}</li>)}
             </ul>
         )
     }
@@ -135,16 +192,17 @@ class RunList extends Component {
         return (
             <div id="runList">
                 <DataTable lazy
-                        stripedRows
-                        value={this.state.data}
-                        selectionMode="single"
-                        selection={this.state.selectedRun}
-                        onSelectionChange={(e) => this.setSelectedRun(e.value)}>
+                    stripedRows
+                    value={this.state.data}
+                    selectionMode="single"
+                    selection={this.state.selectedRun}
+                    onSelectionChange={(e) => this.setSelectedRun(e.value)}>
                     <Column field="run_id" header="Run ID"></Column>
                     <Column field="selected_input_files" header="Files" body={this.selectedInputFilesBodyTemplate}></Column>
                     <Column field="created_on" header="Created On"></Column>
                     <Column field="creator" header="Creator"></Column>
                     <Column field="status" header="Status" body={this.statusBodyTemplate}></Column>
+                    <Column header="Actions" body={this.actionsBodyTemplate}></Column>
                 </DataTable>
                 <Paginator
                     template={this.paginatorTemplate}

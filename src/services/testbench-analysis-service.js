@@ -74,7 +74,7 @@ export class AnalysisService {
         return samplesJson;
     }
 
-    async fetchMetricsFromFile(run_id, original_file_node_id, audio_file_node_id, metric_node_id, category, channel, offset, num_samples, unit_of_meas) {
+    async fetchMetricsFromFile(run_id, original_file_node_id, audio_file_node_id, metric_node_id, category, channel, offset, num_samples, loss_simulation, unit_of_meas) {
         let requestUrl = `${this.baseUrl}/analysis/runs/${run_id}/input-files/${original_file_node_id}/output-files/${audio_file_node_id}/metrics/${metric_node_id}?channel=${channel}&offset=${offset}&num_samples=${num_samples}&unit_of_meas=${unit_of_meas}&category=${category}`
         /*
         const metricsResponse = await fetch(requestUrl)

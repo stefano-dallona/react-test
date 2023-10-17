@@ -10,8 +10,12 @@ class ProgressSpinner extends Component {
     constructor(props) {
         super(props);
 
+        this.visibilityHandler = props.visibilityHandler || (() => { return 'visible' })
+        this.title = props.title || ""
+        this.node = props.node || null
         this.contextMenuRef = props.contextMenuRef || null
-        this.rightClickHandler = props.rightClickHandler || ((node_id) => {})
+        this.textHandler = props.textHandler || ((progress) => { return `${progress}` })
+        this.rightClickHandler = props.rightClickHandler || ((node_id) => { })
 
         this.state = {
             nodeId: props.nodeId || "",
@@ -51,10 +55,10 @@ class ProgressSpinner extends Component {
         this.setState({
             eta: eta
         });
-    }    
+    }
 
     drawMainArc() {
-        const outerRadius = this.state.r * 2;
+        const outerRadius = this.state.r * 3.2;
         const thickness = outerRadius / 5;
 
         const mainArc = d3arc()
@@ -67,7 +71,7 @@ class ProgressSpinner extends Component {
     }
 
     drawProgressArc() {
-        const outerRadius = this.state.r * 2;
+        const outerRadius = this.state.r * 3.2;
         const thickness = outerRadius / 5;
 
         const progressArc = d3arc()
@@ -97,22 +101,41 @@ class ProgressSpinner extends Component {
         return (formattedTime !== "") ? formattedTime : "0s"
     }
 
+    getTooltip() {
+        let data = {
+            "node id": this.state.nodeId,
+            "ETA": this.state.eta > 0 ? `${this.formatTime(this.state.eta)}` : "",
+            ...(this.node ? this.node.worker_settings : [])
+        }
+        return (<table width="100%">
+            {
+                Object.keys(data).filter((key) => {
+                    return key !== 'ETA' || (this.state.currentPercentage > 0 && this.state.currentPercentage < 100)
+                }).map((key) => {
+                    return (
+                        <tr><td><b>{key}:</b></td><td>{data[key]}</td></tr>
+                    )
+                })
+            }
+        </table>)
+    }
+
     render() {
         return (
-            <g id={`pb-${this.state.nodeId}`}
-                style={{cursor: 'pointer'}}
-                transform={`translate(${this.state.x}, ${this.state.y})`}
-                onContextMenu={(e) => { this.handleContextMenu(e) }}>
-                <Tooltip target={`#pb-${this.state.nodeId}`} updateDelay={1000}>
-                    <span>node id: {this.state.nodeId}</span><br/>
-                    <span
-                        hidden={(this.state.currentPercentage === 0 || this.state.currentPercentage === 100)}>
-                            {this.state.eta > 0 ? `ETA: ${ this.formatTime(this.state.eta) }` : ""}</span><br/>
-                </Tooltip>
-                <path fill="white" className="progress-bar-bg" d={this.drawMainArc()} />
-                <path fill="green" className="progress-bar" d={this.drawProgressArc()} />
-                <text textAnchor="middle" stroke="white" className="progress-label" transform={`translate(0, 5)`}>{this.state.currentPercentage}</text>
-            </g>
+            this.visibilityHandler() === 'visible' ?
+                <g id={`pb-${this.state.nodeId}`}
+                    style={{ cursor: 'pointer' }}
+                    transform={`translate(${this.state.x}, ${this.state.y})`}
+                    onContextMenu={(e) => { this.handleContextMenu(e) }}>
+                    <Tooltip target={`#pb-${this.state.nodeId}`} updateDelay={1000}>
+                        {this.getTooltip()}
+                    </Tooltip>
+                    <text textAnchor="middle" stroke="white" className="progress-title" transform={`translate(0, -120)`}>{this.title}</text>
+                    <path fill="white" className="progress-bar-bg" d={this.drawMainArc()} />
+                    <path fill={this.state.currentPercentage < 100 ? "orange" : "green"} className="progress-bar" d={this.drawProgressArc()} />
+                    <text textAnchor="middle" stroke="white" className="progress-label" transform={`translate(0, 5)`}>{this.textHandler(this.state.currentPercentage ? this.state.currentPercentage : 0)}</text>
+                </g>
+                : ""
         )
     }
 }

@@ -13,7 +13,27 @@ import { ScrollPanel } from 'primereact/scrollpanel';
 
 
 import cloneDeep from 'lodash/cloneDeep';
+import startCase from 'lodash/startCase';
 import create_UUID from '../utils/Uuid';
+
+var parse = require('html-react-parser');
+
+/*
+
+//https://stackoverflow.com/questions/14829708/most-pythonic-way-to-provide-function-metadata-at-compile-time
+//https://docs.python-cerberus.org/validation-rules.html
+//https://towardsdatascience.com/6-approaches-to-validate-class-attributes-in-python-b51cffb8c4ea
+//https://docs.pydantic.dev/latest/concepts/validators/
+//https://docs.pydantic.dev/1.10/usage/validators/
+//Useful ideas to manage validation
+
+// https://primereact.org/message/
+#Form for displaying messages
+
+Validation REST endpoint
+//https://stackoverflow.com/questions/11676550/how-to-expose-a-validation-api-in-a-restful-way
+
+*/
 
 class WorkersSettings extends Component {
 
@@ -30,7 +50,7 @@ class WorkersSettings extends Component {
         this.state = {
             currentWorker: null,
             currentWorkerSettings: null,
-            selectedWorkers: [],
+            selectedWorkers: props.selectedWorkers || [],
             confirmationMessage: null
         };
     }
@@ -88,7 +108,9 @@ class WorkersSettings extends Component {
     }
 
     getWorkers = () => {
-        let workers = this.defaultSettings.map((worker) => worker.name)
+        let workers = this.defaultSettings.map((worker) => {
+            return { "label": startCase(worker.name), "value": worker.name }
+        })
         return workers
     }
 
@@ -120,21 +142,36 @@ class WorkersSettings extends Component {
     }
 
     showMessage = (severity, summary, detail) => {
-        if (this.toast && this.toast.current)
+        if (this.toast && this.toast.current) {
             this.toast.current.show({ severity: severity, summary: summary, detail: detail });
+        }
     }
 
     deleteWorker = () => {
-        if (!this.state.currentWorker) return;
+        if (!this.state.currentWorker) {
+            return;
+        }
+        if (this.state.currentWorker === 'ZerosPLC') {
+            throw new Error("Cannot delete Zeros PLC instance !")
+        }
         let currentWorkerSettings = this.state.currentWorkerSettings
         if (this.state.selectedWorkers) {
-            this.setSelectedWorkers(this.state.selectedWorkers.filter((oa) => (oa.uuid != currentWorkerSettings.uuid)))
+            let clonedSelectedWorkers = cloneDeep(this.state.selectedWorkers)
+            this.setSelectedWorkers(clonedSelectedWorkers.filter((oa) => (oa.uuid != currentWorkerSettings.uuid)))
         }
         this.setCurrentWorker(null)
     }
 
+    handleDelete = () => {
+        try {
+            this.deleteWorker()
+        } catch (err) {
+            this.showMessage('error', err.message)
+        }
+    }
+
     isNewWorker = (workerSettings) => {
-        return !this.state.selectedWorkers.find((ws) => ws.uuid == workerSettings.uuid)
+        return !this.state.selectedWorkers.find((ws) => workerSettings && ws.uuid === workerSettings.uuid)
     }
 
     isDuplicatedWorker = (workerSettings) => {
@@ -143,13 +180,13 @@ class WorkersSettings extends Component {
             delete cws.uuid
             let clonedWorkerSettings = cloneDeep(workerSettings)
             delete clonedWorkerSettings.uuid
-            return JSON.stringify(cws) === JSON.stringify(clonedWorkerSettings)
+            return JSON.stringify({ "name": cws.name, "settings": cws.settings}) === JSON.stringify({ "name": clonedWorkerSettings.name, "settings": clonedWorkerSettings.settings})
         })
         return sameWorker && sameWorker.uuid !== workerSettings.uuid
     }
 
     loadSelectedWorker = (value) => {
-        let currentWorkerSettings = this.state.selectedWorkers.find((oa) => oa.uuid == value)
+        let currentWorkerSettings = this.state.selectedWorkers.find((oa) => oa.uuid === value)
         if (currentWorkerSettings) {
             this.setCurrentWorker(currentWorkerSettings.name)
             this.setCurrentWorkerSettings(currentWorkerSettings)
@@ -213,16 +250,40 @@ class WorkersSettings extends Component {
             onChange={(e) => this.setPropertyValue(setting, e.value)} />
     }
 
+    getSettingsAsHtmlTable(settings) {
+        return (
+            <table style={{ width: "80%", tableLayout: "fixed" }}>
+                {
+                    settings.map((setting) => {
+                        return (<tr>
+                            <td style={{ width: "45%" }}><b>{setting.property.replaceAll('_', ' ')}:</b></td>
+                            <td style={{ width: "55%" }}>{setting.value}</td>
+                        </tr>)
+                    })
+                }
+            </table>
+        )
+    }
+
+    getWorkerInfo(worker) {
+        return worker ? this.defaultSettings.filter((workerSettings) => {
+            return workerSettings.name === worker
+        }).map((workerSettings) => {
+            return workerSettings.doc
+        })[0]: ""
+    }
+
     configurationItem = (option) => {
         return (
             <div className="p-inputgroup" style={{ display: "flex", flexWrap: "wrap" }}>
-                <span className="justify-content-left" style={{ width: "80%" }}>{option.name}</span>
-                <span className="justify-content-left" style={{ width: "20%" }}>
+                <span className="justify-content-left" style={{ width: "20%" }}>{startCase(option.name)}</span>
+                <span className="justify-content-left" style={{ width: "65%" }}>{this.getSettingsAsHtmlTable(option.settings)}</span>
+                <span className="justify-content-left" style={{ width: "15%" }}>
                     <ConfirmDialog
                         visible={this.state.confirmationMessage}
                         onHide={() => this.setConfirmationMessage(null)}
                         message="Are you sure you want to proceed?" icon="pi pi-exclamation-triangle"
-                        accept={() => { this.deleteWorker() }} />
+                        accept={this.handleDelete} />
                     <Button
                         rounded
                         icon="pi pi-pencil"
@@ -249,29 +310,33 @@ class WorkersSettings extends Component {
             <div className="card p-fluid">
                 <Splitter style={{ height: '30rem' }}>
                     <SplitterPanel size={50} className="flex align-items-center justify-content-center">
-                        <Panel /*header={this.header} toggleable={this.toggleable}*/ style={{ position: "relative", width: "100%", height: '30rem', border: 'none'}}>
+                        <Panel /*header={this.header} toggleable={this.toggleable}*/ style={{ position: "relative", width: "100%", height: '30rem', border: 'none' }}>
                             {this.defaultSettings.length > 1 && (
                                 <div className="p-inputgroup" style={{ width: '100%', height: '50px', border: "none" }}>
                                     <label className="mt-2" style={{ textAlign: 'left', color: 'white', width: '20%' }}>Algorithm</label>
-                                    <Dropdown value={this.state.currentWorker} onChange={(e) => this.setCurrentWorker(e.target.value)} options={this.getWorkers()}
-                                        placeholder={this.workerType} className="w-full md:w-14rem" style={{height: "2.1rem"}}/>
+                                    <Dropdown value={this.state.currentWorker}
+                                        onChange={(e) => this.setCurrentWorker(e.target.value)}
+                                        options={this.getWorkers()}
+                                        optionLabel='label'
+                                        optionValue='value'
+                                        placeholder={startCase(this.workerType)}
+                                        className="w-full md:w-14rem"
+                                        style={{ height: "2.1rem" }} />
                                     <Button
                                         rounded
-                                        icon="pi pi-plus"
-                                        severity="success"
-                                        tooltip="Add"
+                                        icon="pi pi-info-circle"
+                                        severity="info"
+                                        tooltip={this.getWorkerInfo(this.state.currentWorker)}
                                         tooltipOptions={{ position: 'top' }}
                                         className="ml-4 mr-2 mb-2"
-                                        style={{ display: (!this.state.currentWorker || !this.isNewWorker(this.state.currentWorkerSettings)) ? "none" : "" }}
-                                        onClick={(e) => this.saveWorker()}></Button>
+                                        disabled={!this.state.currentWorkerSettings}></Button>
                                     <Button
                                         rounded
-                                        icon="pi pi-save"
+                                        icon={this.isNewWorker(this.state.currentWorkerSettings) ? "pi pi-plus": "pi pi-save"}
                                         severity="success"
-                                        tooltip="Save"
+                                        tooltip={this.isNewWorker(this.state.currentWorkerSettings) ? "Add": "Save"}
                                         tooltipOptions={{ position: 'top' }}
-                                        className="ml-4 mr-2 mb-2"
-                                        style={{ display: (!this.state.currentWorker || this.isNewWorker(this.state.currentWorkerSettings)) ? "none" : "" }}
+                                        className="mr-2 mb-2"
                                         onClick={(e) => this.saveWorker()}></Button>
                                 </div>
                             )}
@@ -281,7 +346,7 @@ class WorkersSettings extends Component {
                                     {this.state.currentWorkerSettings && this.state.currentWorkerSettings.settings.map((setting) => {
                                         return (
                                             <div key={"group-" + setting.property} className="p-inputgroup">
-                                                <label key={"label-" + setting.property} htmlFor={setting.property} style={{ textAlign: 'left', color: 'white', width: '20%' }}>{setting.property}</label>
+                                                <label key={"label-" + setting.property} htmlFor={setting.property} style={{ textAlign: 'left', color: 'white', width: '20%' }}>{setting.property.replaceAll('_', ' ')}</label>
                                                 {this.cellEditor(setting)}
                                             </div>
                                         )
@@ -294,7 +359,7 @@ class WorkersSettings extends Component {
                         {this.defaultSettings.length > 1 && (
                             <Panel header={"Selected algorithms"}
                                 /*toggleable={this.toggleable}*/
-                                style={{ position: "relative", width: "100%", height: "100%"}}>
+                                style={{ position: "relative", width: "100%", height: "100%" }}>
                                 <ListBox value={this.state.selectedWorkers}
                                     onChange={(e) => this.loadSelectedWorker(e.value)}
                                     options={this.state.selectedWorkers}

@@ -13,6 +13,7 @@ import WorkersSettings from './WorkersSettings';
 //import defaultSettings from '../assets/settings.json';
 
 import cloneDeep from 'lodash/cloneDeep';
+import startCase from 'lodash/startCase';
 
 class Settings extends Component {
 
@@ -36,8 +37,8 @@ class Settings extends Component {
             "OutputAnalyser"]
 
         this.defaultSettings = []
-        this.storedSettings = []
-        this.runId = null
+        this.runId = props.runId
+        this.storedSettings = this.runId ? this.loadConfigurationFromTemporaryStorage() : [[], [], [{ "name": "ZerosPLC", "label": "Zeros PLC", "settings" : [] }], []]
 
         this.state = {
             currentPage: 0
@@ -50,10 +51,10 @@ class Settings extends Component {
         this.defaultSettings = await this.servicesContainer.configurationService.getSettingsMetadata()
     }
 
-    setCurrentPage(currentPage) {
+    setCurrentPage(currentPage, callback) {
         this.setState({
             currentPage: currentPage
-        })
+        }, callback)
     }
 
     getCurrentPageName() {
@@ -61,8 +62,17 @@ class Settings extends Component {
     }
 
     previousPage = () => {
-        if (this.isFirstPage()) return
-        this.setCurrentPage(this.state.currentPage - 1)
+        if (this.isFirstPage()) {
+            return
+        }
+
+        let [success, errors] = this.storeSettings(true)
+        if (!success) {
+            errors.forEach((error) => this.showMessage('error', error, ""))
+            return
+        }
+
+        this.setCurrentPage(this.state.currentPage - 1, this.loadSettings.bind(this))
     }
 
     showMessage = (severity, summary, detail) => {
@@ -91,14 +101,14 @@ class Settings extends Component {
             if (workerSettings) {
                 let workersSettings = (workerSettings instanceof Array) ? workerSettings : [workerSettings]
                 if (workersSettings.length == 0) {
-                    errors.push(`${this.getCurrentPageName()}: Settings need to be filled in`)
+                    errors.push(`${this.getCurrentPageName()}: Add at least one module`)
                 } else {
                     errors = workersSettings.flatMap((workerSettings) => {
                         return validate(workerSettings)
                     })
                 }
             } else {
-                errors.push(`${this.getCurrentPageName()}: Settings need to be filled in`)
+                errors.push(`${this.getCurrentPageName()}: Add at least one module`)
             }
         }
         return errors
@@ -115,15 +125,30 @@ class Settings extends Component {
         }
     }
 
-    storeSettings() {
-        let errors = this.validateSettings(this.getPageSettings())
-        let result = (errors.length == 0)
-        if (result) this.storedSettings[this.state.currentPage] = this.getPageSettings()
+    storeSettings(skipValidation = false) {
+        let errors = !skipValidation ? this.validateSettings(this.getPageSettings()) : []
+        let result = (errors.length === 0)
+        if (result) {
+            this.storedSettings[this.state.currentPage] = this.getPageSettings()
+            this.saveConfigurationToTemporaryStorage(this.storedSettings)
+        }
         return [result, errors]
     }
 
+    loadSettings() {
+        let settings = this.loadConfigurationFromTemporaryStorage()
+        this.storedSettings[this.state.currentPage] = settings[this.state.currentPage] 
+    }
+
+    getStoredSettings(workerType) {
+        let index = this.pages.indexOf(workerType)
+        return index >= 0 && this.storedSettings && this.storedSettings.length > index ? this.storedSettings[index] : []
+    }
+
     nextPage = () => {
-        if (this.isLastPage()) return
+        if (this.isLastPage()) {
+            return
+        }
 
         let [success, errors] = this.storeSettings()
         if (!success) {
@@ -131,7 +156,7 @@ class Settings extends Component {
             return
         }
 
-        this.setCurrentPage(this.state.currentPage + 1)
+        this.setCurrentPage(this.state.currentPage + 1, this.loadSettings.bind(this))
     }
 
     isFirstPage = () => {
@@ -157,6 +182,8 @@ class Settings extends Component {
         if (success) {
             this.runId = await this.servicesContainer.configurationService.saveRunConfiguration(this.storedSettings.flatMap((item) => item))
             let details = "" //JSON.stringify(this.storedSettings)
+            this.cleanupTemporaryStorage()
+
             this.toast.current.show({ severity: 'info', summary: `Run configuration saved!\nUUID:${this.runId}`, detail: details });
             if (this.execute) {
                 setTimeout(this.execute(this.runId), 2000)
@@ -168,6 +195,22 @@ class Settings extends Component {
 
     delete = () => {
         this.toast.current.show({ severity: 'info', summary: 'Info', detail: 'Run configuration deleted!' });
+    }
+
+    loadConfigurationFromTemporaryStorage() {
+        let key = `plc-testbench-ui.configuration`
+        let configuration = localStorage.getItem(key)
+        return configuration ? JSON.parse(configuration) : []
+    }
+
+    saveConfigurationToTemporaryStorage(configuration) {
+        let key = `plc-testbench-ui.configuration`
+        return localStorage.setItem(key, JSON.stringify(configuration ? configuration : []))
+    }    
+
+    cleanupTemporaryStorage() {
+        let key = `plc-testbench-ui.configuration`
+        localStorage.removeItem(key)
     }
 
     getToolBarButtons = () => {
@@ -211,6 +254,7 @@ class Settings extends Component {
                 toggleable={this.toggleable}*/
                 toast={this.toast}
                 workerType={workerType}
+                selectedWorkers={this.getStoredSettings(workerType)}
                 defaultSettings={this.defaultSettings.find((setting) => setting.property == workerType).value}>
             </WorkersSettings>
         )
@@ -222,13 +266,16 @@ class Settings extends Component {
                 <Toast ref={this.toast} />
                 <Panel>
                     <Steps model={this.pages.map((element) => {
-                        return { label: element }
+                        return { label: startCase(element) }
                     })} activeIndex={this.state.currentPage} onSelect={(e) => this.setCurrentPage(e.index)} readOnly={true} />
                 </Panel>
                 {(!this.paged || this.state.currentPage == 0) && (
                     /*<Panel header={this.paged ? this.getProgress() : null} toggleable={this.toggleable} >*/
                     <Panel>
-                        <InputFilesSelector servicesContainer={this.servicesContainer} ref={this.inputFilesSelector}></InputFilesSelector>
+                        <InputFilesSelector
+                            servicesContainer={this.servicesContainer}
+                            ref={this.inputFilesSelector}
+                            selectedInputFiles={this.getStoredSettings("InputFileSelection")}></InputFilesSelector>
                     </Panel>
                 )}
                 {this.pages.slice(1).filter((workerType, index) => !this.paged || this.state.currentPage == index + 1).map((workerType) => {

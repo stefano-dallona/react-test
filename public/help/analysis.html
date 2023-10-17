@@ -1,1 +1,67 @@
-<h1>Analysis</h1>
+<h1>Analysis of the execution’s results</h1>
+<p>
+This module was considered from the very beginning as the most important one, so a great part of the time spent in the
+analysis and development of the PLC Testbench UI was dedicated to it.
+In this case the focus was on providing an easy way to analyze the results from both qualitative and quantitative
+perspectives.
+</p>
+<p>
+Qualitative analysis is mainly represented by browsing and visually comparing the waveforms in the regions where packets
+have been lost and by listening to the audio files generated from the PLC algorithms.
+</p>
+<p>
+Quantitative analysis is mainly represented by the numerical comparison of the performance achieved by the PLC
+algorithms according to a given metric like the Mean Squared Error, the Mean Absolute Error, the Spectral Energy, the
+Perceptual Evaluation of Audio Quality (PEAQ) with respect to the specified input parameters.
+</p>
+<p>
+Another extremely important aspect was providing the capability to integrate and correlate as much as possible the
+different types of information to get deeper insight into the behavior of the algorithms being tested.
+</p>
+The main requirements in this case were:
+<ul>
+    <li>
+        clearly show the lost portions of the original file
+    </li>
+    <li>
+        allow easy comparison of the waveforms ranging from very high level to sample level detail
+    </li>
+    <li>
+        give the possibility to display every combination of waveforms in the comparison
+    </li>
+    <li>
+        give the possibility to play any audio track, original or reconstructed setting the playhead at any position by
+        simply clicking on the waveform
+    </li>
+    <li>
+        support a very wide range of zoom levels including a sample level one
+    </li>
+    <li>
+        display visually the metrics calculated on the reconstructed audio files
+    </li>
+    <li>
+        display a spectrogram of the audiofile, be it the original or a reconstructed one
+    </li>
+</ul>
+<p>
+    The need to display multiple information at the same time made a dashboard interface more appropriate and appealing
+    in this case. The dashboard was organized in 4 sections where the first one is focused on representing the waveforms
+    of all the audio versions of an input file and providing navigation across the files and zoom functions. Lost
+    samples region are displayed together with the waveform and when clicked the corresponding detailed data are loaded
+    in the section below.
+</p>
+<p>
+    The second section provides the ability to inspect the waveform at sample level in any region were some samples were
+    lost. This is extremely useful to evaluate from a qualitative point of view the behaviour of the algorithm and to
+    cross check the correctness of the algorithm’s implementation as visual representation makes any misbehaviour much
+    more apparent.
+</p>
+<p>
+    The third section is intended to display the metrics calculated on the reconstructed versions of the analyzed file
+    and is made by two different charts, one containing the figures from metrics producing time series, the other
+    representing the figures from metrics producing single values.
+</p>
+<p>
+    Finally the fourth section displays the spectrogram of the current audio file, representing the distribution of the
+    frequencies composing it and their relative and absolute intensity in the form of a color map.
+</p>

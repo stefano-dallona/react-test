@@ -288,8 +288,8 @@ export class ConfigurationService {
         return ecc_algorithms
     }
 
-    async getOutputAnalysers(category = null) {
-        let requestUrl = this.baseUrl + `/output_analysers?${category ? "category=" + category : ""}`
+    async getOutputAnalysers(category = null, runId = null) {
+        let requestUrl = this.baseUrl + `/output_analysers?${category ? "&category=" + category : ""}${runId ? "&runId=" + runId : ""}`
         /*
         let response = await fetch(requestUrl)
         let output_analysers = await response.json()
@@ -313,15 +313,17 @@ export class ConfigurationService {
 
     async getRun(run_id) {
         let requestUrl = `${this.baseUrl}/runs/${run_id}`
-        /*
-        let response = await fetch(requestUrl)
-        let run = await response.json()
-        */
         let response = await this.axiosClient.get(requestUrl)
         let run = response.data
         return run
     }
 
+    async getRunConfiguration(run_id) {
+        let requestUrl = `${this.baseUrl}/runs/${run_id}/configuration`
+        let response = await this.axiosClient.get(requestUrl)
+        let run_configuration = response.data
+        return run_configuration
+    }
 
     async saveFilter(name, query) {
         let requestUrl = this.baseUrl + `/filters`

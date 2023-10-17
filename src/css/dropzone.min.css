@@ -8,5 +8,16 @@
 .dropzone.dz-clickable .dz-message * {
     position: relative !important;
     top: 45% !important;
+    font-size: larger;
+}
+
+.filepicker-file-icon {
+    content:url(../assets/icons/compact-disc-2.svg);
+    transform: scale(5);
+    padding: 0px;
+}
+
+div.filepicker {
+    background-color: #3b6388;
 }
 

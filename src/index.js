@@ -10,6 +10,7 @@ import App from './App';
 import * as serviceWorker from './serviceWorker';
 
 import reportWebVitals from './reportWebVitals';
+import { Home } from './pages/Home';
 import { RunHistory } from './pages/RunHistory';
 import { RunConfiguration } from './pages/RunConfiguration';
 import { RunExecution } from './pages/RunExecution';
@@ -30,6 +31,8 @@ root.render(
       <BrowserRouter>
         <App />
         <Routes>
+          <Route path='' element={<Home />} />
+          <Route path='/' element={<Home />} />
           <Route path='/run/history' element={<RunHistory />} />
           <Route path='/run/configuration' element={<RunConfiguration />} />
           <Route path='/run/execution' element={<RunExecution />} />

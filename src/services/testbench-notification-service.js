@@ -74,12 +74,14 @@ export class NotificationService {
         }
     }
 
-    async loadHelpPage(url) {
+    async loadHelpPage(url, local = true, remapping = true) {
         let currenLocation = document.location.href.split("/")
-        let currenPage = currenLocation[currenLocation.length - 1]
-        currenPage = currenPage && currenPage.length > 0 ? currenPage : "index"
-        //let helpPageUrl = `${this.baseUrl.replace("https", "http").replace(":5000", ":3000")}/help/${currenPage}.html`
-        let helpPageUrl = `${this.baseUrl}/help/${currenPage}.html`
+        let currentPage = currenLocation[currenLocation.length - 1]
+        currentPage = currentPage && currentPage.length > 0 ? currentPage : "index"
+        let baseUrl = local ? `${this.baseUrl.replace("https", "http").replace(":5000", ":3000")}` : ""
+        let path = remapping ? `/help/${currentPage}.html` : url
+        let helpPageUrl = local ? `${baseUrl}${path}` : url
+        //let helpPageUrl = `${this.baseUrl}/help/${currenPage}.html`
         let response = await this.axiosClient.get(helpPageUrl);
         let helpPage = response.data
         return helpPage
