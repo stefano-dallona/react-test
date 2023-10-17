@@ -9,6 +9,8 @@ import { OverlayPanel } from 'primereact/overlaypanel';
 import { Messages } from 'primereact/messages';
 import { useMountEffect } from 'primereact/hooks';
 
+import EventBus from '../services/service-integration-bus'
+
 class NotificationMenu extends Component {
 
     constructor(props) {
@@ -39,6 +41,23 @@ class NotificationMenu extends Component {
         let run_ids = JSON.parse(localStorage.getItem("pendingElaborations"))
         let messages = await this.servicesContainer.notificationService.loadNotifications(run_ids)
         this.addMessages(messages)
+
+        //FIXME - 
+        if (document.location.href.endsWith('/run/history')) {
+            let notified_runs = messages.filter((message) => {
+                return message.text.match(/Run '(\d+)'/ig)
+            }).map((message) => {
+                let runId = /Run '(\d+)'/ig.exec(message.text)[1]
+                let status = message.text.indexOf('completed successfully') !== -1 ? 'COMPLETED' : 'FAILED'
+                return {
+                    "runId": runId,
+                    "status": status
+                }
+            })
+            notified_runs.forEach(run => {
+                EventBus.dispatch("runCompleted", { "runId": run.runId, "status": run.status })
+            })
+        }
     }
 
     startNotificationPolling() {
@@ -54,7 +73,7 @@ class NotificationMenu extends Component {
         }
         console.log("Notification polling stopped")
     }
-  
+
     async componentDidMount() {
         window.addEventListener('beforeunload', this.componentCleanup.bind(this));
         /*let messages = [
@@ -124,7 +143,7 @@ class NotificationMenu extends Component {
 
     removeFromPendingElaborations(runId) {
         let pendingElaborations = JSON.parse(localStorage.getItem("pendingElaborations"))
-        localStorage.setItem("pendingElaborations", JSON.stringify(pendingElaborations.filter((run_id) => { return run_id !== runId})))
+        localStorage.setItem("pendingElaborations", JSON.stringify(pendingElaborations.filter((run_id) => { return run_id !== runId })))
     }
 
     removeMessage(item) {

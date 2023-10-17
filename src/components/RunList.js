@@ -8,6 +8,7 @@ import { Tooltip } from 'primereact/tooltip';
 import { Button } from 'primereact/button';
 
 import { ConfigurationService } from '../services/testbench-configuration-service';
+import EventBus from '../services/service-integration-bus'
 
 
 class RunList extends Component {
@@ -68,10 +69,21 @@ class RunList extends Component {
                 runId: "bf1a641d-ff68-4715-a897-d4b96dd70150"
             }]
         });*/
+        this.startListeningForRunUpdates()
     }
 
     componentWillUnmount() {
-        
+        this.stopListeningForRunUpdates()
+    }
+
+    startListeningForRunUpdates() {
+        EventBus.on("runCompleted", (data) => {
+            this.updateRunStatus(data.detail.runId, data.detail.status)
+        })
+    }
+
+    stopListeningForRunUpdates() {
+        EventBus.remove("runCompleted")
     }
 
     async loadData(page = 0) {
