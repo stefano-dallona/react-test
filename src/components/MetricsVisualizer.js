@@ -225,7 +225,7 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
         let samplesNumber = metricsData.map(metric => metric.length)
         let labels = category === "scalar"
             ? metricsToLoad.map((metric) => metric.path.slice(1).map((e) => e.name).join("-"))
-            : [...Array(Math.max(...samplesNumber))].map((_, i) => i + 1)
+            : [...Array(Math.max(...samplesNumber))].map((_, i) => offset + i + 1)
         return {
             [category]: {
                 labels: labels,
