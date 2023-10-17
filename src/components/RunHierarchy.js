@@ -42,6 +42,7 @@ class RunHierarchy extends Component {
 
         this.progressBarRefs = new Map()
 
+        this.onRunLoaded = props.onRunLoaded || (() => { })
         this.onExecutionStarted = props.onExecutionStarted || (() => { })
         this.onExecutionCompleted = props.onExecutionCompleted || this.executionCompletedDefaultHandler
 
@@ -92,6 +93,7 @@ class RunHierarchy extends Component {
         this.run = await this.servicesContainer.configurationService.getRun(this.state.runId)
         if (this.run) {
             this.setRunStatus(this.run.status)
+            this.onRunLoaded(this.run)
         }
     }
 
@@ -343,7 +345,8 @@ class RunHierarchy extends Component {
                     this.setFilename(lastFile, 100)
                 }
                 if (message.success !== 'true') {
-                    this.loadRun()
+                    //this.loadRun()
+                    this.setRunStatus('FAILED')
                 } else {
                     this.setRunStatus('COMPLETED')
                 }

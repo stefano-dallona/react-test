@@ -7,6 +7,8 @@ import { Dropdown } from 'primereact/dropdown'
 
 import { useContainer } from "../components/ServicesContextProvider"
 
+import startCase from 'lodash/startCase';
+
 var d3 = require('d3v3');
 const _ = require('lodash');
 
@@ -75,8 +77,8 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
             return { "category": category, "metrics": await servicesContainer.configurationService.getOutputAnalysers(category) }
         })))
         return {
-            linear: metricsMetadata.filter((x) => x.category == "linear").flatMap((x) => x.metrics.map((x) => { return { "name": x, "code": x } })),
-            scalar: metricsMetadata.filter((x) => x.category == "scalar").flatMap((x) => x.metrics.map((x) => { return { "name": x, "code": x } }))
+            linear: metricsMetadata.filter((x) => x.category === "linear").flatMap((x) => x.metrics.map((x) => { return { "name": x, "label": startCase(x), "code": x } })),
+            scalar: metricsMetadata.filter((x) => x.category === "scalar").flatMap((x) => x.metrics.map((x) => { return { "name": x, "label": startCase(x), "code": x } }))
         }
     }
 
@@ -140,7 +142,7 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
                         onClick={(e) => { false && e.stopPropagation() }}
                         onChange={(e) => { setSelectedLinearMetric(e.value) }}
                         options={metricsMetadata["linear"]}
-                        optionLabel="name"
+                        optionLabel="label"
                         placeholder="Select metric"
                         className="w-full md:w-20rem" />
                 </div>
@@ -162,7 +164,7 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
                         onClick={(e) => { false && e.stopPropagation() }}
                         onChange={(e) => { setSelectedScalarMetric(e.value) }}
                         options={metricsMetadata["scalar"]}
-                        optionLabel="name"
+                        optionLabel="label"
                         placeholder="Select metric"
                         className="w-full md:w-20rem" />
                 </div>

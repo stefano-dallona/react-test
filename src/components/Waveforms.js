@@ -27,6 +27,9 @@ import BrushZoomState from '../audio/brush-zoom'
 
 import ReactH5AudioPlayer, { RHAP_UI } from 'react-h5-audio-player'
 import { WaveformCanvas } from './WaveformCanvas';
+
+import startCase from 'lodash/startCase';
+
 //import Peaks from 'peaks.js';
 
 var wavesUI = require('waves-ui');
@@ -179,7 +182,7 @@ class Waveforms extends Component {
         this.audioFiles = audioFiles
         this.audioFiles.forEach((file, index) => {
             let parent = this.findParent(this.hierarchy, file)
-            file.label = file.name + (parent ? " - " + parent.name : "")
+            file.label = startCase(file.name) + (parent ? " - " + startCase(parent.name) : "")
         });
         let offset = this.zoomedRegion.current ? this.zoomedRegion.current.waveformsDataOffset - this.zoomedRegion.current.numSamples : 0
         let numSamples = this.zoomedRegion.current ? this.zoomedRegion.current.numSamples : -1
@@ -189,7 +192,12 @@ class Waveforms extends Component {
     }
 
     setLossSimulationFiles(lossSimulationFiles) {
-        this.lossSimulationFiles = lossSimulationFiles
+        this.lossSimulationFiles = lossSimulationFiles.map((lossSimulationFile) => {
+            return {
+                ...lossSimulationFile,
+                label: startCase(lossSimulationFile.name)
+            }
+        })
         this.selectedLossSimulation = this.lossSimulationFiles[0].uuid
         this.clearWaveforms()
         this.refreshAudioFiles(this.lossSimulationFiles[0].uuid)
@@ -904,7 +912,7 @@ class Waveforms extends Component {
         return (
             <div className="flex align-items-center">
                 <button className="mr-2" onClick={(e) => { e.preventDefault(); e.stopPropagation() }} style={{ width: "20px", height: "20px", backgroundColor: _this.getAudioFileColor(option.uuid) }}></button>
-                <div>{option.name}</div>
+                <div>{startCase(option.name)}</div>
             </div>
         );
     }
@@ -1207,7 +1215,7 @@ class Waveforms extends Component {
                                 onClick={(e) => { false && e.stopPropagation() }}
                                 onChange={(e) => { this.setSelectedLossSimulations(e.value) }}
                                 options={this.lossSimulationFiles}
-                                optionLabel="name"
+                                optionLabel="label"
                                 optionValue='uuid'
                                 display="chip"
                                 disabled={this.state.playing}

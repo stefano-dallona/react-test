@@ -56,11 +56,15 @@ export const RunExecution = (props) => {
         toast.current.show({ severity: severity, summary: summary, detail: detail });
     }
 
+    const onRunLoaded = (run) => {
+        setRunStatus(run.status)
+    }
+
     const onExecutionCompleted = async (runId, task_id, success, errorMessage) => {
         setExecutionInProgress(false)
         runHierarchy.current.resetProgressBars(100, true)
         localStorage.removeItem("runExecution:" + runId)
-        setRunStatus(runHierarchy.current.run.status)
+        setRunStatus(success ? 'COMPLETED' : "FAILED")
         let ok = success === 'true'
         showMessage(ok ? 'info' : 'error', ok ? `Execution completed successfully` : `Execution failed! ${errorMessage}`, '')
     }
@@ -93,19 +97,13 @@ export const RunExecution = (props) => {
         }
     }
 
-    const isRunCompleted = () => {
-        return !runHierarchy.current ||
-            !runHierarchy.current.run ||
-            runHierarchy.current.run.status !== 'COMPLETED'
-    }
-
     const startContent = (
         <React.Fragment>
             <Button
                 rounded
-                icon="pi pi-play"
-                tooltip="Execute"
-                severity='warning'
+                icon={runStatus === 'COMPLETED' ? "pi pi-play" : "pi pi-play"}
+                tooltip={runStatus === 'COMPLETED' ? "Re-execute" : "Execute"}
+                severity={runStatus === 'COMPLETED' ? 'danger' : 'warning'}
                 tooltipOptions={{ position: 'top' }}
                 className="mr-2"
                 onClick={execute}
@@ -212,7 +210,14 @@ export const RunExecution = (props) => {
             <div id="runExecution" className="card p-fluid">
                 <Toast ref={toast} />
                 <Panel id="panel" headerTemplate={headerTemplate}>
-                    <RunHierarchy servicesContainer={servicesContainer} ref={runHierarchy} runId={runId} filename={""} onExecutionStarted={() => { setExecutionInProgress(true) }} onExecutionCompleted={onExecutionCompleted} />
+                    <RunHierarchy
+                        servicesContainer={servicesContainer}
+                        ref={runHierarchy}
+                        runId={runId}
+                        filename={""}
+                        onRunLoaded={onRunLoaded}
+                        onExecutionStarted={() => { setExecutionInProgress(true) }}
+                        onExecutionCompleted={onExecutionCompleted} />
                 </Panel>
                 <Toolbar start={startContent} center={middleContent} />
             </div>
