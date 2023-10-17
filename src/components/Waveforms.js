@@ -623,12 +623,14 @@ class Waveforms extends Component {
         }
     }
 
-    getMetrics = () => {
+    getMetrics = (lossSimulation = null) => {
         let metrics = this.hierarchy ? this.findMetrics(this.hierarchy) : []
         metrics.forEach((metricNode) => {
             metricNode.path = this.findPath(this.hierarchy, metricNode)
         })
-        return metrics
+        return metrics.filter((metricNode) => {
+            return !lossSimulation || metricNode.path.map((node) => node.uuid).includes(lossSimulation)
+        })
     }
 
     mapTreeToList(root, predicate = (x) => true, mapper = (x) => x, stopRecursion = (x) => false) {
@@ -1350,6 +1352,11 @@ class Waveforms extends Component {
                 <AccordionTab header="Metrics">
                     {this.state.buffersListReady && (
                         <MetricsVisualizer runId={this.props.runId}
+                            zoomedRegion={this.zoomedRegion}
+                            channels={this.state.channels}
+                            selectedChannel={this.state.selectedChannel}
+                            lossSimulations={this.lossSimulationFiles}
+                            selectedLossSimulation={this.state.selectedLossSimulations}
                             colors={this.colors}
                             metricsHandler={this.getMetrics.bind(this)}
                             servicesContainer={this.servicesContainer} ></MetricsVisualizer>

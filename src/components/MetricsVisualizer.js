@@ -12,6 +12,7 @@ import startCase from 'lodash/startCase';
 var d3 = require('d3v3');
 const _ = require('lodash');
 
+
 //https://d3-graph-gallery.com/graph/barplot_grouped_basicWide.html
 
 export const MetricsVisualizer = React.forwardRef((props, ref) => {
@@ -20,11 +21,20 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
     let [metricsData, setMetricsData] = useState([])
     let [selectedLinearMetric, setSelectedLinearMetric] = useState(null)
     let [selectedScalarMetric, setSelectedScalarMetric] = useState(null)
+    let [selectedChannel, setSelectedChannel] = useState(props.selectedChannel)
+    let [selectedLossSimulation, setSelectedLossSimulation] = useState(props.selectedLossSimulation)
     let [chartOptions, setChartOptions] = useState({})
     let [colorsMap, setColorsMap] = useState(new Map())
     let servicesContainer = useContainer()
     let metricsHandler = useRef(props.metricsHandler || (() => { return [] }))
     let colors = props.colors
+    let channels = props.channels || []
+    let lossSimulations = props.lossSimulations || []
+    let zoomedRegion = props.zoomedRegion || {
+        offset: 0,
+        numSamples: -1
+    }
+    let chart = useRef(null)
 
     useEffect(() => {
         const fetchMetricsMetadata = async () => {
@@ -35,61 +45,172 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
         }
         fetchMetricsMetadata()
 
+        // REFERENCE: https://www.youtube.com/watch?v=yhQnEN_0slA
+        if (chart.current) {
+            chart.current.oncontextmenu = function (e) {
+                e.preventDefault();
+            };
+            chart.current.getCanvas().oncontextmenu = function (e) {
+                e.preventDefault();
+            };
+        }
+
+        // REFERENCE: https://www.chartjs.org/docs/latest/configuration/legend.html
+        const toggleLegendItem = (legendItem, legend, visible = null) => {
+            const index = legendItem.datasetIndex;
+            const ci = legend.chart;
+
+            if (visible == null) {
+                if (ci.isDatasetVisible(index)) {
+                    ci.hide(index);
+                    legendItem.hidden = true;
+                } else {
+                    ci.show(index);
+                    legendItem.hidden = false;
+                }
+                return
+            }
+
+            if (!visible) {
+                ci.hide(index);
+                legendItem.hidden = true;
+            } else {
+                ci.show(index);
+                legendItem.hidden = false;
+            }
+        }
+
+        const newLegendClickHandler = function (event, legendItem, legend) {
+            console.log(`ChartJS: onClick: ${event.native.button}`)
+            const index = legendItem.datasetIndex
+            const ci = legend.chart
+            const legendItemIsVisible = ci.isDatasetVisible(index)
+
+            if (!event.native.altKey) {
+                toggleLegendItem(legendItem, legend)
+            } else {
+                legend.legendItems.forEach((item) => {
+                    toggleLegendItem(item, legend, (item.text === legendItem.text) ? !legendItemIsVisible : legendItemIsVisible)
+                });
+            }
+        }
         const options = {
             "linear": {
                 maintainAspectRatio: false,
                 aspectRatio: 0.5,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: 'white'
+                        },
+                        onClick: newLegendClickHandler
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: {
+                            color: 'white'
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            color: 'white'
+                        },
+                        grid: {
+                            color: 'white'
+                        }
+                    }
+                }
             },
             "scalar": {
                 maintainAspectRatio: false,
                 aspectRatio: 0.5,
+                scales: {
+                    x: {
+                        ticks: {
+                            color: 'white'
+                        },
+                        grid: {
+                            color: 'white'
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            color: 'white'
+                        },
+                        grid: {
+                            color: 'white'
+                        }
+                    }
+                }
             }
         }
         setChartOptions(options)
     }, [runId])
 
     useEffect(() => {
-        const fetchMetrics = async (category, metricType) => {
-            let newMetricsData = await retrieveMetricsData(metricsHandler.current(), category, metricType)
+        const fetchMetrics = async (category, metricType, channel, offset, numSamples, lossSimulation) => {
+            let newMetricsData = await retrieveMetricsData(metricsHandler.current(selectedLossSimulation), category, metricType, channel, offset, numSamples, lossSimulation)
             let clonedMetricsData = _.cloneDeep(metricsData)
-            setMetricsData({ ...clonedMetricsData, [category] : newMetricsData[category] })
+            setMetricsData({ ...clonedMetricsData, [category]: newMetricsData[category] })
         }
 
         if (selectedLinearMetric) {
-            fetchMetrics("linear", selectedLinearMetric.code)
+            let channel = 0
+            let offset = zoomedRegion.current ? zoomedRegion.current.offset : 0
+            let numSamples = zoomedRegion.current ? zoomedRegion.current.numSamples : -1
+
+            fetchMetrics("linear", selectedLinearMetric.code, channel, offset, numSamples, selectedLossSimulation)
         }
-    }, [selectedLinearMetric])
+    }, [selectedLinearMetric, selectedLossSimulation])
 
     useEffect(() => {
         const fetchMetrics = async (category, metricType) => {
-            let newMetricsData = await retrieveMetricsData(metricsHandler.current(), category, metricType)
+            let newMetricsData = await retrieveMetricsData(metricsHandler.current(selectedLossSimulation), category, metricType)
             let clonedMetricsData = _.cloneDeep(metricsData)
-            setMetricsData({ ...clonedMetricsData, [category] : newMetricsData[category] })
+            setMetricsData({ ...clonedMetricsData, [category]: newMetricsData[category] })
         }
         if (selectedScalarMetric) {
-            fetchMetrics("scalar", selectedScalarMetric.code)
+            let channel = 0
+            let offset = zoomedRegion.current ? zoomedRegion.current.offset : 0
+            let numSamples = zoomedRegion.current ? zoomedRegion.current.numSamples : -1
+
+            fetchMetrics("scalar", selectedScalarMetric.code, channel, offset, numSamples, selectedLossSimulation)
         }
-    }, [selectedScalarMetric])
+    }, [selectedScalarMetric, selectedLossSimulation])
 
     const retrieveMetricsMetadata = async () => {
+        let usedMetrics = metricsHandler.current(selectedLossSimulation).map((metric) => metric.name)
         let categories = ["linear", "scalar"]
         let metricsMetadata = await trackPromise(Promise.all(categories.map(async (category, index) => {
-            return { "category": category, "metrics": await servicesContainer.configurationService.getOutputAnalysers(category) }
+            return { "category": category, "metrics": await servicesContainer.configurationService.getOutputAnalysers(category, runId) }
         })))
         return {
-            linear: metricsMetadata.filter((x) => x.category === "linear").flatMap((x) => x.metrics.map((x) => { return { "name": x, "label": startCase(x), "code": x } })),
-            scalar: metricsMetadata.filter((x) => x.category === "scalar").flatMap((x) => x.metrics.map((x) => { return { "name": x, "label": startCase(x), "code": x } }))
+            linear: metricsMetadata.filter((x) => {
+                return x.category === "linear"
+            }).flatMap((x) => x.metrics.filter((metric) => {
+                return usedMetrics.includes(metric)
+            }).map((x) => {
+                return { "name": x, "label": startCase(x), "code": x }
+            })),
+            scalar: metricsMetadata.filter((x) => {
+                return x.category === "scalar"
+            }).flatMap((x) => x.metrics.filter((metric) => {
+                return usedMetrics.includes(metric)
+            }).map((x) => {
+                return { "name": x, "label": startCase(x), "code": x }
+            }))
         }
     }
 
-    const retrieveMetricsData = async (metrics, category, metricType) => {
-        let channel = 0
+    const retrieveMetricsData = async (metrics, category, metricType,
+        channel = 0, offset = 0, numSamples = -1, lossSimulation) => {
         let metricCategory = category
         let metricsToLoad = metrics.filter((metric, index) => {
-            return metric.category == category && metric.name == metricType
-                //&& index == 0
+            return metric.category === category && metric.name === metricType
+            //&& index === 0
         })
-        if (metricsToLoad.length == 0) {
+        if (metricsToLoad.length === 0) {
             return {
                 [category]: {
                     labels: [],
@@ -98,16 +219,17 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
             }
         }
         let metricsData = await trackPromise(Promise.all(metricsToLoad.map(async (metric, index) => {
-            return servicesContainer.analysisService.fetchMetricsFromFile(runId, metric.parent_id, metric.parent_id, metric.uuid, metricCategory)
+            return servicesContainer.analysisService.fetchMetricsFromFile(runId, metric.parent_id, metric.parent_id,
+                metric.uuid, metricCategory, channel, offset, numSamples, lossSimulation, "samples")
         })))
         let samplesNumber = metricsData.map(metric => metric.length)
-        let labels = category == "scalar"
+        let labels = category === "scalar"
             ? metricsToLoad.map((metric) => metric.path.slice(1).map((e) => e.name).join("-"))
             : [...Array(Math.max(...samplesNumber))].map((_, i) => i + 1)
         return {
             [category]: {
                 labels: labels,
-                datasets: (category == "scalar")
+                datasets: (category === "scalar")
                     ? Object.entries(metricsData[0]).map(([k, v], index) => {
                         return {
                             label: k,
@@ -132,19 +254,48 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
     const renderLinearMetrics = () => {
         return (
             <Panel header="Linear" toggleable>
-                <div id="pnl-selectedLinearMetric" className="flex-auto">
-                    <label htmlFor='selectedLinearMetric'
-                        className="font-bold block ml-2 mb-2"
-                        style={{ color: 'white' }}>Metric</label>
-                    <Dropdown inputId='selectedLinearMetric'
-                        id='selectedLinearMetric'
-                        value={selectedLinearMetric}
-                        onClick={(e) => { false && e.stopPropagation() }}
-                        onChange={(e) => { setSelectedLinearMetric(e.value) }}
-                        options={metricsMetadata["linear"]}
-                        optionLabel="label"
-                        placeholder="Select metric"
-                        className="w-full md:w-20rem" />
+                <div className="card flex flex-wrap gap-3 p-fluid mb-6" >
+                    <div id="pnl-selectedLinearMetric" className="flex-auto">
+                        <label htmlFor='selectedLinearMetric'
+                            className="font-bold block ml-2 mb-2"
+                            style={{ color: 'white' }}>Metric</label>
+                        <Dropdown inputId='selectedLinearMetric'
+                            id='selectedLinearMetric'
+                            value={selectedLinearMetric}
+                            onClick={(e) => { false && e.stopPropagation() }}
+                            onChange={(e) => { setSelectedLinearMetric(e.value) }}
+                            options={metricsMetadata["linear"]}
+                            optionLabel="label"
+                            placeholder="Select metric"
+                            className="w-full md:w-20rem" />
+                    </div>
+                    <div id="pnl-selectedChannel" className="flex-auto">
+                        <label htmlFor='selectedChannel' className="font-bold block ml-2 mb-2" style={{ color: 'white' }}>Channel</label>
+                        <Dropdown inputId='selectedChannel'
+                            id='selectedChannel'
+                            value={selectedChannel}
+                            onClick={(e) => { false && e.stopPropagation() }}
+                            onChange={(e) => { setSelectedChannel(e.value) }}
+                            options={channels}
+                            disabled={false}
+                            placeholder="Select channel"
+                            className="w-full md:w-20rem" />
+                    </div>
+                    <div id="pnl-displayedLossSimulations" className="flex-auto">
+                        <label htmlFor='displayedLossSimulations' className="font-bold block ml-2 mb-2" style={{ color: 'white' }}>Displayed loss simulations</label>
+                        <Dropdown inputId='displayedLossSimulations'
+                            id='displayedLossSimulations'
+                            value={selectedLossSimulation}
+                            onClick={(e) => { false && e.stopPropagation() }}
+                            onChange={(e) => { setSelectedLossSimulation(e.value) }}
+                            options={lossSimulations}
+                            optionLabel="label"
+                            optionValue='uuid'
+                            display="chip"
+                            disabled={false}
+                            placeholder="Select loss simulations"
+                            className="w-full md:w-20rem" />
+                    </div>
                 </div>
                 <Chart type="line" data={metricsData["linear"]} options={chartOptions["linear"]} />
             </Panel>
@@ -154,21 +305,54 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
     const renderScalarMetrics = () => {
         return (
             <Panel header="Scalar" toggleable>
-                <div id="pnl-selectedScalarMetric" className="flex-auto">
-                    <label htmlFor='selectedScalarMetric'
-                        className="font-bold block ml-2 mb-2"
-                        style={{ color: 'white' }}>Metric</label>
-                    <Dropdown inputId='selectedScalarMetric'
-                        id='selectedScalarMetric'
-                        value={selectedScalarMetric}
-                        onClick={(e) => { false && e.stopPropagation() }}
-                        onChange={(e) => { setSelectedScalarMetric(e.value) }}
-                        options={metricsMetadata["scalar"]}
-                        optionLabel="label"
-                        placeholder="Select metric"
-                        className="w-full md:w-20rem" />
+                <div className="card flex flex-wrap gap-3 p-fluid mb-6" >
+                    <div id="pnl-selectedScalarMetric" className="flex-auto">
+                        <label htmlFor='selectedScalarMetric'
+                            className="font-bold block ml-2 mb-2"
+                            style={{ color: 'white' }}>Metric</label>
+                        <Dropdown inputId='selectedScalarMetric'
+                            id='selectedScalarMetric'
+                            value={selectedScalarMetric}
+                            onClick={(e) => { false && e.stopPropagation() }}
+                            onChange={(e) => { setSelectedScalarMetric(e.value) }}
+                            options={metricsMetadata["scalar"]}
+                            optionLabel="label"
+                            placeholder="Select metric"
+                            className="w-full md:w-20rem" />
+                    </div>
+                    <div id="pnl-selectedChannel" className="flex-auto">
+                        <label htmlFor='selectedChannel' className="font-bold block ml-2 mb-2" style={{ color: 'white' }}>Channel</label>
+                        <Dropdown inputId='selectedChannel'
+                            id='selectedChannel'
+                            value={selectedChannel}
+                            onClick={(e) => { false && e.stopPropagation() }}
+                            onChange={(e) => { setSelectedChannel(e.value) }}
+                            options={channels}
+                            disabled={false}
+                            placeholder="Select channel"
+                            className="w-full md:w-20rem" />
+                    </div>
+                    <div id="pnl-displayedLossSimulations" className="flex-auto">
+                        <label htmlFor='displayedLossSimulations' className="font-bold block ml-2 mb-2" style={{ color: 'white' }}>Displayed loss simulations</label>
+                        <Dropdown inputId='displayedLossSimulations'
+                            id='displayedLossSimulations'
+                            value={selectedLossSimulation}
+                            onClick={(e) => { false && e.stopPropagation() }}
+                            onChange={(e) => { setSelectedLossSimulation(e.value) }}
+                            options={lossSimulations}
+                            optionLabel="label"
+                            optionValue='uuid'
+                            display="chip"
+                            disabled={false}
+                            placeholder="Select loss simulations"
+                            className="w-full md:w-20rem" />
+                    </div>
                 </div>
-                <Chart type="bar" data={metricsData["scalar"]} options={chartOptions["scalar"]} />
+                <Chart
+                    type="bar"
+                    ref={chart}
+                    data={metricsData["scalar"]}
+                    options={chartOptions["scalar"]} />
             </Panel>
         )
     }
