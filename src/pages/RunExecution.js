@@ -26,7 +26,7 @@ export const RunExecution = (props) => {
     let [executionInProgress, setExecutionInProgress] = useState(false)
     let servicesContainer = useContainer()
     let [currentFileIndex, setCurrentFileIndex] = useState(0)
-    let [runStatus, setRunStatus] = useState(0)
+    let [runStatus, setRunStatus] = useState(null)
 
     useEffect(() => {
     }, [])

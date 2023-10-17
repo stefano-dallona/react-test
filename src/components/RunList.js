@@ -70,11 +70,28 @@ class RunList extends Component {
         });*/
     }
 
+    componentWillUnmount() {
+        
+    }
+
     async loadData(page = 0) {
         let pagination = { page: page, pageSize: this.state.pageSize }
         let result = await trackPromise(this.state.query ? this.servicesContainer.configurationService.findRunsByFilter(this.state.query, {}, pagination) : this.servicesContainer.configurationService.findAllRuns(pagination));
         result.data.forEach((row) => { row.input_files = row.selected_input_files.join(",") })
         this.setData(result.data, page, result.totalRecords);
+    }
+
+    updateRunStatus(runId, status) {
+        let newData = this.state.data.map((row) => {
+            return (runId !== row.run_id) ? row : {
+                ...row,
+                status: status
+            }
+        })
+        let modified = JSON.stringify(this.state.data) !== JSON.stringify(newData)
+        if (modified) {
+            this.setData(newData, this.state.page, this.state.totalRecords);
+        }
     }
 
     async modifyRun(runId) {

@@ -180,13 +180,13 @@ class WorkersSettings extends Component {
             delete cws.uuid
             let clonedWorkerSettings = cloneDeep(workerSettings)
             delete clonedWorkerSettings.uuid
-            return JSON.stringify(cws) === JSON.stringify(clonedWorkerSettings)
+            return JSON.stringify({ "name": cws.name, "settings": cws.settings}) === JSON.stringify({ "name": clonedWorkerSettings.name, "settings": clonedWorkerSettings.settings})
         })
         return sameWorker && sameWorker.uuid !== workerSettings.uuid
     }
 
     loadSelectedWorker = (value) => {
-        let currentWorkerSettings = this.state.selectedWorkers.find((oa) => oa.uuid == value)
+        let currentWorkerSettings = this.state.selectedWorkers.find((oa) => oa.uuid === value)
         if (currentWorkerSettings) {
             this.setCurrentWorker(currentWorkerSettings.name)
             this.setCurrentWorkerSettings(currentWorkerSettings)

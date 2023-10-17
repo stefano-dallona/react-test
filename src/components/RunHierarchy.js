@@ -163,7 +163,7 @@ class RunHierarchy extends Component {
 
     //REFERENCE: https://gist.github.com/mootari/64ff2d2b0b68c7e1ae6c6475f1015e1c
     zoomToFit(transform = d3.zoomIdentity) {
-        let html = d3.select('svg').node()
+        let svg = d3.select('svg').node()
         let hierarchy = d3.select('#hierarchy').node()
         if (!hierarchy || this.getScaleFactor()) {
             return
@@ -172,9 +172,9 @@ class RunHierarchy extends Component {
         console.log("svg box: " + JSON.stringify(box))
 
         if (box.width > 0 && box.height > 0) {
-            const scale = Math.min((html.clientWidth) / box.width, html.clientHeight / 1.5 / box.height);
+            const scale = Math.min((svg.clientWidth) / box.width, svg.clientHeight / 1.5 / box.height);
             // Center [0, 0].
-            transform = transform.translate(html.clientWidth / 2, html.clientHeight / 2.5);
+            transform = transform.translate(svg.clientWidth / 2, svg.clientHeight / 1.8);
             // Apply scale.
             transform = transform.scale(scale);
             // Center elements.
@@ -345,8 +345,8 @@ class RunHierarchy extends Component {
                     this.setFilename(lastFile, 100)
                 }
                 if (message.success !== 'true') {
-                    //this.loadRun()
                     this.setRunStatus('FAILED')
+                    this.loadRun()
                 } else {
                     this.setRunStatus('COMPLETED')
                 }
@@ -367,7 +367,7 @@ class RunHierarchy extends Component {
         let hierarchy = d3.select('#hierarchy')
         let box = hierarchy.node().getBBox()
         const scale = Math.min((svg.clientWidth - 80) / box.width, svg.clientHeight / 1.5 / box.height);
-        transform = transform.translate(svg.clientWidth / 2, svg.clientHeight / 2.5);
+        transform = transform.translate(svg.clientWidth / 2, svg.clientHeight / 1.8);
         transform = transform.scale(scale);
         transform = transform.translate(-box.x - box.width / 2, -box.y - box.height / 2);
         //transform.x = window.innerWidth / 2
