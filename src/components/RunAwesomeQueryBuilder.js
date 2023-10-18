@@ -773,6 +773,18 @@ class RunAwesomeQueryBuilder extends Component {
         return filter
     }
 
+    deleteFilter = async () => {
+        if (!this.state.selectedFilter) {
+            window.globalToast.current.show({ severity: "error", summary: "Please select a filter to delete!", detail: "" });
+            return
+        }
+        let filterId = this.state.selectedFilter._id
+        console.log(`filterId:${filterId}`)
+        let result = await this.servicesContainer.configurationService.deleteFilter(filterId)
+        this.loadFilters()
+        return result
+    }
+
     setFilterCreationPopupIsVisible(visible) {
         this.setState({
             filterCreationPopupIsVisible: visible
@@ -819,6 +831,15 @@ class RunAwesomeQueryBuilder extends Component {
                 placeholder="Select a saved filter"
                 className="w-full md:w-14rem" />
             <i className="pi p-toolbar-separator mr-2" />
+            <Button
+                rounded
+                icon="pi pi-trash"
+                severity="danger"
+                tooltip="Delete filter"
+                tooltipOptions={{ position: 'top' }}
+                className="mr-2"
+                onClick={() => { this.deleteFilter() }}
+                disabled={!this.state.selectedFilter}></Button>
             {false && JSON.stringify(this.state.filters)}
         </React.Fragment>
     )

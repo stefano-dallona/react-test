@@ -343,6 +343,13 @@ export class ConfigurationService {
         return filter
     }
 
+    async deleteFilter(filter_id) {
+        let requestUrl = `${this.baseUrl}/filters/${filter_id}`
+        let response = await this.axiosClient.delete(requestUrl)
+        let result = response.data
+        return result
+    }
+
     async deleteRunNode(run_id, node_id) {
         let requestUrl = `${this.baseUrl}/runs/${run_id}/nodes/${node_id}`
         let response = await this.axiosClient.delete(requestUrl)
