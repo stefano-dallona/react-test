@@ -108,7 +108,9 @@ class WorkersSettings extends Component {
     }
 
     getWorkers = () => {
-        let workers = this.defaultSettings.map((worker) => {
+        let workers = this.defaultSettings.filter((worker) => {
+            return worker.name !== 'ZerosPLC'
+        }).map((worker) => {
             return { "label": startCase(worker.name), "value": worker.name }
         })
         return workers
@@ -167,6 +169,12 @@ class WorkersSettings extends Component {
             this.deleteWorker()
         } catch (err) {
             this.showMessage('error', err.message)
+        }
+    }
+    
+    handleKeyDown = (e) => {
+        if (e.keyCode === 13) {
+            this.saveWorker()
         }
     }
 
@@ -307,7 +315,7 @@ class WorkersSettings extends Component {
 
     render() {
         return (
-            <div className="card p-fluid">
+            <div className="card p-fluid" onKeyDown={this.handleKeyDown}>
                 <Splitter style={{ height: '30rem' }}>
                     <SplitterPanel size={50} className="flex align-items-center justify-content-center">
                         <Panel /*header={this.header} toggleable={this.toggleable}*/ style={{ position: "relative", width: "100%", height: '30rem', border: 'none' }}>
