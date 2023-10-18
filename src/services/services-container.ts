@@ -90,7 +90,7 @@ class AxiosClient {
   }
 
   connectionToDbFailed = (errorMessage) => {
-    return errorMessage.indexOf("[Errno 10061] WSAECONNREFUSED")
+    return errorMessage.indexOf("[Errno 10061] WSAECONNREFUSED") >= 0
   }
 
 }
