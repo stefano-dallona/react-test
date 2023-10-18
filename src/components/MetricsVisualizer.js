@@ -94,6 +94,29 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
                 });
             }
         }
+
+        let hovering = false
+        let tooltipText = "Alt + click for bulk activation/deactivation"
+
+        const showLegendItemTooltip = (event, legendItem) => {
+            if (hovering) {
+                return;
+            }
+            hovering = true;
+            let tooltip = document.getElementById("legendItemTooltip")
+            tooltip.innerHTML = tooltipText
+            tooltip.style.left = event.native.pageX + "px";
+            tooltip.style.top = event.native.pageY + "px";
+            tooltip.style.display = ""
+        }
+
+        const hideLegentItemTooltip = () => {
+            hovering = false;
+            let tooltip = document.getElementById("legendItemTooltip")
+            tooltip.innerHTML = "";
+            tooltip.style.display = "none"
+        }
+
         const options = {
             "linear": {
                 maintainAspectRatio: false,
@@ -103,7 +126,9 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
                         labels: {
                             color: 'white'
                         },
-                        onClick: newLegendClickHandler
+                        onClick: newLegendClickHandler,
+                        onHover: showLegendItemTooltip,
+                        onLeave: hideLegentItemTooltip
                     }
                 },
                 scales: {
@@ -359,6 +384,7 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
 
     return (
         <div id="MetricsVisualizer">
+            <div id="legendItemTooltip" style={{ zIndex: 1000, position: 'absolute', background: '#304562', padding: '10px' }}></div>
             {renderLinearMetrics()}
             {renderScalarMetrics()}
         </div>
