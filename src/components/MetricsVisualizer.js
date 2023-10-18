@@ -95,6 +95,8 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
             }
         }
 
+        // REFERENCE: https://stackoverflow.com/questions/57164433/how-to-show-tooltip-on-legend-item-in-chart-js
+
         let hovering = false
         let tooltipText = "Alt + click for bulk activation/deactivation"
 
