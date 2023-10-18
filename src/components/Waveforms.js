@@ -68,9 +68,10 @@ class Waveforms extends Component {
         this.loadOnlyZoomedSection = true
         this.parallelWaveformLoading = false
 
-        this.samplesVisualizer = React.createRef();
-        this.spectrogram = React.createRef();
-        this.audioPlayerOnZoomOut = React.createRef();
+        this.samplesVisualizerRef = React.createRef()
+        this.spectrogramRef = React.createRef()
+        this.metricsVisualizerRef = React.createRef()
+        this.audioPlayerOnZoomOut = React.createRef()
         this.player = React.createRef()
         this.zoomedRegion = React.createRef()
         this.waveformCanvasRef = React.createRef()
@@ -105,7 +106,11 @@ class Waveforms extends Component {
             audioFileToPlay: 0,
             buffersListReady: false,
             lossSimulationsReady: false,
-            playing: false
+            playing: false,
+            zoomedRegion: {
+                offset: 0,
+                numSamples: -1
+            }
         };
     }
 
@@ -136,7 +141,26 @@ class Waveforms extends Component {
     setSelectedChannel(selectedChannel) {
         this.setState({
             selectedChannel: selectedChannel
+        }, () => {
+            if (this.metricsVisualizerRef.current) {
+                this.metricsVisualizerRef.current.setSelectedChannel(this.state.selectedChannel)
+            }
         })
+    }
+
+    setZoomedRegion(zoomedRegion) {
+        this.zoomedRegion.current = zoomedRegion
+        this.setState({
+            zoomedRegion: zoomedRegion
+        }, () => {
+            if (this.metricsVisualizerRef.current) {
+                this.metricsVisualizerRef.current.setZoomedRegion(this.state.zoomedRegion)
+            }
+            if (this.spectrogramRef.current) {
+                this.spectrogramRef.current.setZoomedRegion(this.state.zoomedRegion)
+            }
+        })
+
     }
 
     reloadData = async () => {
@@ -144,8 +168,8 @@ class Waveforms extends Component {
         this.initColorsPalette()
         await this.loadHierarchy()
         await this.loadLossSimulation()
-        if (this.spectrogram.current) {
-            this.spectrogram.current.setFilename(this.state.filename)
+        if (this.spectrogramRef.current) {
+            this.spectrogramRef.current.setFilename(this.state.filename)
         }
     }
 
@@ -228,6 +252,10 @@ class Waveforms extends Component {
         this.setState({
             selectedLossSimulations: lossSimulations,
             selectedAudioFiles: this.audioFiles.map((x) => x.uuid)
+        }, () => {
+            if (this.metricsVisualizerRef.current) {
+                this.metricsVisualizerRef.current.setSelectedLossSimulation(this.state.selectedLossSimulations)
+            }
         });
     }
 
@@ -238,6 +266,13 @@ class Waveforms extends Component {
     setAudioFileToPlay(audioFileToPlay) {
         this.setState({
             audioFileToPlay: audioFileToPlay
+        }, () => {
+            if (this.metricsVisualizerRef.current) {
+                this.metricsVisualizerRef.current.setAudioFileToPlay(this.state.audioFileToPlay)
+            }
+            if (this.spectrogramRef.current) {
+                this.spectrogramRef.current.setAudioFileToPlay(this.state.audioFileToPlay)
+            }
         });
     }
 
@@ -442,14 +477,15 @@ class Waveforms extends Component {
             this.timeline.state = new BrushZoomState(this.timeline,
                 sampleRate,
                 this.downsamplingEnabled ? async (channel, offset, numSamples, zoom) => {
-                    this.zoomedRegion.current = numSamples < 0 ? null : {
+                    this.setZoomedRegion(numSamples < 0 ? null : {
+                        offset: offset,
                         startTime: offset / sampleRate,
                         endTime: (offset + numSamples) / sampleRate,
                         numSamples: numSamples,
                         sampleRate: sampleRate,
                         //zoom: (duration * sampleRate) / numSamples
                         zoom: zoom
-                    }
+                    })
                     let lossModelNodeId = this.getSelectedLossSimulation()
                     let waveformsData = await this.fetchWaveforms.bind(this)(channel, offset, numSamples, lossModelNodeId)
                     this.updateWaveforms(channel, waveformsData)
@@ -650,10 +686,15 @@ class Waveforms extends Component {
         return _treeToList(root)
     }
 
-    getPlayableFilesCombo() {
+    getPlayableFiles() {
         let playableFiles = this.audioFiles.map((file, i) => {
             return { code: i, name: file.label }
         })
+        return playableFiles
+    }
+
+    getPlayableFilesCombo() {
+        let playableFiles = this.getPlayableFiles()
         return (
             <Dropdown value={this.state.audioFileToPlay}
                 options={playableFiles}
@@ -707,11 +748,11 @@ class Waveforms extends Component {
 
             sourceLayer.updateShapes();
 
-            if (!this.samplesVisualizer.current) {
+            if (!this.samplesVisualizerRef.current) {
                 return
             }
 
-            this.samplesVisualizer.current.fetchSamples(this.audioFiles, this.colors, selectedLoss.start_sample, selectedLoss.num_samples);
+            this.samplesVisualizerRef.current.fetchSamples(this.audioFiles, this.colors, selectedLoss.start_sample, selectedLoss.num_samples);
             if (this.segmentEventHandler) {
                 this.segmentEventHandler.apply(null, [selectedLoss])
             }
@@ -751,9 +792,6 @@ class Waveforms extends Component {
             this.timeline = null
             this.waveformTrack = null
             this.cursorLayer = null
-        }
-        if (this.spectrogram.current) {
-            //this.spectrogram.current
         }
     }
 
@@ -884,7 +922,7 @@ class Waveforms extends Component {
     zoomOut() {
         console.log("zoom out")
         
-        this.zoomedRegion.current = null
+        this.setZoomedRegion(null)
         this.timeline.state.zoomOut()
 
         let onZoomOutHandler = this.audioPlayerOnZoomOut.current
@@ -939,13 +977,14 @@ class Waveforms extends Component {
                 currentTime = JSON.parse(JSON.stringify(this.player.current.audio.current.currentTime))
                 if (this.zoomedRegion.current) {
                     let numSamples = this.zoomedRegion.current.numSamples
-                    this.zoomedRegion.current = {
+                    this.setZoomedRegion({
+                        offset: 0,
                         startTime: 0,
                         endTime: numSamples / sampleRate,
                         numSamples: numSamples,
                         sampleRate: sampleRate,
                         waveformsDataOffset: 0
-                    }
+                    })
                     let waveformsData = await this.fetchWaveforms.bind(this)(channel, 0, numSamples, this.getSelectedLossSimulation())
                     this.timeline.timeContext.offset = -this.zoomedRegion.current.startTime
                     this.updateWaveforms(channel, waveformsData)
@@ -975,10 +1014,11 @@ class Waveforms extends Component {
                         let waveformsData = await this.zoomedRegion.current.waveformsData
 
                         let newZoomRegion = JSON.parse(JSON.stringify(this.zoomedRegion.current))
+                        newZoomRegion.offset = newZoomRegion.waveformsDataOffset
                         newZoomRegion.startTime = newZoomRegion.waveformsDataOffset / sampleRate
                         newZoomRegion.endTime = (newZoomRegion.waveformsDataOffset / sampleRate) + (numSamples * 1.0 / sampleRate)
                         newZoomRegion.waveformsData = null
-                        this.zoomedRegion.current = newZoomRegion
+                        this.setZoomedRegion(newZoomRegion)
 
                         console.log(this.zoomedRegion.current)
 
@@ -1032,7 +1072,7 @@ class Waveforms extends Component {
 
     refreshSampleVisualizer() {
         if (this.selectedLoss) {
-            this.samplesVisualizer.current.fetchSamples(this.audioFiles, this.colors, this.selectedLoss.start_sample, this.selectedLoss.num_samples)
+            this.samplesVisualizerRef.current.fetchSamples(this.audioFiles, this.colors, this.selectedLoss.start_sample, this.selectedLoss.num_samples)
         }
     }
 
@@ -1345,14 +1385,28 @@ class Waveforms extends Component {
                     {this.waveuiEl && this.state.lossSimulationsReady && this.state.buffersListReady && (
                         <SamplesVisualizer
                             servicesContainer={this.servicesContainer}
-                            ref={this.samplesVisualizer}
+                            ref={this.samplesVisualizerRef}
                             runId={this.props.runId} />
                     )}
+                </AccordionTab>
+                <AccordionTab header="Spectrogram">
+                    <AudioSpectrogram
+                        servicesContainer={this.servicesContainer}
+                        ref={this.spectrogramRef}
+                        runId={this.state.runId}
+                        audioFilesHandler={this.getPlayableFiles.bind(this)}
+                        audioFileToPlay={this.state.audioFileToPlay}
+                        nodeId={this.hierarchy}
+                        zoomedRegion={this.state.zoomedRegion}
+                        filename={this.state.filename}></AudioSpectrogram>
                 </AccordionTab>
                 <AccordionTab header="Metrics">
                     {this.state.buffersListReady && (
                         <MetricsVisualizer runId={this.props.runId}
-                            zoomedRegion={this.zoomedRegion}
+                            ref={this.metricsVisualizerRef}
+                            zoomedRegion={this.state.zoomedRegion}
+                            audioFilesHandler={this.getPlayableFiles.bind(this)}
+                            audioFileToPlay={this.state.audioFileToPlay}
                             channels={this.state.channels}
                             selectedChannel={this.state.selectedChannel}
                             lossSimulations={this.lossSimulationFiles}
@@ -1361,14 +1415,6 @@ class Waveforms extends Component {
                             metricsHandler={this.getMetrics.bind(this)}
                             servicesContainer={this.servicesContainer} ></MetricsVisualizer>
                     )}
-                </AccordionTab>
-                <AccordionTab header="Spectrogram">
-                    <AudioSpectrogram
-                        servicesContainer={this.servicesContainer}
-                        ref={this.spectrogram}
-                        runId={this.state.runId}
-                        nodeId={this.hierarchy}
-                        filename={this.state.filename}></AudioSpectrogram>
                 </AccordionTab>
             </Accordion>
         )

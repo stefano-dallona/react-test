@@ -21,6 +21,7 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
     let [metricsData, setMetricsData] = useState([])
     let [selectedLinearMetric, setSelectedLinearMetric] = useState(null)
     let [selectedScalarMetric, setSelectedScalarMetric] = useState(null)
+    let [audioFileToPlay, setAudioFileToPlay] = useState(props.audioFileToPlay)
     let [selectedChannel, setSelectedChannel] = useState(props.selectedChannel)
     let [selectedLossSimulation, setSelectedLossSimulation] = useState(props.selectedLossSimulation)
     let [chartOptions, setChartOptions] = useState({})
@@ -28,11 +29,18 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
     let servicesContainer = useContainer()
     let metricsHandler = useRef(props.metricsHandler || (() => { return [] }))
     let colors = props.colors
+    let audioFilesHandler = useRef(props.audioFilesHandler || (() => { return [] }))
     let channels = props.channels || []
     let lossSimulations = props.lossSimulations || []
-    let zoomedRegion = props.zoomedRegion || {
+    let [zoomedRegion, setZoomedRegion] = useState(props.zoomedRegion || {
         offset: 0,
         numSamples: -1
+    })
+    ref.current = {
+        setAudioFileToPlay: setAudioFileToPlay,
+        setSelectedChannel: setSelectedChannel,
+        setSelectedLossSimulation: setSelectedLossSimulation,
+        setZoomedRegion: setZoomedRegion
     }
     let chart = useRef(null)
 
@@ -184,23 +192,23 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
 
         if (selectedLinearMetric) {
             let channel = 0
-            let offset = zoomedRegion.current ? zoomedRegion.current.offset : 0
-            let numSamples = zoomedRegion.current ? zoomedRegion.current.numSamples : -1
+            let offset = zoomedRegion ? zoomedRegion.offset : 0
+            let numSamples = zoomedRegion ? zoomedRegion.numSamples : -1
 
             fetchMetrics("linear", selectedLinearMetric.code, channel, offset, numSamples, selectedLossSimulation)
         }
-    }, [selectedLinearMetric, selectedLossSimulation])
+    }, [selectedLinearMetric, selectedLossSimulation, zoomedRegion])
 
     useEffect(() => {
-        const fetchMetrics = async (category, metricType) => {
-            let newMetricsData = await retrieveMetricsData(metricsHandler.current(selectedLossSimulation), category, metricType)
+        const fetchMetrics = async (category, metricType, channel, offset, numSamples, lossSimulation) => {
+            let newMetricsData = await retrieveMetricsData(metricsHandler.current(selectedLossSimulation), category, metricType, channel, offset, numSamples, lossSimulation)
             let clonedMetricsData = _.cloneDeep(metricsData)
             setMetricsData({ ...clonedMetricsData, [category]: newMetricsData[category] })
         }
         if (selectedScalarMetric) {
             let channel = 0
-            let offset = zoomedRegion.current ? zoomedRegion.current.offset : 0
-            let numSamples = zoomedRegion.current ? zoomedRegion.current.numSamples : -1
+            let offset = zoomedRegion ? zoomedRegion.offset : 0
+            let numSamples = zoomedRegion ? zoomedRegion.numSamples : -1
 
             fetchMetrics("scalar", selectedScalarMetric.code, channel, offset, numSamples, selectedLossSimulation)
         }
@@ -282,6 +290,46 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
         return (
             <Panel header="Linear" toggleable>
                 <div className="card flex flex-wrap gap-3 p-fluid mb-6" >
+                    <div id="pnl-selectedAudioFile" className="flex-auto" style={{display: "none"}}>
+                        <label htmlFor='selectedAudioFile' className="font-bold block ml-2 mb-2" style={{ color: 'white' }}>Audio File</label>
+                        <Dropdown
+                            id='selectedAudioFile'
+                            value={audioFileToPlay}
+                            options={audioFilesHandler.current()}
+                            optionLabel="name"
+                            optionValue='code'
+                            disabled={true}
+                            onChange={(e) => this.setAudioFileToPlay(e.value)}
+                            placeholder="Select a file to play"
+                            className="mr-2 ml-2 w-full md:w-14rem" />
+                    </div>
+                    <div id="pnl-selectedChannel" className="flex-auto" style={{display: "none"}}>
+                        <label htmlFor='selectedChannel' className="font-bold block ml-2 mb-2" style={{ color: 'white' }}>Channel</label>
+                        <Dropdown inputId='selectedChannel'
+                            id='selectedChannel'
+                            value={selectedChannel}
+                            onClick={(e) => { false && e.stopPropagation() }}
+                            onChange={(e) => { setSelectedChannel(e.value) }}
+                            options={channels}
+                            disabled={true}
+                            placeholder="Select channel"
+                            className="w-full md:w-20rem" />
+                    </div>
+                    <div id="pnl-displayedLossSimulations" className="flex-auto" style={{display: "none"}}>
+                        <label htmlFor='displayedLossSimulations' className="font-bold block ml-2 mb-2" style={{ color: 'white' }}>Displayed loss simulations</label>
+                        <Dropdown inputId='displayedLossSimulations'
+                            id='displayedLossSimulations'
+                            value={selectedLossSimulation}
+                            onClick={(e) => { false && e.stopPropagation() }}
+                            onChange={(e) => { setSelectedLossSimulation(e.value) }}
+                            options={lossSimulations}
+                            optionLabel="label"
+                            optionValue='uuid'
+                            display="chip"
+                            disabled={true}
+                            placeholder="Select loss simulations"
+                            className="w-full md:w-20rem"/>
+                    </div>
                     <div id="pnl-selectedLinearMetric" className="flex-auto">
                         <label htmlFor='selectedLinearMetric'
                             className="font-bold block ml-2 mb-2"
@@ -296,33 +344,6 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
                             placeholder="Select metric"
                             className="w-full md:w-20rem" />
                     </div>
-                    <div id="pnl-selectedChannel" className="flex-auto">
-                        <label htmlFor='selectedChannel' className="font-bold block ml-2 mb-2" style={{ color: 'white' }}>Channel</label>
-                        <Dropdown inputId='selectedChannel'
-                            id='selectedChannel'
-                            value={selectedChannel}
-                            onClick={(e) => { false && e.stopPropagation() }}
-                            onChange={(e) => { setSelectedChannel(e.value) }}
-                            options={channels}
-                            disabled={false}
-                            placeholder="Select channel"
-                            className="w-full md:w-20rem" />
-                    </div>
-                    <div id="pnl-displayedLossSimulations" className="flex-auto">
-                        <label htmlFor='displayedLossSimulations' className="font-bold block ml-2 mb-2" style={{ color: 'white' }}>Displayed loss simulations</label>
-                        <Dropdown inputId='displayedLossSimulations'
-                            id='displayedLossSimulations'
-                            value={selectedLossSimulation}
-                            onClick={(e) => { false && e.stopPropagation() }}
-                            onChange={(e) => { setSelectedLossSimulation(e.value) }}
-                            options={lossSimulations}
-                            optionLabel="label"
-                            optionValue='uuid'
-                            display="chip"
-                            disabled={false}
-                            placeholder="Select loss simulations"
-                            className="w-full md:w-20rem" />
-                    </div>
                 </div>
                 <Chart type="line" data={metricsData["linear"]} options={chartOptions["linear"]} />
             </Panel>
@@ -333,6 +354,46 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
         return (
             <Panel header="Scalar" toggleable>
                 <div className="card flex flex-wrap gap-3 p-fluid mb-6" >
+                    <div id="pnl-selectedAudioFile" className="flex-auto" style={{display: "none"}}>
+                        <label htmlFor='selectedAudioFile' className="font-bold block ml-2 mb-2" style={{ color: 'white' }}>Audio File</label>
+                        <Dropdown
+                            id='selectedAudioFile'
+                            value={audioFileToPlay}
+                            options={audioFilesHandler.current()}
+                            optionLabel="name"
+                            optionValue='code'
+                            disabled={true}
+                            onChange={(e) => this.setAudioFileToPlay(e.value)}
+                            placeholder="Select a file to play"
+                            className="mr-2 ml-2 w-full md:w-14rem" />
+                    </div>
+                    <div id="pnl-selectedChannel" className="flex-auto" style={{display: "none"}}>
+                        <label htmlFor='selectedChannel' className="font-bold block ml-2 mb-2" style={{ color: 'white' }}>Channel</label>
+                        <Dropdown inputId='selectedChannel'
+                            id='selectedChannel'
+                            value={selectedChannel}
+                            onClick={(e) => { false && e.stopPropagation() }}
+                            onChange={(e) => { setSelectedChannel(e.value) }}
+                            options={channels}
+                            disabled={true}
+                            placeholder="Select channel"
+                            className="w-full md:w-20rem" />
+                    </div>
+                    <div id="pnl-displayedLossSimulations" className="flex-auto" style={{display: "none"}}>
+                        <label htmlFor='displayedLossSimulations' className="font-bold block ml-2 mb-2" style={{ color: 'white' }}>Displayed loss simulations</label>
+                        <Dropdown inputId='displayedLossSimulations'
+                            id='displayedLossSimulations'
+                            value={selectedLossSimulation}
+                            onClick={(e) => { false && e.stopPropagation() }}
+                            onChange={(e) => { setSelectedLossSimulation(e.value) }}
+                            options={lossSimulations}
+                            optionLabel="label"
+                            optionValue='uuid'
+                            display="chip"
+                            disabled={true}
+                            placeholder="Select loss simulations"
+                            className="w-full md:w-20rem" />
+                    </div>
                     <div id="pnl-selectedScalarMetric" className="flex-auto">
                         <label htmlFor='selectedScalarMetric'
                             className="font-bold block ml-2 mb-2"
@@ -347,33 +408,6 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
                             placeholder="Select metric"
                             className="w-full md:w-20rem" />
                     </div>
-                    <div id="pnl-selectedChannel" className="flex-auto">
-                        <label htmlFor='selectedChannel' className="font-bold block ml-2 mb-2" style={{ color: 'white' }}>Channel</label>
-                        <Dropdown inputId='selectedChannel'
-                            id='selectedChannel'
-                            value={selectedChannel}
-                            onClick={(e) => { false && e.stopPropagation() }}
-                            onChange={(e) => { setSelectedChannel(e.value) }}
-                            options={channels}
-                            disabled={false}
-                            placeholder="Select channel"
-                            className="w-full md:w-20rem" />
-                    </div>
-                    <div id="pnl-displayedLossSimulations" className="flex-auto">
-                        <label htmlFor='displayedLossSimulations' className="font-bold block ml-2 mb-2" style={{ color: 'white' }}>Displayed loss simulations</label>
-                        <Dropdown inputId='displayedLossSimulations'
-                            id='displayedLossSimulations'
-                            value={selectedLossSimulation}
-                            onClick={(e) => { false && e.stopPropagation() }}
-                            onChange={(e) => { setSelectedLossSimulation(e.value) }}
-                            options={lossSimulations}
-                            optionLabel="label"
-                            optionValue='uuid'
-                            display="chip"
-                            disabled={false}
-                            placeholder="Select loss simulations"
-                            className="w-full md:w-20rem" />
-                    </div>
                 </div>
                 <Chart
                     type="bar"
@@ -386,7 +420,14 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
 
     return (
         <div id="MetricsVisualizer">
-            <div id="legendItemTooltip" style={{ zIndex: 1000, position: 'absolute', background: '#304562', padding: '10px' }}></div>
+            <div id="legendItemTooltip"
+                style={{
+                    zIndex: 1000,
+                    position: 'absolute',
+                    background: '#304562',
+                    padding: '10px',
+                    display: "none"
+                }}></div>
             {renderLinearMetrics()}
             {renderScalarMetrics()}
         </div>
