@@ -119,42 +119,93 @@ class SamplesVisualizer extends Component {
             return points;
         }
 
-        function createLegend(legendColor, lineId, legendText) {
+        function getLabelPositions(legendItems, rectWidth, rectHeight,
+            legendLeft, legendTop, legendWidth, verticalSpacing, horizontalSpacing,
+            condensedLayout = true) {
+            let canvas = document.createElement('canvas'),
+                context = canvas.getContext('2d');
 
-            var legendGroup = svg.append("g");
+            function getSize(text, fontSize, fontFace) {
+                context.font = fontSize + ' ' + fontFace;
+                let measure = context.measureText(text)
+                return {
+                    width: rectWidth + horizontalSpacing + measure.width + horizontalSpacing,
+                    height: measure.fontBoundingBoxAscent + measure.fontBoundingBoxDescent + verticalSpacing
+                }
+            }
 
-            let rect = legendGroup.append("rect")
-                .attr("width", chartConfig.lineLabel.width + 5)
-                .attr("height", chartConfig.lineLabel.height)
-                .attr("x", (width / 2 + marginLegend - 45) / 1.3)
-                .attr("y", (margin.top - 15))
-                .attr("stroke", legendColor)
-                .attr("fill", legendColor)
-                .attr("stroke-width", 1).style("opacity", 0).transition()
-                .duration(600)
-                .style("opacity", 1)
+            let legendItemsSizes = legendItems.map((legendItem, index) => {
+                return getSize(legendItem.text,
+                    legendItem.fontSize,
+                    legendItem.fontFamily)
+            })
+            let maxWidth = Math.max(...legendItemsSizes.map((legentItemsSize) => {
+                return legentItemsSize.width
+            }))
+            let maxHeight = Math.max(...[rectHeight, ...legendItemsSizes.map((legentItemsSize) => {
+                return legentItemsSize.height
+            })])
 
-            let textElement = legendGroup.append('text')
-                .attr('id', 'legend-' + lineId)
-                .attr('text-anchor', 'middle')
-                .attr('font-family', 'sans-serif')
+            let maxHorizontalItems = Math.floor((legendWidth - 2.0 * legendLeft) / maxWidth)
+            let spaceBetweenItems = maxHorizontalItems <= legendItems.length ? maxWidth : legendWidth * 1.0 / legendItems.length
+            let condensedLayoutLeft = Math.max((legendWidth - Math.min(maxHorizontalItems, legendItems.length) * maxWidth) / 2.0, 0)
+
+            let widths = legendItemsSizes.map((legendItemsSize, index) => {
+                let rowNumber = Math.floor(index / maxHorizontalItems)
+                let colNumber = index % maxHorizontalItems
+                return {
+                    x: condensedLayout ? legendLeft + condensedLayoutLeft + colNumber * maxWidth : legendLeft + colNumber * spaceBetweenItems,
+                    y: legendTop + rowNumber * maxHeight,
+                    width: condensedLayout ? maxWidth : spaceBetweenItems,
+                    height: maxHeight,
+                    rectWidth: rectWidth,
+                    rectHeight: rectHeight
+                }
+            })
+
+            return widths
+        }
+
+        function createLegend(legendColor, lineId, legendText, position) {
+            var legendGroup = svg.append("g")
                 .style('cursor', 'pointer')
-                .attr('font-size', '12px')
-                .attr('fill', 'white')
-                .attr("transform", "translate(" + ((width / 2 + marginLegend) / 1.3) + "," + (margin.top) + ")")
-                .text(legendText)
                 .on("click", function () {
-                    var display = (d3.select("." + lineId).style("display") != "none") ? 'none' : '';
-                    d3.select("#legend-" + lineId).style("text-decoration", (display == 'none') ? "line-through" : '');
+                    var display = (d3.select("." + lineId).style("display") !== "none") ? 'none' : '';
+                    d3.select("#legend-" + lineId).style("text-decoration", (display === 'none') ? "line-through" : '');
                     d3.select("." + lineId)
                         .transition()
                         .duration(500)
                         .style("display", display)
                 });
-            
-            rect[0][0].setAttribute("width", textElement[0][0].getBoundingClientRect().width)
-            rect[0][0].setAttribute("x", textElement[0][0].getBoundingClientRect().left - 16)
-            
+
+            let rect = legendGroup.append("rect")
+                .attr("width", position.rectWidth)
+                .attr("height", position.rectHeight)
+                .attr("x", position.x)
+                .attr("y", position.y)
+                .attr("stroke", legendColor)
+                .attr("fill", legendColor)
+                .attr("stroke-width", 1)
+                .style("opacity", 0)
+                .transition()
+                .duration(600)
+                .style("opacity", 1)
+
+            let textElement = legendGroup.append('text')
+                .attr('id', 'legend-' + lineId)
+                .attr('text-anchor', 'left')
+                .attr('font-family', 'sans-serif')
+                .attr('font-size', '12px')
+                .attr('stroke', 'white')
+                .attr("stroke-width", 0.1)
+                .attr('fill', 'white')
+                .attr("transform", `translate(${position.x + 1.1 * position.rectWidth},${position.y + 0.8 * position.rectHeight})`)
+                .text(legendText)
+            /*
+            rect[0][0].setAttribute("width", position.rectWidth)
+            legendGroup[0][0].setAttribute("x", position.x)
+            legendGroup[0][0].setAttribute("y", position.y)
+            */
             marginLegend += 100;
         }
 
@@ -287,12 +338,30 @@ class SamplesVisualizer extends Component {
         let _this = this
         //const colorsMap = ["#00b7d4", "#f57738", "#f50038", "#f57738", "#f50038"]
         const colorsMap = _this.colors
+
+        let legendItems = chartConfig.data.map((item, index) => {
+            return {
+                "text": _this.audioFiles[index].label,
+                "fontSize": "12px",
+                "fontFamily": "sans-serif"
+            }
+        })
+        let rectWidth = 42, rectHeight = 14, legendLeft = 0,
+            legendTop = 10, legendWidth = window.innerWidth,
+            verticalSpacing = 10, horizontalSpacing = 10,
+            condensedLayout = true
+
+        let legendLabelPositions = getLabelPositions(legendItems, rectWidth, rectHeight,
+            legendLeft, legendTop, legendWidth, verticalSpacing, horizontalSpacing,
+            condensedLayout)
+        console.log(`legendLabelPositions:${JSON.stringify(legendLabelPositions)}`)
+
         chartConfig.data.forEach(function (v, i) {
             const lineId = "line-" + i
-            const fileName = _this.audioFiles[i].name
+            const fileName = _this.audioFiles[i].label
             const line = drawLine(v, colorsMap[i], fileName, lineId);
             const points = drawPoints(v, colorsMap[i], line);
-            createLegend(colorsMap[i], lineId, fileName);
+            createLegend(colorsMap[i], lineId, fileName, legendLabelPositions[i]);
         })
 
         // Axis
