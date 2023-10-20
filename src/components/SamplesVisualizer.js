@@ -176,7 +176,7 @@ class SamplesVisualizer extends Component {
         function toggleLine(lineId, inverted = false) {
             var displayed = (d3.select("#line-" + lineId).style("display") !== "none")
             if (inverted) {
-                d3.selectAll("[id*='legend-']").style("text-decoration", !(display !== 'none') ? "line-through" : '');
+                d3.selectAll("[id*='legend-']").style("text-decoration", !(displayed) ? "line-through" : '');
                 let allLines = d3.selectAll("path[id*='line-']")
                 allLines.transition()
                     .duration(500)

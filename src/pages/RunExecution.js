@@ -104,7 +104,7 @@ export const RunExecution = (props) => {
                 icon={runStatus === 'COMPLETED' ? "pi pi-play" : "pi pi-play"}
                 tooltip={runStatus === 'COMPLETED' ? "Re-execute" : "Execute"}
                 severity={runStatus === 'COMPLETED' ? 'danger' : 'warning'}
-                tooltipOptions={{ position: 'top' }}
+                tooltipOptions={{ position: 'right' }}
                 className="mr-2"
                 onClick={execute}
                 disabled={executionInProgress}></Button>
@@ -113,7 +113,7 @@ export const RunExecution = (props) => {
                 icon="pi pi-chart-bar"
                 tooltip="Analyse"
                 severity="success"
-                tooltipOptions={{ position: 'top' }}
+                tooltipOptions={{ position: 'right' }}
                 className="mr-2"
                 onClick={analyse}
                 disabled={executionInProgress || runStatus !== 'COMPLETED'}></Button>
@@ -122,7 +122,7 @@ export const RunExecution = (props) => {
                 icon="pi pi-step-backward"
                 tooltip="Previous Audio File"
                 severity="info"
-                tooltipOptions={{ position: 'top' }}
+                tooltipOptions={{ position: 'right' }}
                 className="mr-2"
                 onClick={previousTrack}
                 disabled={executionInProgress}></Button>
@@ -131,7 +131,7 @@ export const RunExecution = (props) => {
                 icon="pi pi-step-forward"
                 tooltip="Next Audio File"
                 severity="info"
-                tooltipOptions={{ position: 'top' }}
+                tooltipOptions={{ position: 'right' }}
                 className="mr-2"
                 onClick={nextTrack}
                 disabled={executionInProgress}></Button>
@@ -151,7 +151,7 @@ export const RunExecution = (props) => {
                 text
                 icon="pi pi-search"
                 tooltip="Use mouse wheel on the tree to zoom in/out"
-                tooltipOptions={{ position: 'top' }}
+                tooltipOptions={{ position: 'left' }}
                 className="mr-2"
                 onClick={() => {
                     runHierarchy.current.scaleFactor = null
@@ -162,14 +162,14 @@ export const RunExecution = (props) => {
                 text
                 icon="pi pi-arrows-alt"
                 tooltip="Drag on the tree to pan"
-                tooltipOptions={{ position: 'top' }}
+                tooltipOptions={{ position: 'left' }}
                 className="mr-2"></Button>
             <Button
                 rounded
                 text
                 icon="pi pi-list"
                 tooltip="Place the mouse pointer over a node to get more info"
-                tooltipOptions={{ position: 'top' }}
+                tooltipOptions={{ position: 'left' }}
                 className="mr-2"></Button>
             <Button
                 rounded
@@ -177,7 +177,7 @@ export const RunExecution = (props) => {
                 icon="pi pi-delete-left"
                 severity='error'
                 tooltip="Right click on node and select 'Delete' item from the context menu"
-                tooltipOptions={{ position: 'top' }}
+                tooltipOptions={{ position: 'left' }}
                 className="mr-2"></Button>
         </React.Fragment>
     )

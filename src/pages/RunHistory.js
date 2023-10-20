@@ -123,7 +123,7 @@ export const RunHistory = (props) => {
                 icon="pi pi-refresh"
                 severity='info'
                 tooltip="Refresh"
-                tooltipOptions={{ position: 'top' }}
+                tooltipOptions={{ position: 'right' }}
                 className="mr-2"
                 onClick={refresh}
                 disabled={false}></Button>
@@ -133,7 +133,7 @@ export const RunHistory = (props) => {
                 icon="pi pi-play"
                 severity='warning'
                 tooltip="Execute"
-                tooltipOptions={{ position: 'top' }}
+                tooltipOptions={{ position: 'right' }}
                 className="mr-2"
                 onClick={execute}
                 disabled={false}></Button>
@@ -142,7 +142,7 @@ export const RunHistory = (props) => {
                 icon="pi pi-chart-bar"
                 tooltip="Analyse"
                 severity="success"
-                tooltipOptions={{ position: 'top' }}
+                tooltipOptions={{ position: 'right' }}
                 className="mr-2"
                 onClick={analyse}
                 disabled={false}></Button>

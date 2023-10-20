@@ -220,7 +220,7 @@ class Settings extends Component {
                 rounded
                 icon="pi pi-angle-left"
                 tooltip="Previous"
-                tooltipOptions={{ position: 'top' }}
+                tooltipOptions={{ position: 'right' }}
                 className='mr-2'
                 onClick={this.previousPage}
                 disabled={this.isFirstPage()}></Button>
@@ -228,7 +228,7 @@ class Settings extends Component {
                 rounded
                 icon="pi pi-angle-right"
                 tooltip="Next"
-                tooltipOptions={{ position: 'top' }}
+                tooltipOptions={{ position: 'right' }}
                 className='mr-2'
                 onClick={this.nextPage}
                 disabled={this.isLastPage()}></Button>
@@ -238,7 +238,7 @@ class Settings extends Component {
                     icon="pi pi-check"
                     severity="success"
                     tooltip="Done"
-                    tooltipOptions={{ position: 'top' }}
+                    tooltipOptions={{ position: 'right' }}
                     className='mr-2'
                     onClick={this.save}></Button>
             )}
