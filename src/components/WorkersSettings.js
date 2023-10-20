@@ -51,11 +51,12 @@ class WorkersSettings extends Component {
             currentWorker: null,
             currentWorkerSettings: null,
             selectedWorkers: props.selectedWorkers || [],
-            confirmationMessage: null
+            confirmationMessage: null,
         };
     }
 
     componentDidMount() {
+        this.setAvailableWorkers(this.getWorkers())
         if (this.defaultSettings.length == 1) {
             this.setCurrentWorker(this.defaultSettings[0].name)
         }
@@ -76,6 +77,12 @@ class WorkersSettings extends Component {
         }
     }
 
+    setAvailableWorkers(availableWorkers) {
+        this.setState({
+            availableWorkers: availableWorkers
+        })
+    }
+
     setCurrentWorkerSettings(currentWorkerSettings) {
         this.setState({
             currentWorkerSettings: currentWorkerSettings
@@ -85,6 +92,8 @@ class WorkersSettings extends Component {
     setSelectedWorkers(selectedWorkers) {
         this.setState({
             selectedWorkers: selectedWorkers
+        }, () => {
+            this.setAvailableWorkers(this.getWorkers())
         })
     }
 
@@ -109,7 +118,8 @@ class WorkersSettings extends Component {
 
     getWorkers = () => {
         let workers = this.defaultSettings.filter((worker) => {
-            return worker.name !== 'ZerosPLC'
+            //return worker.name !== 'ZerosPLC'
+            return !this.isDuplicatedWorker(worker) || worker.settings.length > 0
         }).map((worker) => {
             return { "label": startCase(worker.name), "value": worker.name }
         })
@@ -154,12 +164,14 @@ class WorkersSettings extends Component {
             return;
         }
         if (this.state.currentWorker === 'ZerosPLC') {
-            throw new Error("Cannot delete Zeros PLC instance !")
+            //throw new Error("Cannot delete Zeros PLC instance !")
         }
         let currentWorkerSettings = this.state.currentWorkerSettings
         if (this.state.selectedWorkers) {
             let clonedSelectedWorkers = cloneDeep(this.state.selectedWorkers)
-            this.setSelectedWorkers(clonedSelectedWorkers.filter((oa) => (oa.uuid != currentWorkerSettings.uuid)))
+            this.setSelectedWorkers(clonedSelectedWorkers.filter((oa) => {
+                return oa.uuid !== currentWorkerSettings.uuid
+            }))
         }
         this.setCurrentWorker(null)
     }
@@ -171,7 +183,7 @@ class WorkersSettings extends Component {
             this.showMessage('error', err.message)
         }
     }
-    
+
     handleKeyDown = (e) => {
         if (e.keyCode === 13) {
             this.saveWorker()
@@ -182,15 +194,18 @@ class WorkersSettings extends Component {
         return !this.state.selectedWorkers.find((ws) => workerSettings && ws.uuid === workerSettings.uuid)
     }
 
+    // REFERENCE: https://stackoverflow.com/questions/16167581/sort-object-properties-and-json-stringify
+    orderedJsonStringify = (key) =>
+        JSON.stringify(key, (_, v) =>
+            v.constructor === Object ? Object.entries(v).sort() : v
+        );
+
     isDuplicatedWorker = (workerSettings) => {
-        let sameWorker = this.state.selectedWorkers.find((ws) => {
-            let cws = cloneDeep(ws)
-            delete cws.uuid
-            let clonedWorkerSettings = cloneDeep(workerSettings)
-            delete clonedWorkerSettings.uuid
-            return JSON.stringify({ "name": cws.name, "settings": cws.settings}) === JSON.stringify({ "name": clonedWorkerSettings.name, "settings": clonedWorkerSettings.settings})
+        let sameWorker = this.state.selectedWorkers.filter((ws) => {
+            let sameWorker = this.orderedJsonStringify({ "name": ws.name, "settings": ws.settings }) === this.orderedJsonStringify({ "name": workerSettings.name, "settings": workerSettings.settings })
+            return sameWorker
         })
-        return sameWorker && sameWorker.uuid !== workerSettings.uuid
+        return sameWorker.length > 0 && sameWorker[0].uuid !== workerSettings.uuid
     }
 
     loadSelectedWorker = (value) => {
@@ -278,7 +293,7 @@ class WorkersSettings extends Component {
             return workerSettings.name === worker
         }).map((workerSettings) => {
             return workerSettings.doc
-        })[0]: ""
+        })[0] : ""
     }
 
     configurationItem = (option) => {
@@ -324,11 +339,12 @@ class WorkersSettings extends Component {
                                     <label className="mt-2" style={{ textAlign: 'left', color: 'white', width: '20%' }}>Algorithm</label>
                                     <Dropdown value={this.state.currentWorker}
                                         onChange={(e) => this.setCurrentWorker(e.target.value)}
-                                        options={this.getWorkers()}
+                                        options={this.state.availableWorkers}
                                         optionLabel='label'
                                         optionValue='value'
                                         placeholder={startCase(this.workerType)}
                                         className="w-full md:w-14rem"
+                                        selectedWorkers={this.state.selectedWorkers}
                                         style={{ height: "2.1rem" }} />
                                     <Button
                                         rounded
@@ -340,9 +356,9 @@ class WorkersSettings extends Component {
                                         disabled={!this.state.currentWorkerSettings}></Button>
                                     <Button
                                         rounded
-                                        icon={this.isNewWorker(this.state.currentWorkerSettings) ? "pi pi-plus": "pi pi-save"}
+                                        icon={this.isNewWorker(this.state.currentWorkerSettings) ? "pi pi-plus" : "pi pi-save"}
                                         severity="success"
-                                        tooltip={this.isNewWorker(this.state.currentWorkerSettings) ? "Add": "Save"}
+                                        tooltip={this.isNewWorker(this.state.currentWorkerSettings) ? "Add" : "Save"}
                                         tooltipOptions={{ position: 'top' }}
                                         className="mr-2 mb-2"
                                         onClick={(e) => this.saveWorker()}></Button>

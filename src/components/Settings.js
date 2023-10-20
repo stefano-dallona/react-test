@@ -38,7 +38,8 @@ class Settings extends Component {
 
         this.defaultSettings = []
         this.runId = props.runId
-        this.storedSettings = this.runId ? this.loadConfigurationFromTemporaryStorage() : [[], [], [{ "name": "ZerosPLC", "label": "Zeros PLC", "settings" : [] }], []]
+        //this.storedSettings = this.runId ? this.loadConfigurationFromTemporaryStorage() : [[], [], [{ "name": "ZerosPLC", "label": "Zeros PLC", "settings" : [] }], []]
+        this.storedSettings = this.runId ? this.loadConfigurationFromTemporaryStorage() : [[], [], [], []]
 
         this.state = {
             currentPage: 0
