@@ -205,7 +205,7 @@ class WorkersSettings extends Component {
             let sameWorker = this.orderedJsonStringify({ "name": ws.name, "settings": ws.settings }) === this.orderedJsonStringify({ "name": workerSettings.name, "settings": workerSettings.settings })
             return sameWorker
         })
-        return sameWorker.length > 0 && sameWorker[0].uuid !== workerSettings.uuid
+        return sameWorker.length > 0 //&& sameWorker[0].uuid !== workerSettings.uuid
     }
 
     loadSelectedWorker = (value) => {
