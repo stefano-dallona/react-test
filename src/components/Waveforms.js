@@ -728,12 +728,17 @@ class Waveforms extends Component {
             return { "segment": segment, "sourceLayer": sourceLayer }
         }
 
-        const highlightSelectedSegment = (selectedLoss) => {
-            if (this.selectedLoss && this.selectedLoss.color) {
-                delete this.selectedLoss.color
+        const highlightSelectedSegment = (selectedLoss, sourceLayer) => {
+            if (this.selectedLoss) {
+                if (this.selectedLoss.color) {
+                    delete this.selectedLoss.color
+                }
+                this.selectedLoss.color = 'white'
             }
+
             this.selectedLoss = selectedLoss
-            this.selectedLoss.color = "orange !important"
+            selectedLoss.color = 'orange'
+            sourceLayer.updateShapes();
         }
 
         const handleSegmentOvering = (eventType, selectedLoss, sourceLayer) => {
@@ -744,9 +749,9 @@ class Waveforms extends Component {
         }
 
         const handleSegmentClick = (selectedLoss, sourceLayer) => {
-            highlightSelectedSegment(selectedLoss)
+            highlightSelectedSegment(selectedLoss, sourceLayer)
 
-            sourceLayer.updateShapes();
+            //sourceLayer.updateShapes();
 
             if (!this.samplesVisualizerRef.current) {
                 return
