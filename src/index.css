@@ -11,3 +11,8 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+.p-accordion-header-text {
+  color: orange !important;
+  font-size: large;
+}

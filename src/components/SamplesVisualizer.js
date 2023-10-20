@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { Component, Fragment } from 'react';
 import { trackPromise } from 'react-promise-tracker';
 
 import { ConfigurationService } from '../services/testbench-configuration-service';
@@ -66,7 +66,7 @@ class SamplesVisualizer extends Component {
                 .attr('class', lineId);
 
             var l = group.append("svg:path")
-                .attr('id', lineId)
+                .attr('id', "line-" + lineId)
                 .attr('d', line(lineData))
                 .attr('stroke', lineColor)
                 .attr('stroke-width', 2)
@@ -166,16 +166,66 @@ class SamplesVisualizer extends Component {
             return widths
         }
 
-        function createLegend(legendColor, lineId, legendText, position) {
+        function getLegendTooltip(workerSettings) {
+            let tableContent = Object.keys(workerSettings).map((key) => {
+                return `<tr><td><b>${key}:</b></td><td>${workerSettings[key]}</td></tr>`
+            }).join("")
+            return `<table width="100%">${tableContent}</table>`
+        }
+
+        function toggleLine(lineId, inverted = false) {
+            var displayed = (d3.select("#line-" + lineId).style("display") !== "none")
+            if (inverted) {
+                d3.selectAll("[id*='legend-']").style("text-decoration", !(display !== 'none') ? "line-through" : '');
+                let allLines = d3.selectAll("path[id*='line-']")
+                allLines.transition()
+                    .duration(500)
+                    .style("display", !displayed ? 'none' : '')
+                    .style("position", "absolute")
+                    .style("padding", "10px")
+                    .style("background-color", "#304562")
+                    .style("left", (d3.event.pageX) - 30 + "px")
+                    .style("top", (d3.event.pageY - 40) + "px");
+                let allPoints = d3.selectAll("g[class*='line-']").selectAll("circle")
+                allPoints.transition()
+                    .duration(500)
+                    .style("display", !displayed ? 'none' : '')
+            }
+            d3.select("#legend-" + lineId).style("text-decoration", displayed ? "line-through" : '');
+            let selectedLine = d3.select("#line-" + lineId)
+            selectedLine.transition()
+                .duration(500)
+                .style("display", displayed ? 'none' : '')
+                .style("position", "absolute")
+                .style("padding", "10px")
+                .style("background-color", "#304562")
+                .style("left", (d3.event.pageX) - 30 + "px")
+                .style("top", (d3.event.pageY - 40) + "px")
+            let selectedLinePoints = d3.selectAll(`.${lineId}`).selectAll("circle")
+            selectedLinePoints.transition()
+                .duration(500)
+                .style("display", displayed ? 'none' : '')
+        }
+
+        function createLegend(legendColor, lineId, legendText, position, tooltip) {
             var legendGroup = svg.append("g")
-                .style('cursor', 'pointer')
+                //.style('cursor', 'pointer')
                 .on("click", function () {
-                    var display = (d3.select("." + lineId).style("display") !== "none") ? 'none' : '';
-                    d3.select("#legend-" + lineId).style("text-decoration", (display === 'none') ? "line-through" : '');
-                    d3.select("." + lineId)
-                        .transition()
-                        .duration(500)
-                        .style("display", display)
+                    toggleLine(lineId, d3.event.altKey)
+                })
+                .on("mouseenter", function (d) {
+                    d3.select(".legendTooltip")
+                        .style("display", "")
+                        .html(getLegendTooltip(tooltip))
+                        .style("position", "absolute")
+                        .style("padding", "10px")
+                        .style("background-color", "#304562")
+                        .style("left", (d3.event.pageX) + 5 + "px")
+                        .style("top", (d3.event.pageY + 5) + "px");
+                })
+                .on("mouseout", function (d) {
+                    d3.select(".legendTooltip")
+                        .style("display", "none")
                 });
 
             let rect = legendGroup.append("rect")
@@ -201,12 +251,6 @@ class SamplesVisualizer extends Component {
                 .attr('fill', 'white')
                 .attr("transform", `translate(${position.x + 1.1 * position.rectWidth},${position.y + 0.8 * position.rectHeight})`)
                 .text(legendText)
-            /*
-            rect[0][0].setAttribute("width", position.rectWidth)
-            legendGroup[0][0].setAttribute("x", position.x)
-            legendGroup[0][0].setAttribute("y", position.y)
-            */
-            marginLegend += 100;
         }
 
         function zoomToPeriod(from, to) {
@@ -303,11 +347,15 @@ class SamplesVisualizer extends Component {
 
 
         d3.select("body").select(".tooltip").html(null)
+        d3.select("body").select(".legendTooltip").html(null)
         d3.select(containerSelector).html(null)
 
         // Define the div for the tooltip
         var tooltipDiv = d3.select("body").append("div")
             .attr("class", "tooltip");
+
+        var legendTooltipDiv = d3.select("body").append("div")
+            .attr("class", "legendTooltip");
 
         var svg = d3.select(containerSelector).append("svg")
             .attr("width", width + margin.left + margin.right)
@@ -343,7 +391,7 @@ class SamplesVisualizer extends Component {
             return {
                 "text": _this.audioFiles[index].label,
                 "fontSize": "12px",
-                "fontFamily": "sans-serif"
+                "fontFamily": "sans-serif",
             }
         })
         let rectWidth = 42, rectHeight = 14, legendLeft = 0,
@@ -359,9 +407,10 @@ class SamplesVisualizer extends Component {
         chartConfig.data.forEach(function (v, i) {
             const lineId = "line-" + i
             const fileName = _this.audioFiles[i].label
+            const tooltip = _this.audioFiles[i].worker_settings
             const line = drawLine(v, colorsMap[i], fileName, lineId);
             const points = drawPoints(v, colorsMap[i], line);
-            createLegend(colorsMap[i], lineId, fileName, legendLabelPositions[i]);
+            createLegend(colorsMap[i], lineId, fileName, legendLabelPositions[i], tooltip);
         })
 
         // Axis

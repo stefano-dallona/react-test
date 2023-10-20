@@ -5,5 +5,6 @@
 
 .p-accordiono-header-text {
     color: orange !important;
-    font-size: larger;
+    font-size: large;
+    vertical-align: middle;
 }

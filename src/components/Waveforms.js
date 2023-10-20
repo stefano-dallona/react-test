@@ -468,7 +468,7 @@ class Waveforms extends Component {
         let height = 200;
         let duration = this.buffersList.length > 0 ? this.buffersList[0].duration : 0;
         let pixelsPerSecond = width / duration;
-        
+
 
         if (!this.timeline) {
             this.timeline = new wavesUI.core.Timeline(pixelsPerSecond, width);
@@ -538,7 +538,7 @@ class Waveforms extends Component {
             });
             this.timeline.addLayer(this.cursorLayer, this.waveformTrackId);
         }
-        
+
         if (this.zoomedRegion.current) {
             this.timeline.offset = -this.zoomedRegion.current.startTime
             this.timeline.zoom = this.zoomedRegion.current.zoom
@@ -921,7 +921,7 @@ class Waveforms extends Component {
 
     zoomOut() {
         console.log("zoom out")
-        
+
         this.setZoomedRegion(null)
         this.timeline.state.zoomOut()
 
@@ -1117,6 +1117,28 @@ class Waveforms extends Component {
         if (newFilename && newFilename !== this.state.filename) {
             this.setFilename(newFilename)
         }
+    }
+
+    headerTemplate = (options) => {
+        return (
+            <React.Fragment>
+                <div className={options.className}>
+                    <span className={options.titleClassName}>{options.title}</span>
+                    <span>
+                        <Button
+                            rounded
+                            size="large"
+                            text
+                            icon="pi pi-info-circle"
+                            iconPos="right"
+                            severity='info'
+                            tooltip={options.tooltip}
+                            tooltipOptions={{ position: 'right' }}
+                            className={options.titleClassName + ' mr-2'}></Button>
+                    </span>
+                </div>
+            </React.Fragment>
+        )
     }
 
     render() {
@@ -1381,7 +1403,12 @@ class Waveforms extends Component {
                     </div>
 
                 </AccordionTab>
-                <AccordionTab header="Samples">
+                <AccordionTab header="Samples" headerTemplate={this.headerTemplate({
+                    title: "Samples",
+                    className: "p-accordiono-header",
+                    titleClassName: "p-accordiono-header-text",
+                    tooltip: "Click on legend items to switch on/off lines (+Alt for bulk operation)"
+                })}>
                     {this.waveuiEl && this.state.lossSimulationsReady && this.state.buffersListReady && (
                         <SamplesVisualizer
                             servicesContainer={this.servicesContainer}
@@ -1400,7 +1427,12 @@ class Waveforms extends Component {
                         zoomedRegion={this.state.zoomedRegion}
                         filename={this.state.filename}></AudioSpectrogram>
                 </AccordionTab>
-                <AccordionTab header="Metrics">
+                <AccordionTab header="Metrics" headerTemplate={this.headerTemplate({
+                    title: "Metrics",
+                    className: "p-accordiono-header",
+                    titleClassName: "p-accordiono-header-text",
+                    tooltip: "Click on legend items to switch on/off lines (+Alt for bulk operation)"
+                })}>
                     {this.state.buffersListReady && (
                         <MetricsVisualizer runId={this.props.runId}
                             ref={this.metricsVisualizerRef}

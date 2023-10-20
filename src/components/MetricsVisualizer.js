@@ -108,19 +108,34 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
         let hovering = false
         let tooltipText = "Alt + click for bulk activation/deactivation"
 
+        function getLegendTooltip(workerSettings) {
+            let tableContent = Object.keys(workerSettings).map((key) => {
+                return `<tr><td><b>${key}:</b></td><td>${workerSettings[key]}</td></tr>`
+            }).join("")
+            return `<table width="100%">${tableContent}</table>`
+        }
+
+        function getMetricsData() {
+            return metricsData
+        }
+
         const showLegendItemTooltip = (event, legendItem) => {
             if (hovering) {
                 return;
             }
             hovering = true;
+            let metricData = metricsHandler.current(selectedLossSimulation).filter((metric, index) => {
+                return index === legendItem.datasetIndex
+            })
             let tooltip = document.getElementById("legendItemTooltip")
-            tooltip.innerHTML = tooltipText
+            let worker_settings = metricData.length > 0 ? metricData[0].worker_settings : null
+            tooltip.innerHTML = getLegendTooltip(worker_settings)
             tooltip.style.left = event.native.pageX + "px";
             tooltip.style.top = event.native.pageY + "px";
-            tooltip.style.display = ""
+            tooltip.style.display = worker_settings ? "" : "none"
         }
 
-        const hideLegentItemTooltip = () => {
+        const hideLegendItemTooltip = () => {
             hovering = false;
             let tooltip = document.getElementById("legendItemTooltip")
             tooltip.innerHTML = "";
@@ -138,7 +153,7 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
                         },
                         onClick: newLegendClickHandler,
                         onHover: showLegendItemTooltip,
-                        onLeave: hideLegentItemTooltip
+                        onLeave: hideLegendItemTooltip
                     }
                 },
                 scales: {
@@ -290,7 +305,7 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
         return (
             <Panel header="Linear" toggleable>
                 <div className="card flex flex-wrap gap-3 p-fluid mb-6" >
-                    <div id="pnl-selectedAudioFile" className="flex-auto" style={{display: "none"}}>
+                    <div id="pnl-selectedAudioFile" className="flex-auto" style={{ display: "none" }}>
                         <label htmlFor='selectedAudioFile' className="font-bold block ml-2 mb-2" style={{ color: 'white' }}>Audio File</label>
                         <Dropdown
                             id='selectedAudioFile'
@@ -303,7 +318,7 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
                             placeholder="Select a file to play"
                             className="mr-2 ml-2 w-full md:w-14rem" />
                     </div>
-                    <div id="pnl-selectedChannel" className="flex-auto" style={{display: "none"}}>
+                    <div id="pnl-selectedChannel" className="flex-auto" style={{ display: "none" }}>
                         <label htmlFor='selectedChannel' className="font-bold block ml-2 mb-2" style={{ color: 'white' }}>Channel</label>
                         <Dropdown inputId='selectedChannel'
                             id='selectedChannel'
@@ -315,7 +330,7 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
                             placeholder="Select channel"
                             className="w-full md:w-20rem" />
                     </div>
-                    <div id="pnl-displayedLossSimulations" className="flex-auto" style={{display: "none"}}>
+                    <div id="pnl-displayedLossSimulations" className="flex-auto" style={{ display: "none" }}>
                         <label htmlFor='displayedLossSimulations' className="font-bold block ml-2 mb-2" style={{ color: 'white' }}>Displayed loss simulations</label>
                         <Dropdown inputId='displayedLossSimulations'
                             id='displayedLossSimulations'
@@ -328,7 +343,7 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
                             display="chip"
                             disabled={true}
                             placeholder="Select loss simulations"
-                            className="w-full md:w-20rem"/>
+                            className="w-full md:w-20rem" />
                     </div>
                     <div id="pnl-selectedLinearMetric" className="flex-auto">
                         <label htmlFor='selectedLinearMetric'
@@ -354,7 +369,7 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
         return (
             <Panel header="Scalar" toggleable>
                 <div className="card flex flex-wrap gap-3 p-fluid mb-6" >
-                    <div id="pnl-selectedAudioFile" className="flex-auto" style={{display: "none"}}>
+                    <div id="pnl-selectedAudioFile" className="flex-auto" style={{ display: "none" }}>
                         <label htmlFor='selectedAudioFile' className="font-bold block ml-2 mb-2" style={{ color: 'white' }}>Audio File</label>
                         <Dropdown
                             id='selectedAudioFile'
@@ -367,7 +382,7 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
                             placeholder="Select a file to play"
                             className="mr-2 ml-2 w-full md:w-14rem" />
                     </div>
-                    <div id="pnl-selectedChannel" className="flex-auto" style={{display: "none"}}>
+                    <div id="pnl-selectedChannel" className="flex-auto" style={{ display: "none" }}>
                         <label htmlFor='selectedChannel' className="font-bold block ml-2 mb-2" style={{ color: 'white' }}>Channel</label>
                         <Dropdown inputId='selectedChannel'
                             id='selectedChannel'
@@ -379,7 +394,7 @@ export const MetricsVisualizer = React.forwardRef((props, ref) => {
                             placeholder="Select channel"
                             className="w-full md:w-20rem" />
                     </div>
-                    <div id="pnl-displayedLossSimulations" className="flex-auto" style={{display: "none"}}>
+                    <div id="pnl-displayedLossSimulations" className="flex-auto" style={{ display: "none" }}>
                         <label htmlFor='displayedLossSimulations' className="font-bold block ml-2 mb-2" style={{ color: 'white' }}>Displayed loss simulations</label>
                         <Dropdown inputId='displayedLossSimulations'
                             id='displayedLossSimulations'

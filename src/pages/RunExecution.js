@@ -196,7 +196,7 @@ export const RunExecution = (props) => {
                             iconPos="right"
                             severity='info'
                             tooltip="Inspect the structure of the elaboration, run it and monitor progress"
-                            tooltipOptions={{ position: 'top' }}
+                            tooltipOptions={{ position: 'left' }}
                             className={options.titleClassName + ' mr-2'}></Button>
                         {endContent}
                     </span>
