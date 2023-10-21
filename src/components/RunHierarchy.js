@@ -313,7 +313,9 @@ class RunHierarchy extends Component {
                 ", nodetype: " + message.nodetype +
                 ", nodeid: " + message.nodeid +
                 ", currentPercentage: " + message.currentPercentage,
-                ", progress: " + message.progress)
+                ", progress: " + JSON.stringify(message.progress),
+                ", success: " + message.success,
+                ", errorMessage: " + message.errorMessage)
 
             for (const [nodeid, pbRef] of this.progressBarRefs) {
                 let progressMap = new Map(Object.entries(message.progress))
