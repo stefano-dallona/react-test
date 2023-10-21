@@ -277,6 +277,7 @@ class RunHierarchy extends Component {
             if (!startTime) {
                 startTime = Math.round(Date.now() / 1000)
             }
+            console.log(`Message received:${e.data}`)
             let message = JSON.parse(e.data)
 
             if (message.task_id != localStorage.getItem("runExecution:" + this.state.runId)) {
