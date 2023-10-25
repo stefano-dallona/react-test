@@ -273,6 +273,9 @@ class Waveforms extends Component {
             if (this.spectrogramRef.current) {
                 this.spectrogramRef.current.setAudioFileToPlay(this.state.audioFileToPlay)
             }
+            if (this.state.zoomedRegion) {
+                this.setCursorPosition(this.state.zoomedRegion.startTime)
+            }
         });
     }
 
@@ -713,7 +716,7 @@ class Waveforms extends Component {
     }
 
     setPlayerCurrentTime = (time) => {
-        if (this.player.current) {
+        if (this.player.current && isFinite(time)) {
             this.player.current.audio.current.currentTime = time
         }
     }
@@ -1393,6 +1396,16 @@ class Waveforms extends Component {
                                     this.setPlaying(false)
                                     console.log("Play paused")
                                     this.setSelectedAudioFiles(this.audioFiles.map((file, index) => file.uuid))
+                                }}
+                                onLoadedData={() => {
+                                        let positionToRestore = 0
+                                        if (this.player.current.audio.current.currentTime) {
+                                            positionToRestore = this.player.current.audio.current.currentTime
+                                        } else if (this.state.zoomedRegion && this.state.zoomedRegion.startTime) {
+                                            positionToRestore =  this.state.zoomedRegion.startTime
+                                        }
+                                        this.setCursorPosition(positionToRestore)
+                                        this.setPlayerCurrentTime(positionToRestore)
                                 }}
                                 onClickPrevious={this.previousTrack.bind(this)}
                                 onClickNext={this.nextTrack.bind(this)}
