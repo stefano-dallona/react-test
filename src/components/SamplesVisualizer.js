@@ -276,7 +276,7 @@ class SamplesVisualizer extends Component {
         }
 
         function updateLine(lineId, lineData) {
-            d3.select("#" + lineId)
+            d3.select("#line-" + lineId)
                 .data([lineData])
                 .attr("d", line(lineData));
         }
