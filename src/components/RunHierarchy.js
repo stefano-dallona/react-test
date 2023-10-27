@@ -12,6 +12,8 @@ import Link from './Link'
 import ProgressSpinner from './ProgressSpinner'
 import { ConfigurationService } from '../services/testbench-configuration-service';
 
+import startCase from 'lodash/startCase';
+
 var d3 = require("d3")
 
 /*
@@ -491,7 +493,9 @@ class RunHierarchy extends Component {
                         })}
                         {this.nodes.map((node, i) => {
                             return (
-                                <Node key={node.data.uuid} nodeId={node.data.uuid} label={node.data.name} transform={`translate(${node.x}, ${node.y})`} />
+                                <Node key={node.data.uuid}
+                                    nodeId={node.data.uuid} label={startCase(node.data.name)}
+                                    transform={`translate(${node.x}, ${node.y})`} />
                             )
                         })}
                         {this.nodes.map((node, i) => {
