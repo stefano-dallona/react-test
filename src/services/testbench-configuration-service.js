@@ -19,7 +19,7 @@ export class ConfigurationService {
         return uuid;
     }
 
-    async findAllRuns(pagination={page: 0, pageSize: -1}) {
+    async findAllRuns(pagination = { page: 0, pageSize: -1 }) {
         let requestUrl = `${this.baseUrl}/runs?page=${pagination.page}&page_size=${pagination.pageSize}`
         /*
         let response = await fetch(requestUrl, {
@@ -29,7 +29,7 @@ export class ConfigurationService {
         */
         let response = await this.axiosClient.get(requestUrl);
         let runs = response.data
-        
+
         return runs
     }
 
@@ -52,7 +52,7 @@ export class ConfigurationService {
             ]
         }
         */
-        projection = { }
+        projection = {}
 
         pagination = {
             "page": 0,
@@ -156,10 +156,10 @@ export class ConfigurationService {
      (but you can opt out of this behavior if you want.)"
     */
     startListeningForExecutionEvents(run_id,
-            execution_id,
-            callback,
-            task_id,
-            error_callback = (err) => { console.error("EventSource failed:", err) }) {
+        execution_id,
+        callback,
+        task_id,
+        error_callback = (err) => { console.error("EventSource failed:", err) }) {
         let token = localStorage.getItem("jwt_token")
         let requestUrl = `${this.baseUrl}/runs/${run_id}/executions/${execution_id}/events?task_id=${task_id}` //&token=${token}`
         /*
@@ -171,7 +171,7 @@ export class ConfigurationService {
         class FatalError extends Error { }
 
         this.sseListenerController = new AbortController()
-        
+
         fetchEventSource(requestUrl, {
             openWhenHidden: true,
             headers: {
@@ -199,7 +199,7 @@ export class ConfigurationService {
             },
             signal: this.sseListenerController.signal
         })
-        
+
     }
 
     stopListeningForExecutionEvents() {
@@ -235,6 +235,50 @@ export class ConfigurationService {
         let response = await this.axiosClient.get(requestUrl);
         let settings_metadata = response.data
         return settings_metadata
+    }
+
+    getSettingsAsTreetableNodes(settings, path = []) {
+        return settings.flatMap((property, index) => {
+
+            if (["settingsList"].includes(property.type)) {
+                let itemPath = [...path, [index]]
+                return {
+                    "key": itemPath.join("-"),
+                    "data": {
+                        "property": property.property,
+                        "value": "",
+                        "valueType": property.type,
+                        "editable": property.editable
+                    },
+                    "children": property.value.map((child, childIndex) => {
+                        let childPath = [...itemPath, [childIndex]]
+                        let childChildren = this.getSettingsAsTreetableNodes(child.settings, childPath)
+                        return {
+                            "key": childPath.join("-"),
+                            "data": {
+                                "property": `band-${childIndex}_settings`,
+                                "value": child.name,
+                                "valueType": "select",
+                                "options": property.value.map((item, index) => { return item.name }),
+                                "editable": true
+                            },
+                            "children": childChildren
+                        }
+                    })
+                }
+            }
+
+            return {
+                key: `${index}`,
+                data: {
+                    "property": property.property,
+                    "value": property.value,
+                    "valueType": property.type,
+                    "editable": property.editable,
+                    "mandatory": true
+                }
+            }
+        })
     }
 
     async getSearchFields() {

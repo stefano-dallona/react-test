@@ -50,6 +50,8 @@ class Settings extends Component {
 
     async componentDidMount() {
         this.defaultSettings = await this.servicesContainer.configurationService.getSettingsMetadata()
+        this.nodes = this.servicesContainer.configurationService.getSettingsAsTreetableNodes(this.defaultSettings[0].value[0].settings)
+        console.log(`nodes: ${JSON.stringify(this.nodes)}`)
     }
 
     setCurrentPage(currentPage, callback) {
@@ -256,7 +258,8 @@ class Settings extends Component {
                 toast={this.toast}
                 workerType={workerType}
                 selectedWorkers={this.getStoredSettings(workerType)}
-                defaultSettings={this.defaultSettings.find((setting) => setting.property == workerType).value}>
+                defaultSettings={this.defaultSettings.find((setting) => setting.property == workerType).value}
+                nodes={this.nodes}>
             </WorkersSettings>
         )
     }
