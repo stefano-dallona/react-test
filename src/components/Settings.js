@@ -50,7 +50,58 @@ class Settings extends Component {
 
     async componentDidMount() {
         this.defaultSettings = await this.servicesContainer.configurationService.getSettingsMetadata()
-        this.nodes = this.servicesContainer.configurationService.getSettingsAsTreetableNodes(this.defaultSettings[0].value[0].settings)
+        //let step = "PacketLossSimulator", algorithm = "BinomialPLS"
+        let step = "PLCAlgorithm", algorithm = "ZerosPLC"
+        //let step = "OutputAnalyser", algorithm = "MSECalculator"
+        this.nodes = this.servicesContainer.configurationService.getSettingsAsTreetableNodes(this.defaultSettings.find((item) => {
+            return item.property === step
+        }).value.find((item) => {
+            return item.name === algorithm
+        })?.settings)
+        /*
+        this.nodes = [
+            {
+                "key": "0",
+                "data": {
+                    "property": "N",
+                    "value": 1024,
+                    "valueType": "int",
+                    "editable": true,
+                    "mandatory": true
+                }
+            },
+            {
+                "key": "1",
+                "data": {
+                    "property": "hop",
+                    "value": 512,
+                    "valueType": "int",
+                    "editable": false,
+                    "mandatory": true
+                }
+            },
+            {
+                "key": "2",
+                "data": {
+                    "property": "amp_scale",
+                    "value": 1,
+                    "valueType": "float",
+                    "editable": true,
+                    "mandatory": true
+                }
+            },
+            {
+                "key": "3",
+                "data": {
+                    "property": "bool_prop",
+                    "value": true,
+                    "valueType": "bool",
+                    "editable": true,
+                    "mandatory": true
+                }
+            }
+        ]
+        */
         console.log(`nodes: ${JSON.stringify(this.nodes)}`)
     }
 
@@ -140,7 +191,7 @@ class Settings extends Component {
 
     loadSettings() {
         let settings = this.loadConfigurationFromTemporaryStorage()
-        this.storedSettings[this.state.currentPage] = settings[this.state.currentPage] 
+        this.storedSettings[this.state.currentPage] = settings[this.state.currentPage]
     }
 
     getStoredSettings(workerType) {
@@ -209,7 +260,7 @@ class Settings extends Component {
     saveConfigurationToTemporaryStorage(configuration) {
         let key = `plc-testbench-ui.configuration`
         return localStorage.setItem(key, JSON.stringify(configuration ? configuration : []))
-    }    
+    }
 
     cleanupTemporaryStorage() {
         let key = `plc-testbench-ui.configuration`
@@ -266,7 +317,7 @@ class Settings extends Component {
 
     render() {
         return (
-            <div className="card p-fluid" style={{minHeight: "70%"}}>
+            <div className="card p-fluid" style={{ minHeight: "70%" }}>
                 <Toast ref={this.toast} />
                 <Panel>
                     <Steps model={this.pages.map((element) => {

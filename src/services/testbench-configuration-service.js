@@ -259,7 +259,10 @@ export class ConfigurationService {
                                 "property": `band-${childIndex}_settings`,
                                 "value": child.name,
                                 "valueType": "select",
-                                "options": property.value.map((item, index) => { return item.name }),
+                                "options": property.value.map((item, index) => { return {
+                                    "name": item.name,
+                                    "settings": childChildren
+                                }}),
                                 "editable": true
                             },
                             "children": childChildren

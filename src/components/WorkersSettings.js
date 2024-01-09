@@ -13,6 +13,7 @@ import { ScrollPanel } from 'primereact/scrollpanel';
 import { TreeTable } from 'primereact/treetable';
 import { Column } from 'primereact/column';
 import { Chips } from 'primereact/chips';
+import { InputSwitch } from 'primereact/inputswitch';
 
 
 import cloneDeep from 'lodash/cloneDeep';
@@ -294,65 +295,112 @@ class WorkersSettings extends Component {
 
     inputTextEditor = (options) => {
         return (
-          <InputText
-            type="text"
-            disabled={!options.rowData["editable"]}
-            value={options.rowData[options.field]}
-            onChange={(e) => this.onEditorValueChange(options, e.target.value)}
-          />
+            <InputText
+                type="text"
+                disabled={!options.rowData["editable"]}
+                value={options.rowData[options.field]}
+                onChange={(e) => this.onEditorValueChange(options, e.target.value)}
+            />
         );
-      };
-    
-    editableListEditor = (options) => {
+    };
+
+    booleanEditor = (options) => {
         return (
-          <Chips
-            value={options.rowData[options.field].split(",")}
-            onChange={(e) => this.onEditorValueChange(options, e.target.value)}
-            keyfilter="int"
-          />
+            <InputSwitch
+                disabled={!options.rowData["editable"]}
+                checked={options.rowData[options.field]}
+                onChange={(e) => this.onEditorValueChange(options, e.target.value)}
+            />
         );
-      };
-    
+    };
+
+    editableListEditor = (options) => {
+        let value = options.rowData[options.field]
+        return (
+            <Chips
+                value={Array.isArray(value) ? value : value.split(",")}
+                onChange={(e) => this.onEditorValueChange(options, e.target.value)}
+                keyfilter="int"
+            />
+        );
+    };
+
     singleSelectEditor = (options) => {
         return (
-          <Dropdown
-            disabled={!options.rowData["editable"]}
-            value={options.rowData[options.field]}
-            options={options.rowData["options"]}
-            onChange={(e) => this.onEditorValueChange(options, e.target.value)}
-          />
+            <Dropdown
+                disabled={!options.rowData["editable"]}
+                value={options.rowData[options.field]}
+                options={options.rowData["options"]}
+                optionLabel="name"
+                optionValue="name"
+                onChange={(e) => this.onEditorValueChange(options, e.target.value)}
+            />
         );
-      };
+    };
+
+    findNodeByKey = (nodes, key) => {
+        let path = key.split("-");
+        let node;
+
+        while (path.length) {
+            let list = node ? node.children : nodes;
+
+            node = list[parseInt(path[0], 10)];
+            path.shift();
+        }
+
+        return node;
+    };
 
     onEditorValueChange = (options, value) => {
         /*
         let newNodes = JSON.parse(JSON.stringify(nodes));
-        let editedNode = findNodeByKey(newNodes, options.node.key);
+        let editedNode = this.findNodeByKey(newNodes, options.node.key);
     
         editedNode.data[options.field] = value;
     
         setNodes(newNodes);
         */
+        let newNodes = JSON.parse(JSON.stringify(this.nodes));
+        let editedNode = this.findNodeByKey(newNodes, options.node.key);
+
+        switch (editedNode.data["property"]) {
+            case 'frequencies':
+                let bands = Array.isArray(value) ? value : value.split(",");
+                console.log(`bands:${bands}`)
+                break;
+            default:
+        };
+
+        if (editedNode.data["valueType"] === 'select' && editedNode.children.length > 0) {
+            let selectedItemSettings = editedNode.data.options.find((option) => {
+                return option.name === value
+            })
+            console.log(`selectedItemSettings.settings: ${selectedItemSettings?.settings}`)
+            editedNode.children = selectedItemSettings.settings
+        }
+
+        this.nodes = newNodes;
     };
-    
+
     valueEditor = (options) => {
         switch (options.rowData["valueType"]) {
-          case "select":
-            console.log("valueType:" + options.rowData["valueType"]);
-            return this.singleSelectEditor(options);
-            break;
-          case "editableList":
-            console.log("valueType:" + options.rowData["valueType"]);
-            return this.editableListEditor(options);
-            break;
-          case "enum":
-            console.log("valueType:" + options.rowData["valueType"]);
-            return this.singleSelectEditor(options);
-            break;
-          default:
-            return this.inputTextEditor(options);
+            case "bool":
+                console.log("valueType:" + options.rowData["valueType"]);
+                return this.booleanEditor(options)
+            case "select":
+                console.log("valueType:" + options.rowData["valueType"]);
+                return this.singleSelectEditor(options);
+            case "list":
+                console.log("valueType:" + options.rowData["valueType"]);
+                return this.editableListEditor(options);
+            case "enum":
+                console.log("valueType:" + options.rowData["valueType"]);
+                return this.singleSelectEditor(options);
+            default:
+                return this.inputTextEditor(options);
         }
-      };
+    };
 
     getWorkerInfo(worker) {
         return worker ? this.defaultSettings.filter((workerSettings) => {
@@ -721,10 +769,10 @@ class WorkersSettings extends Component {
                                         ]}
                                         */
                                         value={this.nodes}
-                                        expandedKeys={{"0":true,"1":true,"2":true,"1-0":true,"1-0-0":true,"1-0-1":true,"1-0-2":true,"1-0-3":true,"1-1":true,"1-1-0":true,"1-1-1":true,"1-1-2":true,"1-1-3":true,"1-3":true,"1-3-0":true,"1-3-1":true,"1-3-2":true,"1-3-3":true,"2-0":true,"2-0-0":true,"2-0-1":true,"2-0-2":true,"2-0-3":true}}
-                                        tableStyle={{ minWidth: "50rem" }}
-                                        /*scrollable
-                                        scrollHeight='85%'*/
+                                        expandedKeys={{ "0": true, "1": true, "2": true, "1-0": true, "1-0-0": true, "1-0-1": true, "1-0-2": true, "1-0-3": true, "1-1": true, "1-1-0": true, "1-1-1": true, "1-1-2": true, "1-1-3": true, "1-3": true, "1-3-0": true, "1-3-1": true, "1-3-2": true, "1-3-3": true, "2-0": true, "2-0-0": true, "2-0-1": true, "2-0-2": true, "2-0-3": true }}
+                                        tableStyle={{ minWidth: "30rem" }}
+                                    /*scrollable
+                                    scrollHeight='85%'*/
                                     >
                                         <Column
                                             field="property"
@@ -736,7 +784,7 @@ class WorkersSettings extends Component {
                                             field="value"
                                             header="Value"
                                             editor={this.valueEditor}
-                                            cellEditValidator={this.requiredValidator}                                            
+                                            cellEditValidator={this.requiredValidator}
                                             style={{ height: "3.5rem" }}
                                         ></Column>
                                     </TreeTable>
