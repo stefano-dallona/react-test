@@ -250,7 +250,9 @@ export class ConfigurationService {
                         "valueType": property.type,
                         "editable": property.editable
                     },
-                    "children": property.value.map((child, childIndex) => {
+                    "children": property.value.filter((child, childIndex) => {
+                        return childIndex === 0
+                    }).map((child, childIndex) => {
                         let childPath = [...itemPath, [childIndex]]
                         let childChildren = this.getSettingsAsTreetableNodes(child.settings, childPath)
                         return {
