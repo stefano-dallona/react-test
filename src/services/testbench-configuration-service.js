@@ -239,9 +239,9 @@ export class ConfigurationService {
 
     getSettingsAsTreetableNodes(settings, path = []) {
         return settings.flatMap((property, index) => {
+            let itemPath = [...path, [index]]
 
             if (["settingsList"].includes(property.type)) {
-                let itemPath = [...path, [index]]
                 return {
                     "key": itemPath.join("-"),
                     "data": {
@@ -273,8 +273,22 @@ export class ConfigurationService {
                 }
             }
 
+            if (["select"].includes(property.type)) {
+                return {
+                    key: itemPath.join("-"),
+                    data: {
+                        "property": property.property,
+                        "value": property.value,
+                        "options": property.options.map((option) => { return { name: option } }),
+                        "valueType": property.type,
+                        "editable": property.editable,
+                        "mandatory": true
+                    }
+                }
+            }
+
             return {
-                key: `${index}`,
+                key: itemPath.join("-"),
                 data: {
                     "property": property.property,
                     "value": property.value,

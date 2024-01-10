@@ -372,7 +372,7 @@ class WorkersSettings extends Component {
             default:
         };
 
-        if (editedNode.data["valueType"] === 'select' && editedNode.children.length > 0) {
+        if (editedNode.data["valueType"] === 'select' && editedNode?.children?.length > 0) {
             let selectedItemSettings = editedNode.data.options.find((option) => {
                 return option.name === value
             })
