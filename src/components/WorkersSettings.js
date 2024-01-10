@@ -155,6 +155,10 @@ class WorkersSettings extends Component {
 
         let clonedSelectedWorkers = cloneDeep(this.state.selectedWorkers)
         let currentWorker = cloneDeep(this.state.currentWorkerSettings)
+
+        let clonedCurrentNodes = cloneDeep(this.state.currentNodes)
+        currentWorker.settings = clonedCurrentNodes
+
         let existingWorker = this.state.selectedWorkers.find(oa => oa.uuid == currentWorker.uuid)
         if (existingWorker) {
             clonedSelectedWorkers = clonedSelectedWorkers.map(oa => (oa.uuid == currentWorker.uuid) ? currentWorker : oa)
@@ -296,8 +300,8 @@ class WorkersSettings extends Component {
                 {
                     settings.map((setting) => {
                         return (<tr>
-                            <td style={{ width: "45%" }}><b>{setting.property.replaceAll('_', ' ')}:</b></td>
-                            <td style={{ width: "55%" }}>{setting.value}</td>
+                            <td style={{ width: "45%" }}><b>{setting.data.property.replaceAll('_', ' ')}:</b></td>
+                            <td style={{ width: "55%" }}>{JSON.stringify(setting.data.value)}</td>
                         </tr>)
                     })
                 }
