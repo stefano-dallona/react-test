@@ -237,6 +237,9 @@ class WorkersSettings extends Component {
         } else {
             this.setCurrentWorker(null)
         }
+        
+        let currentNodes = currentWorkerSettings.settings
+        this.setCurrentNodes(currentNodes)
     }
 
 
@@ -294,14 +297,17 @@ class WorkersSettings extends Component {
             onChange={(e) => this.setPropertyValue(setting, e.value)} />
     }
 
-    getSettingsAsHtmlTable(settings) {
+    getSettingsAsHtmlTable(settings, level = 0) {
         return (
-            <table style={{ width: "80%", tableLayout: "fixed" }}>
+            <table style={{ width: "120%", tableLayout: "fixed" }}>
                 {
                     settings.map((setting) => {
+                        let property = setting.data.property.replaceAll('_', ' ')
+                        let value = setting?.children?.length > 0 ? this.getSettingsAsHtmlTable(setting.children, level + 1) : setting.data.value
+                        //value = JSON.stringify(value).replaceAll(/^"/gi, "").replaceAll(/"$/gi, "")
                         return (<tr>
-                            <td style={{ width: "45%" }}><b>{setting.data.property.replaceAll('_', ' ')}:</b></td>
-                            <td style={{ width: "55%" }}>{JSON.stringify(setting.data.value)}</td>
+                            <td style={{ width: "40%", verticalAlign: "top", paddingTop: level === 0 ? "40px" : "0px" }}><b>{property}:</b></td>
+                            <td style={{ width: "60%", verticalAlign: "top", paddingTop: level === 0 ? "40px" : "0px" }}>{value}</td>
                         </tr>)
                     })
                 }

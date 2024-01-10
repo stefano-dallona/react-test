@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@kevincobain2000/json-to-html-table": "^1.0.4",
     "@microsoft/fetch-event-source": "^2.0.1",
     "@react-awesome-query-builder/mui": "^6.2.0",
     "@react-oauth/google": "^0.11.0",

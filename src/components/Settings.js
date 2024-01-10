@@ -50,60 +50,6 @@ class Settings extends Component {
 
     async componentDidMount() {
         this.defaultSettings = await this.servicesContainer.configurationService.getSettingsMetadata()
-        //let step = "PacketLossSimulator", algorithm = "BinomialPLS"
-        let step = "PLCAlgorithm", algorithm = "ZerosPLC"
-        //let step = "OutputAnalyser", algorithm = "MSECalculator"
-        /*
-        this.nodes = this.servicesContainer.configurationService.getSettingsAsTreetableNodes(this.defaultSettings.find((item) => {
-            return item.property === step
-        }).value.find((item) => {
-            return item.name === algorithm
-        })?.settings)
-        
-        this.nodes = [
-            {
-                "key": "0",
-                "data": {
-                    "property": "N",
-                    "value": 1024,
-                    "valueType": "int",
-                    "editable": true,
-                    "mandatory": true
-                }
-            },
-            {
-                "key": "1",
-                "data": {
-                    "property": "hop",
-                    "value": 512,
-                    "valueType": "int",
-                    "editable": false,
-                    "mandatory": true
-                }
-            },
-            {
-                "key": "2",
-                "data": {
-                    "property": "amp_scale",
-                    "value": 1,
-                    "valueType": "float",
-                    "editable": true,
-                    "mandatory": true
-                }
-            },
-            {
-                "key": "3",
-                "data": {
-                    "property": "bool_prop",
-                    "value": true,
-                    "valueType": "bool",
-                    "editable": true,
-                    "mandatory": true
-                }
-            }
-        ]
-        */
-        console.log(`nodes: ${JSON.stringify(this.nodes)}`)
     }
 
     setCurrentPage(currentPage, callback) {
@@ -140,7 +86,7 @@ class Settings extends Component {
         const validate = (workerSettings) => {
             let errors = []
             errors = errors.concat(workerSettings.settings.filter((setting) => {
-                return setting.value == null
+                return setting.data.value == null
             }).map((setting) => {
                 return `${workerSettings.name}: ${setting.property} cannot be null`
             }))
