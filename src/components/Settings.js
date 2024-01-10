@@ -53,12 +53,13 @@ class Settings extends Component {
         //let step = "PacketLossSimulator", algorithm = "BinomialPLS"
         let step = "PLCAlgorithm", algorithm = "ZerosPLC"
         //let step = "OutputAnalyser", algorithm = "MSECalculator"
+        /*
         this.nodes = this.servicesContainer.configurationService.getSettingsAsTreetableNodes(this.defaultSettings.find((item) => {
             return item.property === step
         }).value.find((item) => {
             return item.name === algorithm
         })?.settings)
-        /*
+        
         this.nodes = [
             {
                 "key": "0",
@@ -306,11 +307,11 @@ class Settings extends Component {
                 ref={this.workerSettings}
                 /*header={this.paged ? this.getProgress() : null}
                 toggleable={this.toggleable}*/
+                servicesContainer={this.servicesContainer}
                 toast={this.toast}
                 workerType={workerType}
                 selectedWorkers={this.getStoredSettings(workerType)}
-                defaultSettings={this.defaultSettings.find((setting) => setting.property == workerType).value}
-                nodes={this.nodes}>
+                defaultSettings={this.defaultSettings.find((setting) => setting.property == workerType).value} >
             </WorkersSettings>
         )
     }

@@ -45,9 +45,9 @@ class WorkersSettings extends Component {
         super(props);
 
         this.toast = props.toast
+        this.servicesContainer = props.servicesContainer
         this.workerType = props.workerType
         this.defaultSettings = props.defaultSettings || {}
-        this.nodes = props.nodes || {}
 
         this.header = props.header || this.workerType + " Settings"
         this.toggleable = props.toggleable || true
@@ -57,6 +57,7 @@ class WorkersSettings extends Component {
             currentWorkerSettings: null,
             selectedWorkers: props.selectedWorkers || [],
             confirmationMessage: null,
+            currentNodes: null
         };
     }
 
@@ -77,6 +78,11 @@ class WorkersSettings extends Component {
                 workersSettings.uuid = create_UUID()
             }
             this.setCurrentWorkerSettings(cloneDeep(workersSettings))
+            
+            let currentNodes = this.servicesContainer.configurationService.getSettingsAsTreetableNodes(this.defaultSettings.find((item) => {
+                return item.name === currentWorker
+            })?.settings)
+            this.setCurrentNodes(cloneDeep(currentNodes))
         } else {
             this.setCurrentWorkerSettings(null)
         }
@@ -91,6 +97,12 @@ class WorkersSettings extends Component {
     setCurrentWorkerSettings(currentWorkerSettings) {
         this.setState({
             currentWorkerSettings: currentWorkerSettings
+        })
+    }
+
+    setCurrentNodes(currentNodes) {
+        this.setState({
+            currentNodes: currentNodes
         })
     }
 
@@ -353,34 +365,28 @@ class WorkersSettings extends Component {
     };
 
     onEditorValueChange = (options, value) => {
-        /*
-        let newNodes = JSON.parse(JSON.stringify(nodes));
+        let newNodes = JSON.parse(JSON.stringify(this.state.currentNodes));
         let editedNode = this.findNodeByKey(newNodes, options.node.key);
-    
-        editedNode.data[options.field] = value;
-    
-        setNodes(newNodes);
-        */
-        let newNodes = JSON.parse(JSON.stringify(this.nodes));
-        let editedNode = this.findNodeByKey(newNodes, options.node.key);
+        let newValue = editedNode.data["valueType"] === "list" ? value.join(",") : value;
+        editedNode.data[options.field] = newValue
 
         switch (editedNode.data["property"]) {
             case 'frequencies':
-                let bands = Array.isArray(value) ? value : value.split(",");
+                let bands = Array.isArray(newValue) ? newValue : newValue.split(",");
                 console.log(`bands:${bands}`)
                 break;
             default:
         };
 
-        if (editedNode.data["valueType"] === 'select' && editedNode?.children?.length > 0) {
+        if (editedNode.data["valueType"] === 'select' && editedNode.data.options.length > 0 && editedNode.data.options[0].settings) {
             let selectedItemSettings = editedNode.data.options.find((option) => {
-                return option.name === value
+                return option.name === newValue
             })
             console.log(`selectedItemSettings.settings: ${selectedItemSettings?.settings}`)
             editedNode.children = selectedItemSettings.settings
         }
 
-        this.nodes = newNodes;
+        this.setCurrentNodes(newNodes);
     };
 
     valueEditor = (options) => {
@@ -482,294 +488,8 @@ class WorkersSettings extends Component {
                                 style={{ position: "relative", width: "100%", height: '370px', border: 'none' }}>
                                 <ScrollPanel style={{ width: '100%', height: '290px' }}>
                                     <TreeTable
-                                        /*value={[
-                                            {
-                                                "key": "0",
-                                                "data": {
-                                                    "property": "frequencies",
-                                                    "value": "20,20000",
-                                                    "valueType": "editableList",
-                                                    "editable": true
-                                                }
-                                            },
-                                            {
-                                                "key": "1",
-                                                "data": {
-                                                    "property": "crossfade",
-                                                    "value": "",
-                                                    "valueType": "settingsList",
-                                                    "editable": false
-                                                },
-                                                "children": [
-                                                    {
-                                                        "key": "1-0",
-                                                        "data": {
-                                                            "property": "band-1_settings",
-                                                            "value": "QuadraticCrossfadeSettings",
-                                                            "valueType": "select",
-                                                            "options": [
-                                                                "ManualCrossfadeSettings",
-                                                                "NoCrossfadeSettings",
-                                                                "LinearCrossfadeSettings",
-                                                                "QuadraticCrossfadeSettings",
-                                                                "CubicCrossfadeSettings",
-                                                                "SinusoidalCrossfadeSettings"
-                                                            ],
-                                                            "editable": true
-                                                        },
-                                                        "children": [
-                                                            {
-                                                                "key": "1-0-0",
-                                                                "data": {
-                                                                    "property": "length",
-                                                                    "value": "10",
-                                                                    "valueType": "int",
-                                                                    "editable": true
-                                                                }
-                                                            },
-                                                            {
-                                                                "key": "1-0-1",
-                                                                "data": {
-                                                                    "property": "function",
-                                                                    "value": "power",
-                                                                    "valueType": "enum",
-                                                                    "options": [
-                                                                        "power",
-                                                                        "sinusoidal"
-                                                                    ],
-                                                                    "editable": false
-                                                                }
-                                                            },
-                                                            {
-                                                                "key": "1-0-2",
-                                                                "data": {
-                                                                    "property": "type",
-                                                                    "value": "power",
-                                                                    "valueType": "enum",
-                                                                    "options": [
-                                                                        "power",
-                                                                        "amplitude"
-                                                                    ],
-                                                                    "editable": false
-                                                                }
-                                                            },
-                                                            {
-                                                                "key": "1-0-3",
-                                                                "data": {
-                                                                    "property": "exponent",
-                                                                    "value": "2.0",
-                                                                    "valueType": "float",
-                                                                    "editable": false
-                                                                }
-                                                            }
-                                                        ]
-                                                    },
-                                                    {
-                                                        "key": "1-1",
-                                                        "data": {
-                                                            "property": "band-2_settings",
-                                                            "value": "CubicCrossfadeSettings",
-                                                            "valueType": "select",
-                                                            "options": [
-                                                                "ManualCrossfadeSettings",
-                                                                "NoCrossfadeSettings",
-                                                                "LinearCrossfadeSettings",
-                                                                "QuadraticCrossfadeSettings",
-                                                                "CubicCrossfadeSettings",
-                                                                "SinusoidalCrossfadeSettings"
-                                                            ],
-                                                            "editable": true
-                                                        },
-                                                        "children": [
-                                                            {
-                                                                "key": "1-1-0",
-                                                                "data": {
-                                                                    "property": "length",
-                                                                    "value": "10",
-                                                                    "valueType": "int",
-                                                                    "editable": true
-                                                                }
-                                                            },
-                                                            {
-                                                                "key": "1-1-1",
-                                                                "data": {
-                                                                    "property": "function",
-                                                                    "value": "power",
-                                                                    "valueType": "enum",
-                                                                    "options": [
-                                                                        "power",
-                                                                        "sinusoidal"
-                                                                    ],
-                                                                    "editable": false
-                                                                }
-                                                            },
-                                                            {
-                                                                "key": "1-1-2",
-                                                                "data": {
-                                                                    "property": "type",
-                                                                    "value": "power",
-                                                                    "valueType": "enum",
-                                                                    "options": [
-                                                                        "power",
-                                                                        "amplitude"
-                                                                    ],
-                                                                    "editable": false
-                                                                }
-                                                            },
-                                                            {
-                                                                "key": "1-1-3",
-                                                                "data": {
-                                                                    "property": "exponent",
-                                                                    "value": "3.0",
-                                                                    "valueType": "float",
-                                                                    "editable": false
-                                                                }
-                                                            }
-                                                        ]
-                                                    },
-                                                    {
-                                                        "key": "1-3",
-                                                        "data": {
-                                                            "property": "band-3_settings",
-                                                            "value": "ManualCrossfadeSettings",
-                                                            "valueType": "select",
-                                                            "options": [
-                                                                "ManualCrossfadeSettings",
-                                                                "NoCrossfadeSettings",
-                                                                "LinearCrossfadeSettings",
-                                                                "QuadraticCrossfadeSettings",
-                                                                "CubicCrossfadeSettings",
-                                                                "SinusoidalCrossfadeSettings"
-                                                            ],
-                                                            "editable": true
-                                                        },
-                                                        "children": [
-                                                            {
-                                                                "key": "1-3-0",
-                                                                "data": {
-                                                                    "property": "length",
-                                                                    "value": "30",
-                                                                    "valueType": "int",
-                                                                    "editable": true
-                                                                }
-                                                            },
-                                                            {
-                                                                "key": "1-3-1",
-                                                                "data": {
-                                                                    "property": "function",
-                                                                    "value": "power",
-                                                                    "valueType": "enum",
-                                                                    "options": [
-                                                                        "power",
-                                                                        "sinusoidal"
-                                                                    ],
-                                                                    "editable": true
-                                                                }
-                                                            },
-                                                            {
-                                                                "key": "1-3-2",
-                                                                "data": {
-                                                                    "property": "type",
-                                                                    "value": "amplitude",
-                                                                    "valueType": "enum",
-                                                                    "options": [
-                                                                        "power",
-                                                                        "amplitude"
-                                                                    ],
-                                                                    "editable": true
-                                                                }
-                                                            },
-                                                            {
-                                                                "key": "1-3-3",
-                                                                "data": {
-                                                                    "property": "exponent",
-                                                                    "value": "1.0",
-                                                                    "valueType": "float",
-                                                                    "editable": true
-                                                                }
-                                                            }
-                                                        ]
-                                                    }
-                                                ]
-                                            },
-                                            {
-                                                "key": "2",
-                                                "data": {
-                                                    "property": "fade_in",
-                                                    "value": "",
-                                                    "valueType": "settingsList",
-                                                    "editable": false
-                                                },
-                                                "children": [
-                                                    {
-                                                        "key": "2-0",
-                                                        "data": {
-                                                            "property": "band-1_settings",
-                                                            "value": "LinearCrossfadeSettings",
-                                                            "valueType": "select",
-                                                            "options": [
-                                                                "ManualCrossfadeSettings",
-                                                                "NoCrossfadeSettings",
-                                                                "LinearCrossfadeSettings",
-                                                                "QuadraticCrossfadeSettings",
-                                                                "CubicCrossfadeSettings",
-                                                                "SinusoidalCrossfadeSettings"
-                                                            ],
-                                                            "editable": true
-                                                        },
-                                                        "children": [
-                                                            {
-                                                                "key": "2-0-0",
-                                                                "data": {
-                                                                    "property": "length",
-                                                                    "value": "10",
-                                                                    "valueType": "int",
-                                                                    "editable": true
-                                                                }
-                                                            },
-                                                            {
-                                                                "key": "2-0-1",
-                                                                "data": {
-                                                                    "property": "function",
-                                                                    "value": "power",
-                                                                    "valueType": "enum",
-                                                                    "options": [
-                                                                        "power",
-                                                                        "sinusoidal"
-                                                                    ],
-                                                                    "editable": false
-                                                                }
-                                                            },
-                                                            {
-                                                                "key": "2-0-2",
-                                                                "data": {
-                                                                    "property": "type",
-                                                                    "value": "power",
-                                                                    "valueType": "enum",
-                                                                    "options": [
-                                                                        "power",
-                                                                        "amplitude"
-                                                                    ],
-                                                                    "editable": false
-                                                                }
-                                                            },
-                                                            {
-                                                                "key": "2-0-3",
-                                                                "data": {
-                                                                    "property": "exponent",
-                                                                    "value": "1.0",
-                                                                    "valueType": "float",
-                                                                    "editable": false
-                                                                }
-                                                            }
-                                                        ]
-                                                    }
-                                                ]
-                                            }
-                                        ]}
-                                        */
-                                        value={this.nodes}
-                                        expandedKeys={{ "0": true, "1": true, "2": true, "1-0": true, "1-0-0": true, "1-0-1": true, "1-0-2": true, "1-0-3": true, "1-1": true, "1-1-0": true, "1-1-1": true, "1-1-2": true, "1-1-3": true, "1-3": true, "1-3-0": true, "1-3-1": true, "1-3-2": true, "1-3-3": true, "2-0": true, "2-0-0": true, "2-0-1": true, "2-0-2": true, "2-0-3": true }}
+                                        value={this.state.currentNodes}
+                                        expandedKeys={this.state.expandedKeys}
                                         tableStyle={{ minWidth: "30rem" }}
                                     /*scrollable
                                     scrollHeight='85%'*/
@@ -788,14 +508,6 @@ class WorkersSettings extends Component {
                                             style={{ height: "3.5rem" }}
                                         ></Column>
                                     </TreeTable>
-                                    {false && this.state.currentWorkerSettings && this.state.currentWorkerSettings.settings.map((setting) => {
-                                        return (
-                                            <div key={"group-" + setting.property} className="p-inputgroup">
-                                                <label key={"label-" + setting.property} htmlFor={setting.property} style={{ textAlign: 'left', color: 'white', width: '20%' }}>{setting.property.replaceAll('_', ' ')}</label>
-                                                {this.cellEditor(setting)}
-                                            </div>
-                                        )
-                                    })}
                                 </ScrollPanel>
                             </Panel>
                         </Panel>
