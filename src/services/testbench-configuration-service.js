@@ -242,6 +242,11 @@ export class ConfigurationService {
             let itemPath = [...path, [index]]
 
             if (["settingsList"].includes(property.type)) {
+                let frequencies = settings.find((setting) => {
+                    return setting.property === 'frequencies'
+                })
+                let bands = frequencies ? Array.isArray(frequencies.value) ? frequencies.value.length : frequencies.value.split(",").length : 1
+
                 return {
                     "key": itemPath.join("-"),
                     "data": {
@@ -250,26 +255,29 @@ export class ConfigurationService {
                         "valueType": property.type,
                         "editable": property.editable
                     },
-                    "children": property.value.filter((child, childIndex) => {
-                        return childIndex === 0
-                    }).map((child, childIndex) => {
-                        let childPath = [...itemPath, [childIndex]]
-                        let childChildren = this.getSettingsAsTreetableNodes(child.settings, childPath)
-                        return {
-                            "key": childPath.join("-"),
-                            "data": {
-                                "property": `band-${childIndex}_settings`,
-                                "value": child.name,
-                                "valueType": "select",
-                                "options": property.value.map((item, index) => { return {
-                                    "name": item.name,
-                                    "settings": this.getSettingsAsTreetableNodes(item.settings, childPath)
-                                }}),
-                                "editable": true
-                            },
-                            "children": childChildren
+                    "children": Array((property.property === 'crossfade') ? bands : 1)
+                        .fill(property.value[0])
+                        .map((child, childIndex) => {
+                            let childPath = [...itemPath, [childIndex]]
+                            let childChildren = this.getSettingsAsTreetableNodes(child.settings, childPath)
+                            return {
+                                "key": childPath.join("-"),
+                                "data": {
+                                    "property": `band-${childIndex}_settings`,
+                                    "value": child.name,
+                                    "valueType": "select",
+                                    "options": property.value.map((item, index) => {
+                                        return {
+                                            "name": item.name,
+                                            "settings": this.getSettingsAsTreetableNodes(item.settings, childPath)
+                                        }
+                                    }),
+                                    "editable": true
+                                },
+                                "children": childChildren
+                            }
                         }
-                    })
+                        )
                 }
             }
 
