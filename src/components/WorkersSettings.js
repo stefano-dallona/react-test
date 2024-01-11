@@ -342,6 +342,7 @@ class WorkersSettings extends Component {
             <Chips
                 value={Array.isArray(value) ? value : value.split(",")}
                 onChange={(e) => this.onEditorValueChange(options, e.target.value)}
+                separator=","
                 keyfilter="int"
             />
         );

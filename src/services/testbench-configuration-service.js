@@ -263,7 +263,7 @@ export class ConfigurationService {
                                 "valueType": "select",
                                 "options": property.value.map((item, index) => { return {
                                     "name": item.name,
-                                    "settings": childChildren
+                                    "settings": this.getSettingsAsTreetableNodes(item.settings, childPath)
                                 }}),
                                 "editable": true
                             },
