@@ -78,7 +78,7 @@ class WorkersSettings extends Component {
                 workersSettings.uuid = create_UUID()
             }
             this.setCurrentWorkerSettings(cloneDeep(workersSettings))
-            
+
             let currentNodes = this.servicesContainer.configurationService.getSettingsAsTreetableNodes(this.defaultSettings.find((item) => {
                 return item.name === currentWorker
             })?.settings)
@@ -117,7 +117,7 @@ class WorkersSettings extends Component {
     setPropertyValue = (setting, value) => {
         let currentWorkerSettings = cloneDeep(this.state.currentWorkerSettings)
         currentWorkerSettings.settings.map((originalSetting) => {
-            if (originalSetting.property == setting.property) {
+            if (originalSetting.property === setting.property) {
                 originalSetting.value = value
                 return originalSetting
             } else {
@@ -237,7 +237,7 @@ class WorkersSettings extends Component {
         } else {
             this.setCurrentWorker(null)
         }
-        
+
         let currentNodes = currentWorkerSettings.settings
         this.setCurrentNodes(currentNodes)
     }
@@ -379,12 +379,46 @@ class WorkersSettings extends Component {
         let newNodes = JSON.parse(JSON.stringify(this.state.currentNodes));
         let editedNode = this.findNodeByKey(newNodes, options.node.key);
         let newValue = editedNode.data["valueType"] === "list" ? value.join(",") : value;
+        let oldValue = editedNode.data[options.field]
         editedNode.data[options.field] = newValue
 
         switch (editedNode.data["property"]) {
             case 'frequencies':
-                let bands = Array.isArray(newValue) ? newValue : newValue.split(",");
-                console.log(`bands:${bands}`)
+                if (newValue.length === 0) {
+                    return
+                }
+                let oldBands = Array.isArray(oldValue) ? oldValue : oldValue.split(",");
+                let newBands = Array.isArray(newValue) ? newValue : newValue.split(",");
+                let addedBands = newBands.filter(band => !oldBands.includes(band));
+                let removedBands = oldBands.filter(band => !newBands.includes(band));
+                console.log(`oldBands: ${oldBands}, newBands: ${newBands}, addedBands: ${addedBands}, removedBands: ${removedBands}`)
+                let crossfade = newNodes.find((node) => node.data.property === 'crossfade')
+                let allCrossfadePossibleSettings = crossfade.children[0].data.options
+                let defaultCrossfadeSettings = "NoCrossfadeSettings"
+                let crossfadeSettings = allCrossfadePossibleSettings.find((option) => {
+                    return option.name = defaultCrossfadeSettings
+                })?.settings
+                let crossfadeSettingsPath = crossfade.children[0].key.split("-")
+
+                function range(start, end) {
+                    return new Array(end - start).fill().map((d, i) => i + start);
+                }
+
+                let newChildrenIndexes = range(crossfade.children.length, crossfade.children.length + addedBands.length)
+                crossfade.children = crossfade.children.concat(newChildrenIndexes.map((index) => {
+                    let newChildKey = crossfadeSettingsPath.map((_, idx) => (idx < crossfadeSettingsPath.length - 1) ? idx : index).join("-")
+                    return {
+                        key: newChildKey,
+                        data: {
+                            "property": `band-${index}_settings`,
+                            "value": defaultCrossfadeSettings,
+                            "options": allCrossfadePossibleSettings,
+                            "valueType": "select",
+                            "editable": "false"
+                        },
+                        children: crossfadeSettings
+                    }
+                }))
                 break;
             default:
         };
