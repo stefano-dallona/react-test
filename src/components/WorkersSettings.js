@@ -387,8 +387,14 @@ class WorkersSettings extends Component {
                 if (newValue.length === 0) {
                     return
                 }
+
                 let oldBands = Array.isArray(oldValue) ? oldValue : oldValue.split(",");
                 let newBands = Array.isArray(newValue) ? newValue : newValue.split(",");
+
+                if (cloneDeep(newBands).sort().join(',') !== newBands.join(',')) {
+                    return
+                }
+
                 let addedBands = newBands.filter(band => !oldBands.includes(band));
                 let removedBands = oldBands.filter(band => !newBands.includes(band));
                 console.log(`oldBands: ${oldBands}, newBands: ${newBands}, addedBands: ${addedBands}, removedBands: ${removedBands}`)
@@ -419,6 +425,30 @@ class WorkersSettings extends Component {
                         children: crossfadeSettings
                     }
                 }))
+
+                let childsToRemoveIndexes = oldBands.map((band, index) => {
+                    return [band, index]
+                }).filter(x => {
+                    return removedBands.includes(x[0])
+                }).map(x => {
+                    return x[1]
+                })
+
+                if (removedBands.length > 0) {
+                    crossfade.children = crossfade.children
+                        .filter((_, index) => {
+                            return !childsToRemoveIndexes.includes(index)
+                        })
+                        .map((child, index) => {
+                            let currentKeyIndexes = child.key.split("-")
+                            let newChildKey = currentKeyIndexes.map((_, idx) => (idx < currentKeyIndexes.length - 1) ? idx : index).join("-")
+                            child.key = newChildKey
+                            child.data.property = `band-${index}_settings`
+                            return child
+                        })
+                        
+                }
+
                 break;
             default:
         };
