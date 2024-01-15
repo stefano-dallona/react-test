@@ -255,7 +255,7 @@ export class ConfigurationService {
                         "valueType": property.type,
                         "editable": property.editable
                     },
-                    "children": Array((property.property === 'crossfade') ? bands : 1)
+                    "children": Array((property.property === 'crossfade') ? bands + 1 : 1)
                         .fill(property.value[0])
                         .map((child, childIndex) => {
                             let childPath = [...itemPath, [childIndex]]

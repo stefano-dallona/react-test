@@ -384,10 +384,11 @@ class WorkersSettings extends Component {
 
         switch (editedNode.data["property"]) {
             case 'frequencies':
+                /*
                 if (newValue.length === 0) {
                     return
                 }
-
+                */
                 let oldBands = Array.isArray(oldValue) ? oldValue : oldValue.split(",");
                 let newBands = Array.isArray(newValue) ? newValue : newValue.split(",");
 
