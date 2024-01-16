@@ -6,6 +6,7 @@ import { select } from 'd3-selection';
 import { trackPromise } from 'react-promise-tracker';
 
 import { ContextMenu } from 'primereact/contextmenu';
+import { TieredMenu } from 'primereact/tieredmenu';
 
 import Node from './Node'
 import Link from './Link'
@@ -181,9 +182,9 @@ class RunHierarchy extends Component {
             transform = transform.scale(scale);
             // Center elements.
             transform = transform.translate(-box.x - box.width / 2, -box.y - box.height / 2);
-            
+
             d3.select('#hierarchy').attr('transform', transform.toString());
-            
+
             this.scaleFactor = scale
         }
     }
@@ -420,6 +421,8 @@ class RunHierarchy extends Component {
     rightClickHandler(node_id) {
         console.log("Click on node " + node_id)
         this.rightClickedNodeRef.current = node_id
+        let currentNode = this.nodes.find((node) => node.data.uuid === node_id)
+        console.log(`worker_settings: ${JSON.stringify(currentNode.data.worker_settings)}`)
     }
 
     overallProgressTextHandler(currentPercentage) {
@@ -466,6 +469,75 @@ class RunHierarchy extends Component {
                         className="hierarchy-title"
                         transform={`translate(${window.innerWidth / 2}, 20)`}>Current status: {this.run ? `${this.run.status}` : ""}</text>
                     <ContextMenu model={this.getMenuItems()} ref={this.contextMenuRef} />
+                    <TieredMenu popup model={[
+                        {
+                            label: 'File',
+                            icon: 'pi pi-file',
+                            items: [
+                                {
+                                    label: 'New',
+                                    icon: 'pi pi-plus',
+                                    items: [
+                                        {
+                                            label: 'Document',
+                                            icon: 'pi pi-file'
+                                        },
+                                        {
+                                            label: 'Image',
+                                            icon: 'pi pi-image'
+                                        },
+                                        {
+                                            label: 'Video',
+                                            icon: 'pi pi-video'
+                                        }
+                                    ]
+                                },
+                                {
+                                    label: 'Open',
+                                    icon: 'pi pi-folder-open'
+                                },
+                                {
+                                    label: 'Print',
+                                    icon: 'pi pi-print'
+                                }
+                            ]
+                        },
+                        {
+                            label: 'Edit',
+                            icon: 'pi pi-file-edit',
+                            items: [
+                                {
+                                    label: 'Copy',
+                                    icon: 'pi pi-copy'
+                                },
+                                {
+                                    label: 'Delete',
+                                    icon: 'pi pi-times'
+                                }
+                            ]
+                        },
+                        {
+                            label: 'Search',
+                            icon: 'pi pi-search'
+                        },
+                        {
+                            separator: true
+                        },
+                        {
+                            label: 'Share',
+                            icon: 'pi pi-share-alt',
+                            items: [
+                                {
+                                    label: 'Slack',
+                                    icon: 'pi pi-slack'
+                                },
+                                {
+                                    label: 'Whatsapp',
+                                    icon: 'pi pi-whatsapp'
+                                }
+                            ]
+                        }
+                    ]} ref={this.contextMenuRef} />
                     <g>
                         {
                             (this.progressBarRefs.has(this.state.runId) || this.progressBarRefs.set(this.state.runId, React.createRef())) &&
