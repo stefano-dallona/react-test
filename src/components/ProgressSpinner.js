@@ -16,6 +16,7 @@ class ProgressSpinner extends Component {
     constructor(props) {
         super(props);
 
+        this.servicesContainer = props.servicesContainer
         this.visibilityHandler = props.visibilityHandler || (() => { return 'visible' })
         this.title = props.title || ""
         this.node = props.node || null
@@ -158,6 +159,12 @@ class ProgressSpinner extends Component {
         //return (<JSONToHTMLTable data={data} style={{verticalAlign: 'top'}}/>)
     }
 
+    getWorkerSettingsAsTreeNodes(node) {
+        let nodeSettings = node ? node.worker_settings[0].value[0].settings : []
+        let nodes = this.servicesContainer.configurationService.getSettingsAsTreetableNodes(nodeSettings, [], false)
+        return nodes
+    }
+
     render() {
         return (
             this.visibilityHandler() === 'visible' ?
@@ -175,7 +182,9 @@ class ProgressSpinner extends Component {
                         </Tooltip>
                     )}
 
-                    <Dialog header="Settings"
+                    <Dialog header={
+                        `Node id: ${this.state.nodeId} - ETA: ${this.state.eta > 0 ? `${this.formatTime(this.state.eta)}` : ""}`
+                    }
                         visible={this.state.showSettings}
                         style={{ width: '50vw' }}
                         onHide={(e) => {
@@ -183,84 +192,7 @@ class ProgressSpinner extends Component {
                         }}>
                         <TreeTable
                             scrollable scrollHeight="200px"
-                            //value={this.node.worker_settings}
-                            value={[
-                                {
-                                    "key": "0",
-                                    "data": {
-                                        "property": "property-0",
-                                        "value": "value-0"
-                                    },
-                                    "children": [
-                                        {
-                                            "key": "0-0",
-                                            "data": {
-                                                "property": "property-0-0",
-                                                "value": "value-0-0"
-                                            },
-                                            "children": []
-                                        },
-                                        {
-                                            "key": "0-1",
-                                            "data": {
-                                                "property": "property-0-1",
-                                                "value": "value-0-1"
-                                            },
-                                            "children": []
-                                        }
-                                    ]
-                                },
-                                {
-                                    "key": "1",
-                                    "data": {
-                                        "property": "property-1",
-                                        "value": "value-1"
-                                    },
-                                    "children": [
-                                        {
-                                            "key": "1-0",
-                                            "data": {
-                                                "property": "property-1-0",
-                                                "value": "value-1-0"
-                                            },
-                                            "children": []
-                                        },
-                                        {
-                                            "key": "1-1",
-                                            "data": {
-                                                "property": "property-1-1",
-                                                "value": "value-1-1"
-                                            },
-                                            "children": []
-                                        }
-                                    ]
-                                },
-                                {
-                                    "key": "2",
-                                    "data": {
-                                        "property": "property-2",
-                                        "value": "value-2"
-                                    },
-                                    "children": [
-                                        {
-                                            "key": "2-0",
-                                            "data": {
-                                                "property": "property-2-0",
-                                                "value": "value-2-0"
-                                            },
-                                            "children": []
-                                        },
-                                        {
-                                            "key": "2-1",
-                                            "data": {
-                                                "property": "property-2-1",
-                                                "value": "value-2-1"
-                                            },
-                                            "children": []
-                                        }
-                                    ]
-                                }
-                            ]}
+                            value={this.getWorkerSettingsAsTreeNodes(this.node)}
                             expandedKeys={[]}
                             tableStyle={{ minWidth: "30rem" }}>
                             <Column

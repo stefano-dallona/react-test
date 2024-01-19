@@ -237,7 +237,7 @@ export class ConfigurationService {
         return settings_metadata
     }
 
-    getSettingsAsTreetableNodes(settings, path = []) {
+    getSettingsAsTreetableNodes(settings, path = [], applyDefaults = true) {
         return settings.flatMap((property, index) => {
             let itemPath = [...path, [index]]
 
@@ -255,15 +255,14 @@ export class ConfigurationService {
                         "valueType": property.type,
                         "editable": property.editable
                     },
-                    "children": Array((property.property === 'crossfade') ? bands + 1 : 1)
-                        .fill(property.value[0])
+                    "children": (applyDefaults ? Array((property.property === 'crossfade') ? bands + 1 : 1).fill(property.value[0]) : property.value)
                         .map((child, childIndex) => {
                             let childPath = [...itemPath, [childIndex]]
                             let childChildren = this.getSettingsAsTreetableNodes(child.settings, childPath)
                             return {
                                 "key": childPath.join("-"),
                                 "data": {
-                                    "property": `band-${childIndex}_settings`,
+                                    "property": `band-${childIndex}`,
                                     "value": child.name,
                                     "valueType": "select",
                                     "options": property.value.map((item, index) => {

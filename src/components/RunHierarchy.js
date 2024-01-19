@@ -469,75 +469,6 @@ class RunHierarchy extends Component {
                         className="hierarchy-title"
                         transform={`translate(${window.innerWidth / 2}, 20)`}>Current status: {this.run ? `${this.run.status}` : ""}</text>
                     <ContextMenu model={this.getMenuItems()} ref={this.contextMenuRef} />
-                    <TieredMenu popup model={[
-                        {
-                            label: 'File',
-                            icon: 'pi pi-file',
-                            items: [
-                                {
-                                    label: 'New',
-                                    icon: 'pi pi-plus',
-                                    items: [
-                                        {
-                                            label: 'Document',
-                                            icon: 'pi pi-file'
-                                        },
-                                        {
-                                            label: 'Image',
-                                            icon: 'pi pi-image'
-                                        },
-                                        {
-                                            label: 'Video',
-                                            icon: 'pi pi-video'
-                                        }
-                                    ]
-                                },
-                                {
-                                    label: 'Open',
-                                    icon: 'pi pi-folder-open'
-                                },
-                                {
-                                    label: 'Print',
-                                    icon: 'pi pi-print'
-                                }
-                            ]
-                        },
-                        {
-                            label: 'Edit',
-                            icon: 'pi pi-file-edit',
-                            items: [
-                                {
-                                    label: 'Copy',
-                                    icon: 'pi pi-copy'
-                                },
-                                {
-                                    label: 'Delete',
-                                    icon: 'pi pi-times'
-                                }
-                            ]
-                        },
-                        {
-                            label: 'Search',
-                            icon: 'pi pi-search'
-                        },
-                        {
-                            separator: true
-                        },
-                        {
-                            label: 'Share',
-                            icon: 'pi pi-share-alt',
-                            items: [
-                                {
-                                    label: 'Slack',
-                                    icon: 'pi pi-slack'
-                                },
-                                {
-                                    label: 'Whatsapp',
-                                    icon: 'pi pi-whatsapp'
-                                }
-                            ]
-                        }
-                    ]} ref={this.contextMenuRef} />
                     <g>
                         {
                             (this.progressBarRefs.has(this.state.runId) || this.progressBarRefs.set(this.state.runId, React.createRef())) &&
@@ -545,6 +476,7 @@ class RunHierarchy extends Component {
                                 ref={this.progressBarRefs.get(this.state.runId)}
                                 key={`pb-${this.state.runId}`}
                                 title="Files processed"
+                                servicesContainer={this.servicesContainer}
                                 visibilityHandler={() => { return !this.isExecuting() ? 'hidden' : 'visible' }}
                                 nodeId={this.state.runId}
                                 tooltip={this.state.runId}
@@ -575,6 +507,7 @@ class RunHierarchy extends Component {
                                 <ProgressSpinner
                                     ref={this.progressBarRefs.get(node.data.uuid)}
                                     key={`pb-${node.data.uuid}`}
+                                    servicesContainer={this.servicesContainer}
                                     node={node.data}
                                     nodeId={node.data.uuid}
                                     tooltip={node.data.uuid}

@@ -299,15 +299,23 @@ class WorkersSettings extends Component {
 
     getSettingsAsHtmlTable(settings, level = 0) {
         return (
-            <table style={{ width: "120%", tableLayout: "fixed" }}>
+            <table style={{ width: "140%", tableLayout: "fixed" }}>
                 {
                     settings.map((setting) => {
-                        let property = setting.data.property.replaceAll('_', ' ')
-                        let value = setting?.children?.length > 0 ? this.getSettingsAsHtmlTable(setting.children, level + 1) : setting.data.value
+                        let property = setting.data.property
+                        let settingChildren = (level > 0) ? [
+                            {
+                                data: {
+                                    property: "algorithm",
+                                    value: String(setting.data.value).replace(/(S|s)ettings/g, "")
+                                }
+                            } 
+                        ].concat(setting.children) : setting.children
+                        let value = setting?.children?.length > 0 ? this.getSettingsAsHtmlTable(settingChildren, level + 1) : setting.data.value
                         //value = JSON.stringify(value).replaceAll(/^"/gi, "").replaceAll(/"$/gi, "")
                         return (<tr>
-                            <td style={{ width: "40%", verticalAlign: "top", paddingTop: level === 0 ? "40px" : "0px" }}><b>{property}:</b></td>
-                            <td style={{ width: "60%", verticalAlign: "top", paddingTop: level === 0 ? "40px" : "0px" }}>{value}</td>
+                            <td style={{ width: "20%", verticalAlign: "top", paddingTop: level === 0 ? "40px" : "0px" }}><b>{property}:</b></td>
+                            <td style={{ width: "80%", verticalAlign: "top", paddingTop: level === 0 ? "40px" : "0px" }}>{value}</td>
                         </tr>)
                     })
                 }
@@ -528,7 +536,7 @@ class WorkersSettings extends Component {
         return (
             <div className="card p-fluid" onKeyDown={this.handleKeyDown}>
                 <Splitter style={{ height: '30rem' }}>
-                    <SplitterPanel size={50} className="flex align-items-center justify-content-center">
+                    <SplitterPanel size={39} className="flex align-items-center justify-content-center">
                         <Panel /*header={this.header} toggleable={this.toggleable}*/ style={{ position: "relative", width: "100%", height: '30rem', border: 'none' }}>
                             {this.defaultSettings.length > 1 && (
                                 <div className="p-inputgroup" style={{ width: '100%', height: '50px', border: "none" }}>
@@ -588,7 +596,7 @@ class WorkersSettings extends Component {
                             </Panel>
                         </Panel>
                     </SplitterPanel>
-                    <SplitterPanel size={50} className="flex align-items-center justify-content-center">
+                    <SplitterPanel size={61} className="flex align-items-center justify-content-center">
                         {this.defaultSettings.length > 1 && (
                             <Panel header={"Selected algorithms"}
                                 /*toggleable={this.toggleable}*/
