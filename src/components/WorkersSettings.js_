@@ -10,15 +10,21 @@ import { ListBox } from 'primereact/listbox';
 import { Splitter, SplitterPanel } from 'primereact/splitter';
 import { ConfirmDialog } from 'primereact/confirmdialog';
 import { ScrollPanel } from 'primereact/scrollpanel';
-import { TreeTable } from 'primereact/treetable';
-import { Column } from 'primereact/column';
-import { Chips } from 'primereact/chips';
-import { InputSwitch } from 'primereact/inputswitch';
+import { TabView, TabPanel } from 'primereact/tabview';
+import { Chips } from "primereact/chips";
 
 
 import cloneDeep from 'lodash/cloneDeep';
 import startCase from 'lodash/startCase';
 import create_UUID from '../utils/Uuid';
+
+import { SettingsListEditor } from './SettingsListEditor';
+
+import { Tabs, Tab, TabScreen } from "react-tabs-scrollable";
+import "react-tabs-scrollable/dist/rts.css";
+// you must use this css file in order to apply the styles and put it in the bottom of your imports
+import "../css/mui-tabs.css";
+import { FiChevronRight, FiChevronLeft } from "react-icons/fi";
 
 var parse = require('html-react-parser');
 
@@ -45,9 +51,29 @@ class WorkersSettings extends Component {
         super(props);
 
         this.toast = props.toast
-        this.servicesContainer = props.servicesContainer
         this.workerType = props.workerType
         this.defaultSettings = props.defaultSettings || {}
+        this.defaultSettingsTabs = [
+            {
+                label: "General Settings",
+                type: "Settings"
+            }
+        ]
+        this.fixedSettingsTabs = [
+            {
+                label: "Bands",
+                type: "MultibandCrossfadeSettings"
+            },
+            {
+                label: "Fade-in",
+                type: "CrossfadeSettings"
+            },
+            {
+                label: "Crossfade - Band 1",
+                type: "CrossfadeSettings",
+                frequency: 0
+            }
+        ]
 
         this.header = props.header || this.workerType + " Settings"
         this.toggleable = props.toggleable || true
@@ -56,16 +82,73 @@ class WorkersSettings extends Component {
             currentWorker: null,
             currentWorkerSettings: null,
             selectedWorkers: props.selectedWorkers || [],
+            bandsFrequencies: props.bandsFrequencies || [],
             confirmationMessage: null,
-            currentNodes: null
+            activeTab: 0
         };
+    }
+
+    setActiveTab(activeTab) {
+        this.setState({
+            activeTab: activeTab
+        })
+    }
+
+    // define a onClick function to bind the value on tab click
+    onTabClick = (e, index) => {
+        this.setActiveTab(index);
+    };
+
+    getSettingsPanels(bandsFrequencies = []) {
+        let settingsPanels = [...this.defaultSettingsTabs]
+        settingsPanels = settingsPanels.concat(this.workerType === "PLCAlgorithm" ? this.fixedSettingsTabs : [])
+        settingsPanels = settingsPanels.concat(this.workerType === "PLCAlgorithm" ? [
+            {
+                label: "Crossfade - Band 2",
+                type: "CrossfadeSettings",
+                frequency: 1000
+            },
+            {
+                label: "Crossfade - Band 3",
+                type: "CrossfadeSettings",
+                frequency: 2000
+            },
+            /*
+            {
+                label: "Crossfade - Band 4",
+                type: "CrossfadeSettings"
+            },
+            {
+                label: "Crossfade - Band 5",
+                type: "CrossfadeSettings"
+            },
+            {
+                label: "Crossfade - Band 6",
+                type: "CrossfadeSettings"
+            },
+            {
+                label: "Crossfade - Band 7",
+                type: "CrossfadeSettings"
+            }
+        */
+        ] : [])
+        settingsPanels.concat(bandsFrequencies.map((bandFrequency, index) => {
+            return {
+                label: "Crossfade - Band " + index,
+                type: "CrossfadeSettings",
+                frequency: bandFrequency
+            }
+        }))
+        return settingsPanels
     }
 
     componentDidMount() {
         this.setAvailableWorkers(this.getWorkers())
-        if (this.defaultSettings.length == 1) {
+        if (this.defaultSettings.length === 1) {
             this.setCurrentWorker(this.defaultSettings[0].name)
         }
+
+        this.setBandsFrequencies([])
     }
 
     setCurrentWorker(currentWorker) {
@@ -78,11 +161,6 @@ class WorkersSettings extends Component {
                 workersSettings.uuid = create_UUID()
             }
             this.setCurrentWorkerSettings(cloneDeep(workersSettings))
-
-            let currentNodes = this.servicesContainer.configurationService.getSettingsAsTreetableNodes(this.defaultSettings.find((item) => {
-                return item.name === currentWorker
-            })?.settings)
-            this.setCurrentNodes(cloneDeep(currentNodes))
         } else {
             this.setCurrentWorkerSettings(null)
         }
@@ -100,12 +178,6 @@ class WorkersSettings extends Component {
         })
     }
 
-    setCurrentNodes(currentNodes) {
-        this.setState({
-            currentNodes: currentNodes
-        })
-    }
-
     setSelectedWorkers(selectedWorkers) {
         this.setState({
             selectedWorkers: selectedWorkers
@@ -114,10 +186,16 @@ class WorkersSettings extends Component {
         })
     }
 
+    setBandsFrequencies = (bandsFrequencies) => {
+        this.setState({
+            bandsFrequencies: bandsFrequencies
+        })
+    }
+
     setPropertyValue = (setting, value) => {
         let currentWorkerSettings = cloneDeep(this.state.currentWorkerSettings)
         currentWorkerSettings.settings.map((originalSetting) => {
-            if (originalSetting.property === setting.property) {
+            if (originalSetting.property == setting.property) {
                 originalSetting.value = value
                 return originalSetting
             } else {
@@ -155,10 +233,6 @@ class WorkersSettings extends Component {
 
         let clonedSelectedWorkers = cloneDeep(this.state.selectedWorkers)
         let currentWorker = cloneDeep(this.state.currentWorkerSettings)
-
-        let clonedCurrentNodes = cloneDeep(this.state.currentNodes)
-        currentWorker.settings = clonedCurrentNodes
-
         let existingWorker = this.state.selectedWorkers.find(oa => oa.uuid == currentWorker.uuid)
         if (existingWorker) {
             clonedSelectedWorkers = clonedSelectedWorkers.map(oa => (oa.uuid == currentWorker.uuid) ? currentWorker : oa)
@@ -237,11 +311,23 @@ class WorkersSettings extends Component {
         } else {
             this.setCurrentWorker(null)
         }
-
-        let currentNodes = currentWorkerSettings.settings
-        this.setCurrentNodes(currentNodes)
     }
 
+    getNestedProperties() {
+        if (!(this.state.currentWorkerSettings && this.state.currentWorkerSettings.settings)) {
+            return []
+        }
+        return this.state.currentWorkerSettings.settings.filter((setting) => {
+            return ["settings", "settingsList"].includes(setting.type)
+        })
+    }
+
+    getTabs() {
+        let tabs = ["General Settings"]
+        return tabs.concat(this.getNestedProperties().map((setting) => {
+            return setting.property
+        }))
+    }
 
     cellEditor = (setting) => {
         let editor = null
@@ -257,6 +343,15 @@ class WorkersSettings extends Component {
                 break;
             case "multiselect":
                 editor = this.singleSelectEditor(setting)
+                break;
+            case "list":
+                editor = this.listEditor(setting)
+                break;
+            case "settings":
+                editor = this.settingsEditor(setting)
+                break;
+            case "settingsList":
+                editor = this.settingsListEditor(setting)
                 break;
             default:
                 editor = this.textEditor(setting)
@@ -297,200 +392,62 @@ class WorkersSettings extends Component {
             onChange={(e) => this.setPropertyValue(setting, e.value)} />
     }
 
-    getSettingsAsHtmlTable(settings, level = 0) {
+    listEditor = (setting) => {
+        return <Chips id={setting.property} value={setting.value} onChange={(e) => { console.log(e.value) }} keyfilter="int" />
+    }
+
+    settingsEditor = (settings) => {
+        return <div>{settings.map((setting) => {
+            return (<div key={"group-" + setting.property} className="p-inputgroup">
+                <label key={"label-" + setting.property} htmlFor={setting.property} style={{ textAlign: 'left', color: 'white', width: '20%' }}>{setting.property.replaceAll('_', ' ')}</label>
+                {this.cellEditor(setting)}
+            </div>)
+        })}</div>
+    }
+
+    settingsListEditor = (settings) => {
+        /*return <div>
+            <div className="p-inputgroup" style={{ width: '100%', height: '50px', border: "none" }}>
+                <label className="mt-2" style={{ textAlign: 'left', color: 'white', width: '20%' }}>Type</label>
+                <Dropdown key={settings.property}
+                    value={null}
+                    options={settings.value.map((setting) => { return setting.name })}
+                    style={{ textAlign: "left" }}
+                    onChange={(e) => { }} />
+            </div>
+            { //false &&
+                settings.value.filter((setting) => {
+                    return setting.name === "ManualCrossfadeSettings"
+                }).map((setting) => {
+                    setting.settings.map((setting) => {
+                        return (<div key={"group-" + setting.property} className="p-inputgroup">
+                            <label key={"label-" + setting.property} htmlFor={setting.property} style={{ textAlign: 'left', color: 'white', width: '20%' }}>{setting.property.replaceAll('_', ' ')}</label>
+                            {this.cellEditor(setting)}
+                        </div>)
+                    })
+                })
+            }</div>*/
         return (
-            <table style={{ width: "140%", tableLayout: "fixed" }}>
+            <SettingsListEditor settings={settings} cellEditor={this.cellEditor} />
+        )
+    }
+
+    getSettingsAsHtmlTable(settings) {
+        return (
+            <table style={{ width: "80%", tableLayout: "fixed" }}>
                 {
-                    settings.map((setting) => {
-                        let property = setting.data.property
-                        let settingChildren = (level > 0) ? [
-                            {
-                                data: {
-                                    property: "algorithm",
-                                    value: String(setting.data.value).replace(/(S|s)ettings/g, "")
-                                }
-                            } 
-                        ].concat(setting.children) : setting.children
-                        let value = setting?.children?.length > 0 ? this.getSettingsAsHtmlTable(settingChildren, level + 1) : setting.data.value
-                        //value = JSON.stringify(value).replaceAll(/^"/gi, "").replaceAll(/"$/gi, "")
+                    settings.filter((setting) => {
+                        return !["settings", "settingsList"].includes(setting.type)
+                    }).map((setting) => {
                         return (<tr>
-                            <td style={{ width: "20%", verticalAlign: "top", paddingTop: level === 0 ? "40px" : "0px" }}><b>{property}:</b></td>
-                            <td style={{ width: "80%", verticalAlign: "top", paddingTop: level === 0 ? "40px" : "0px" }}>{value}</td>
+                            <td style={{ width: "45%" }}><b>{setting.property.replaceAll('_', ' ')}:</b></td>
+                            <td style={{ width: "55%" }}>{setting.value}</td>
                         </tr>)
                     })
                 }
             </table>
         )
     }
-
-    inputTextEditor = (options) => {
-        return (
-            <InputText
-                type="text"
-                disabled={!options.rowData["editable"]}
-                value={options.rowData[options.field]}
-                onChange={(e) => this.onEditorValueChange(options, e.target.value)}
-            />
-        );
-    };
-
-    booleanEditor = (options) => {
-        return (
-            <InputSwitch
-                disabled={!options.rowData["editable"]}
-                checked={options.rowData[options.field]}
-                onChange={(e) => this.onEditorValueChange(options, e.target.value)}
-            />
-        );
-    };
-
-    editableListEditor = (options) => {
-        let value = options.rowData[options.field]
-        return (
-            <Chips
-                value={Array.isArray(value) ? value : value.split(",")}
-                onChange={(e) => this.onEditorValueChange(options, e.target.value)}
-                separator=","
-                keyfilter="int"
-            />
-        );
-    };
-
-    singleSelectEditor = (options) => {
-        return (
-            <Dropdown
-                disabled={!options.rowData["editable"]}
-                value={options.rowData[options.field]}
-                options={options.rowData["options"]}
-                optionLabel="name"
-                optionValue="name"
-                onChange={(e) => this.onEditorValueChange(options, e.target.value)}
-            />
-        );
-    };
-
-    findNodeByKey = (nodes, key) => {
-        let path = key.split("-");
-        let node;
-
-        while (path.length) {
-            let list = node ? node.children : nodes;
-
-            node = list[parseInt(path[0], 10)];
-            path.shift();
-        }
-
-        return node;
-    };
-
-    onEditorValueChange = (options, value) => {
-        let newNodes = JSON.parse(JSON.stringify(this.state.currentNodes));
-        let editedNode = this.findNodeByKey(newNodes, options.node.key);
-        let newValue = editedNode.data["valueType"] === "list" ? value.join(",") : value;
-        let oldValue = editedNode.data[options.field]
-        editedNode.data[options.field] = newValue
-
-        switch (editedNode.data["property"]) {
-            case 'frequencies':
-                /*
-                if (newValue.length === 0) {
-                    return
-                }
-                */
-                let oldBands = Array.isArray(oldValue) ? oldValue : oldValue.split(",");
-                let newBands = Array.isArray(newValue) ? newValue : newValue.split(",");
-
-                if (cloneDeep(newBands).sort().join(',') !== newBands.join(',')) {
-                    return
-                }
-
-                let addedBands = newBands.filter(band => !oldBands.includes(band));
-                let removedBands = oldBands.filter(band => !newBands.includes(band));
-                console.log(`oldBands: ${oldBands}, newBands: ${newBands}, addedBands: ${addedBands}, removedBands: ${removedBands}`)
-                let crossfade = newNodes.find((node) => node.data.property === 'crossfade')
-                let allCrossfadePossibleSettings = crossfade.children[0].data.options
-                let defaultCrossfadeSettings = "NoCrossfadeSettings"
-                let crossfadeSettings = allCrossfadePossibleSettings.find((option) => {
-                    return option.name = defaultCrossfadeSettings
-                })?.settings
-                let crossfadeSettingsPath = crossfade.children[0].key.split("-")
-
-                function range(start, end) {
-                    return new Array(end - start).fill().map((d, i) => i + start);
-                }
-
-                let newChildrenIndexes = range(crossfade.children.length, crossfade.children.length + addedBands.length)
-                crossfade.children = crossfade.children.concat(newChildrenIndexes.map((index) => {
-                    let newChildKey = crossfadeSettingsPath.map((_, idx) => (idx < crossfadeSettingsPath.length - 1) ? idx : index).join("-")
-                    return {
-                        key: newChildKey,
-                        data: {
-                            "property": `band-${index}_settings`,
-                            "value": defaultCrossfadeSettings,
-                            "options": allCrossfadePossibleSettings,
-                            "valueType": "select",
-                            "editable": "false"
-                        },
-                        children: crossfadeSettings
-                    }
-                }))
-
-                let childsToRemoveIndexes = oldBands.map((band, index) => {
-                    return [band, index]
-                }).filter(x => {
-                    return removedBands.includes(x[0])
-                }).map(x => {
-                    return x[1]
-                })
-
-                if (removedBands.length > 0) {
-                    crossfade.children = crossfade.children
-                        .filter((_, index) => {
-                            return !childsToRemoveIndexes.includes(index)
-                        })
-                        .map((child, index) => {
-                            let currentKeyIndexes = child.key.split("-")
-                            let newChildKey = currentKeyIndexes.map((_, idx) => (idx < currentKeyIndexes.length - 1) ? idx : index).join("-")
-                            child.key = newChildKey
-                            child.data.property = `band-${index}_settings`
-                            return child
-                        })
-                        
-                }
-
-                break;
-            default:
-        };
-
-        if (editedNode.data["valueType"] === 'select' && editedNode.data.options.length > 0 && editedNode.data.options[0].settings) {
-            let selectedItemSettings = editedNode.data.options.find((option) => {
-                return option.name === newValue
-            })
-            console.log(`selectedItemSettings.settings: ${selectedItemSettings?.settings}`)
-            editedNode.children = selectedItemSettings.settings
-        }
-
-        this.setCurrentNodes(newNodes);
-    };
-
-    valueEditor = (options) => {
-        switch (options.rowData["valueType"]) {
-            case "bool":
-                console.log("valueType:" + options.rowData["valueType"]);
-                return this.booleanEditor(options)
-            case "select":
-                console.log("valueType:" + options.rowData["valueType"]);
-                return this.singleSelectEditor(options);
-            case "list":
-                console.log("valueType:" + options.rowData["valueType"]);
-                return this.editableListEditor(options);
-            case "enum":
-                console.log("valueType:" + options.rowData["valueType"]);
-                return this.singleSelectEditor(options);
-            default:
-                return this.inputTextEditor(options);
-        }
-    };
 
     getWorkerInfo(worker) {
         return worker ? this.defaultSettings.filter((workerSettings) => {
@@ -536,7 +493,7 @@ class WorkersSettings extends Component {
         return (
             <div className="card p-fluid" onKeyDown={this.handleKeyDown}>
                 <Splitter style={{ height: '30rem' }}>
-                    <SplitterPanel size={39} className="flex align-items-center justify-content-center">
+                    <SplitterPanel size={50} className="flex align-items-center justify-content-center" style={{ width: '50%' }}>
                         <Panel /*header={this.header} toggleable={this.toggleable}*/ style={{ position: "relative", width: "100%", height: '30rem', border: 'none' }}>
                             {this.defaultSettings.length > 1 && (
                                 <div className="p-inputgroup" style={{ width: '100%', height: '50px', border: "none" }}>
@@ -568,35 +525,88 @@ class WorkersSettings extends Component {
                                         onClick={(e) => this.saveWorker()}></Button>
                                 </div>
                             )}
-                            <Panel header={"Parameters"} className="mt-4"
-                                style={{ position: "relative", width: "100%", height: '370px', border: 'none' }}>
-                                <ScrollPanel style={{ width: '100%', height: '290px' }}>
-                                    <TreeTable
-                                        value={this.state.currentNodes}
-                                        expandedKeys={this.state.expandedKeys}
-                                        tableStyle={{ minWidth: "30rem" }}
-                                    /*scrollable
-                                    scrollHeight='85%'*/
-                                    >
-                                        <Column
-                                            field="property"
-                                            header="Property"
-                                            expander
-                                            style={{ height: "3.5rem" }}
-                                        ></Column>
-                                        <Column
-                                            field="value"
-                                            header="Value"
-                                            editor={this.valueEditor}
-                                            cellEditValidator={this.requiredValidator}
-                                            style={{ height: "3.5rem" }}
-                                        ></Column>
-                                    </TreeTable>
-                                </ScrollPanel>
-                            </Panel>
+                            <Tabs
+                                activeTab={this.state.activeTab}
+                                onTabClick={this.onTabClick}
+                                hideNavBtnsOnMobile={false}
+                                leftBtnIcon={<FiChevronLeft size={"1.5em"} />}
+                                rightBtnIcon={<FiChevronRight size={"1.5em"} />}
+                            >
+                                {/* generating an array to loop through it  */}
+                                {this.getTabs().map((item) => (
+                                    <Tab key={item}>{item}</Tab>
+                                ))}
+                            </Tabs>
+                            {this.getTabs().map((item, index) => (
+                                <TabScreen
+                                    key={item}
+                                    activeTab={this.state.activeTab}
+                                    index={index}
+                                    // You can add animation with adding a custom class
+                                    className="some-animation-class"
+                                >
+                                    {this.state.activeTab === 0 && this.state.currentWorkerSettings && this.state.currentWorkerSettings.settings.filter((setting) => {
+                                        return !["settings", "settingsList"].includes(setting.type)
+                                    }).map((setting) => {
+                                        return (
+                                            <div key={"group-" + setting.property} className="p-inputgroup">
+                                                <label key={"label-" + setting.property} htmlFor={setting.property} style={{ textAlign: 'left', color: 'white', width: '20%' }}>{setting.property.replaceAll('_', ' ')}</label>
+                                                {this.cellEditor(setting)}
+                                            </div>
+                                        )
+                                    })}
+                                    {   //false &&
+                                        this.state.activeTab !== 0 && this.state.activeTab === index && this.state.currentWorkerSettings && this.state.currentWorkerSettings.settings.filter((setting) => {
+                                            return setting.property === item
+                                        }).map((setting) => {
+                                            return this.cellEditor(setting)
+                                        })}
+                                </TabScreen>
+                            ))}
+                            {false && (<TabView scrollable>
+                                {this.getSettingsPanels().map((panel, index) => {
+                                    return (
+                                        <TabPanel key={panel.type + "-" + index} header={panel.label}>
+                                            <ScrollPanel style={{ width: '100%', height: '290px' }}>
+                                                {panel.type === "Settings" && this.state.currentWorkerSettings && this.state.currentWorkerSettings.settings.map((setting) => {
+                                                    return (
+                                                        <div key={"group-" + setting.property} className="p-inputgroup">
+                                                            <label key={"label-" + setting.property} htmlFor={setting.property} style={{ textAlign: 'left', color: 'white', width: '20%' }}>{setting.property.replaceAll('_', ' ')}</label>
+                                                            {this.cellEditor(setting)}
+                                                        </div>
+                                                    )
+                                                })}
+                                                {panel.type === "MultibandCrossfadeSettings" && this.state.currentWorkerSettings && (
+                                                    <div className="p-inputgroup">
+                                                        <label key={"label-bands"} htmlFor={"bands"} style={{ textAlign: 'left', color: 'white', width: '20%' }}>Frequencies</label>
+                                                        <Chips id="bands" value={this.state.bandsFrequencies} onChange={(e) => this.setBandsFrequencies(e.value)} keyfilter="int" />
+                                                    </div>
+                                                )}
+                                            </ScrollPanel>
+                                        </TabPanel>
+                                    )
+                                })}
+                            </TabView>)}
+                            {false && (
+                                <Panel header={"Parameters"} className="mt-4"
+                                    style={{ position: "relative", width: "100%", height: '370px', border: 'none' }}>
+                                    <ScrollPanel style={{ width: '100%', height: '290px' }}>
+                                        {this.state.currentWorkerSettings && this.state.currentWorkerSettings.settings.filter((setting) => {
+                                            return !-["settings", "settingsList"].includes(setting.type)
+                                        }).map((setting) => {
+                                            return (
+                                                <div key={"group-" + setting.property} className="p-inputgroup">
+                                                    <label key={"label-" + setting.property} htmlFor={setting.property} style={{ textAlign: 'left', color: 'white', width: '20%' }}>{setting.property.replaceAll('_', ' ')}</label>
+                                                    {this.cellEditor(setting)}
+                                                </div>
+                                            )
+                                        })}
+                                    </ScrollPanel>
+                                </Panel>
+                            )}
                         </Panel>
                     </SplitterPanel>
-                    <SplitterPanel size={61} className="flex align-items-center justify-content-center">
+                    <SplitterPanel size={50} className="flex align-items-center justify-content-center">
                         {this.defaultSettings.length > 1 && (
                             <Panel header={"Selected algorithms"}
                                 /*toggleable={this.toggleable}*/

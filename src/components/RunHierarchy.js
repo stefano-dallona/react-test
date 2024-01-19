@@ -6,6 +6,7 @@ import { select } from 'd3-selection';
 import { trackPromise } from 'react-promise-tracker';
 
 import { ContextMenu } from 'primereact/contextmenu';
+import { TieredMenu } from 'primereact/tieredmenu';
 
 import Node from './Node'
 import Link from './Link'
@@ -181,9 +182,9 @@ class RunHierarchy extends Component {
             transform = transform.scale(scale);
             // Center elements.
             transform = transform.translate(-box.x - box.width / 2, -box.y - box.height / 2);
-            
+
             d3.select('#hierarchy').attr('transform', transform.toString());
-            
+
             this.scaleFactor = scale
         }
     }
@@ -420,6 +421,8 @@ class RunHierarchy extends Component {
     rightClickHandler(node_id) {
         console.log("Click on node " + node_id)
         this.rightClickedNodeRef.current = node_id
+        let currentNode = this.nodes.find((node) => node.data.uuid === node_id)
+        console.log(`worker_settings: ${JSON.stringify(currentNode.data.worker_settings)}`)
     }
 
     overallProgressTextHandler(currentPercentage) {
@@ -473,6 +476,7 @@ class RunHierarchy extends Component {
                                 ref={this.progressBarRefs.get(this.state.runId)}
                                 key={`pb-${this.state.runId}`}
                                 title="Files processed"
+                                servicesContainer={this.servicesContainer}
                                 visibilityHandler={() => { return !this.isExecuting() ? 'hidden' : 'visible' }}
                                 nodeId={this.state.runId}
                                 tooltip={this.state.runId}
@@ -503,6 +507,7 @@ class RunHierarchy extends Component {
                                 <ProgressSpinner
                                     ref={this.progressBarRefs.get(node.data.uuid)}
                                     key={`pb-${node.data.uuid}`}
+                                    servicesContainer={this.servicesContainer}
                                     node={node.data}
                                     nodeId={node.data.uuid}
                                     tooltip={node.data.uuid}

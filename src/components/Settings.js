@@ -86,7 +86,7 @@ class Settings extends Component {
         const validate = (workerSettings) => {
             let errors = []
             errors = errors.concat(workerSettings.settings.filter((setting) => {
-                return setting.value == null
+                return setting.data.value == null
             }).map((setting) => {
                 return `${workerSettings.name}: ${setting.property} cannot be null`
             }))
@@ -138,7 +138,7 @@ class Settings extends Component {
 
     loadSettings() {
         let settings = this.loadConfigurationFromTemporaryStorage()
-        this.storedSettings[this.state.currentPage] = settings[this.state.currentPage] 
+        this.storedSettings[this.state.currentPage] = settings[this.state.currentPage]
     }
 
     getStoredSettings(workerType) {
@@ -207,7 +207,7 @@ class Settings extends Component {
     saveConfigurationToTemporaryStorage(configuration) {
         let key = `plc-testbench-ui.configuration`
         return localStorage.setItem(key, JSON.stringify(configuration ? configuration : []))
-    }    
+    }
 
     cleanupTemporaryStorage() {
         let key = `plc-testbench-ui.configuration`
@@ -253,17 +253,18 @@ class Settings extends Component {
                 ref={this.workerSettings}
                 /*header={this.paged ? this.getProgress() : null}
                 toggleable={this.toggleable}*/
+                servicesContainer={this.servicesContainer}
                 toast={this.toast}
                 workerType={workerType}
                 selectedWorkers={this.getStoredSettings(workerType)}
-                defaultSettings={this.defaultSettings.find((setting) => setting.property == workerType).value}>
+                defaultSettings={this.defaultSettings.find((setting) => setting.property == workerType).value} >
             </WorkersSettings>
         )
     }
 
     render() {
         return (
-            <div className="card p-fluid" style={{minHeight: "70%"}}>
+            <div className="card p-fluid" style={{ minHeight: "70%" }}>
                 <Toast ref={this.toast} />
                 <Panel>
                     <Steps model={this.pages.map((element) => {
