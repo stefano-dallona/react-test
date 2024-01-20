@@ -425,7 +425,7 @@ class WorkersSettings extends Component {
                     return {
                         key: newChildKey,
                         data: {
-                            "property": `band-${index}_settings`,
+                            "property": `band-${index}`,
                             "value": defaultCrossfadeSettings,
                             "options": allCrossfadePossibleSettings,
                             "valueType": "select",
@@ -452,7 +452,7 @@ class WorkersSettings extends Component {
                             let currentKeyIndexes = child.key.split("-")
                             let newChildKey = currentKeyIndexes.map((_, idx) => (idx < currentKeyIndexes.length - 1) ? idx : index).join("-")
                             child.key = newChildKey
-                            child.data.property = `band-${index}_settings`
+                            child.data.property = `band-${index}`
                             return child
                         })
                         
