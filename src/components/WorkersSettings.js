@@ -256,7 +256,7 @@ class WorkersSettings extends Component {
                 editor = this.singleSelectEditor(setting)
                 break;
             case "multiselect":
-                editor = this.singleSelectEditor(setting)
+                editor = this.multipleSelectEditor(setting)
                 break;
             default:
                 editor = this.textEditor(setting)
@@ -338,7 +338,7 @@ class WorkersSettings extends Component {
         return (
             <InputSwitch
                 disabled={!options.rowData["editable"]}
-                checked={options.rowData[options.field]}
+                checked={options.rowData[options.field] === "true"}
                 onChange={(e) => this.onEditorValueChange(options, e.target.value)}
             />
         );
@@ -386,7 +386,7 @@ class WorkersSettings extends Component {
     onEditorValueChange = (options, value) => {
         let newNodes = JSON.parse(JSON.stringify(this.state.currentNodes));
         let editedNode = this.findNodeByKey(newNodes, options.node.key);
-        let newValue = editedNode.data["valueType"] === "list" ? value.join(",") : value;
+        let newValue = editedNode.data["valueType"] === "list" ? value.join(",") : value?.toString();
         let oldValue = editedNode.data[options.field]
         editedNode.data[options.field] = newValue
 

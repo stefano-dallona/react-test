@@ -280,6 +280,22 @@ export class ConfigurationService {
                 }
             }
 
+            if (["dictionary"].includes(property.type)) {
+                return {
+                    "key": itemPath.join("-"),
+                    "data": {
+                        "property": property.property,
+                        "value": "",
+                        "valueType": property.type,
+                        "editable": property.editable
+                    },
+                    "children": property.value
+                        .flatMap((child, childIndex) => {
+                            return this.getSettingsAsTreetableNodes([child], itemPath)
+                        })
+                }
+            }
+
             if (["select"].includes(property.type)) {
                 return {
                     key: itemPath.join("-"),
@@ -298,7 +314,7 @@ export class ConfigurationService {
                 key: itemPath.join("-"),
                 data: {
                     "property": property.property,
-                    "value": property.value,
+                    "value": property.value?.toString(),
                     "valueType": property.type,
                     "editable": property.editable,
                     "mandatory": true
