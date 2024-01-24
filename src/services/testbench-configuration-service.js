@@ -243,7 +243,7 @@ export class ConfigurationService {
 
             if (["settingsList"].includes(property.type)) {
                 let frequencies = settings.find((setting) => {
-                    return setting.property === 'frequencies'
+                    return setting.property === 'crossfade_frequencies'
                 })
                 let bands = frequencies ? Array.isArray(frequencies.value) ? frequencies.value.length : frequencies.value.split(",").length : 1
 

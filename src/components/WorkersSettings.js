@@ -344,11 +344,16 @@ class WorkersSettings extends Component {
         );
     };
 
+    getSafeListValue = (value) => {
+        let safeValue = value?.toString().trim() === '' ? [] : value
+        safeValue = Array.isArray(safeValue) ? safeValue : safeValue.split(",")
+        return safeValue
+    }
+
     editableListEditor = (options) => {
-        let value = options.rowData[options.field]
         return (
             <Chips
-                value={Array.isArray(value) ? value : value.split(",")}
+                value={this.getSafeListValue(options.rowData[options.field])}
                 onChange={(e) => this.onEditorValueChange(options, e.target.value)}
                 separator=","
                 keyfilter="int"
@@ -392,22 +397,23 @@ class WorkersSettings extends Component {
 
         switch (editedNode.data["property"]) {
             case 'frequencies':
-                /*
-                if (newValue.length === 0) {
-                    return
-                }
-                */
-                let oldBands = Array.isArray(oldValue) ? oldValue : oldValue.split(",");
-                let newBands = Array.isArray(newValue) ? newValue : newValue.split(",");
+                break;
+            case 'crossfade_frequencies':
+                editedNode.data[options.field] = newValue?.trim().length === 0 ? [] : newValue
+
+                let oldBands = this.getSafeListValue(oldValue);
+                let newBands = this.getSafeListValue(newValue);
 
                 if (cloneDeep(newBands).sort().join(',') !== newBands.join(',')) {
                     return
                 }
 
+                let parentNodeKey = options.node.key.split("-").slice(0, -1).join("-")
+                let parentNode = this.findNodeByKey(newNodes, parentNodeKey)
                 let addedBands = newBands.filter(band => !oldBands.includes(band));
                 let removedBands = oldBands.filter(band => !newBands.includes(band));
                 console.log(`oldBands: ${oldBands}, newBands: ${newBands}, addedBands: ${addedBands}, removedBands: ${removedBands}`)
-                let crossfade = newNodes.find((node) => node.data.property === 'crossfade')
+                let crossfade = parentNode.children.find((node) => node.data.property === 'crossfade')
                 let allCrossfadePossibleSettings = crossfade.children[0].data.options
                 let defaultCrossfadeSettings = "NoCrossfadeSettings"
                 let crossfadeSettings = allCrossfadePossibleSettings.find((option) => {
