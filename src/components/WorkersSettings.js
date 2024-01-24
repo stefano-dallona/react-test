@@ -388,6 +388,73 @@ class WorkersSettings extends Component {
         return node;
     };
 
+    handleBandsChange = (nodes, editedNode, editedField, newValue, oldValue) => {
+        editedNode.data[editedField] = newValue?.trim().length === 0 ? [] : newValue
+
+        let oldBands = this.getSafeListValue(oldValue);
+        let newBands = this.getSafeListValue(newValue);
+
+        if (cloneDeep(newBands).sort().join(',') !== newBands.join(',')) {
+            return
+        }
+
+        let parentNodeKey = editedNode.key.split("-").slice(0, -1).join("-")
+        let parentNode = this.findNodeByKey(nodes, parentNodeKey)
+        let addedBands = newBands.filter(band => !oldBands.includes(band));
+        let removedBands = oldBands.filter(band => !newBands.includes(band));
+        console.log(`oldBands: ${oldBands}, newBands: ${newBands}, addedBands: ${addedBands}, removedBands: ${removedBands}`)
+        let crossfade = (parentNode ? parentNode.children : nodes).find((node) => node.data.property === 'crossfade')
+        let allCrossfadePossibleSettings = crossfade.children[0].data.options
+        let defaultCrossfadeSettings = "NoCrossfadeSettings"
+        let crossfadeSettings = allCrossfadePossibleSettings.find((option) => {
+            return option.name = defaultCrossfadeSettings
+        })?.settings
+        let crossfadeSettingsPath = crossfade.children[0].key.split("-")
+
+        function range(start, end) {
+            return new Array(end - start).fill().map((d, i) => i + start);
+        }
+
+        let newChildrenIndexes = range(crossfade.children.length, crossfade.children.length + addedBands.length)
+        crossfade.children = crossfade.children.concat(newChildrenIndexes.map((index) => {
+            let newChildKey = crossfadeSettingsPath.map((_, idx) => (idx < crossfadeSettingsPath.length - 1) ? idx : index).join("-")
+            return {
+                key: newChildKey,
+                data: {
+                    "property": `band-${index}`,
+                    "value": defaultCrossfadeSettings,
+                    "options": allCrossfadePossibleSettings,
+                    "valueType": "select",
+                    "editable": "false"
+                },
+                children: crossfadeSettings
+            }
+        }))
+
+        let childsToRemoveIndexes = oldBands.map((band, index) => {
+            return [band, index]
+        }).filter(x => {
+            return removedBands.includes(x[0])
+        }).map(x => {
+            return x[1]
+        })
+
+        if (removedBands.length > 0) {
+            crossfade.children = crossfade.children
+                .filter((_, index) => {
+                    return !childsToRemoveIndexes.includes(index)
+                })
+                .map((child, index) => {
+                    let currentKeyIndexes = child.key.split("-")
+                    let newChildKey = currentKeyIndexes.map((_, idx) => (idx < currentKeyIndexes.length - 1) ? idx : index).join("-")
+                    child.key = newChildKey
+                    child.data.property = `band-${index}`
+                    return child
+                })
+                
+        }
+    }
+
     onEditorValueChange = (options, value) => {
         let newNodes = JSON.parse(JSON.stringify(this.state.currentNodes));
         let editedNode = this.findNodeByKey(newNodes, options.node.key);
@@ -397,12 +464,15 @@ class WorkersSettings extends Component {
 
         switch (editedNode.data["property"]) {
             case 'frequencies':
+               
                 break;
             case 'crossfade_frequencies':
+                this.handleBandsChange(newNodes, editedNode, options.field, newValue, oldValue)
+                /*
                 editedNode.data[options.field] = newValue?.trim().length === 0 ? [] : newValue
 
-                let oldBands = this.getSafeListValue(oldValue);
-                let newBands = this.getSafeListValue(newValue);
+                oldBands = this.getSafeListValue(oldValue);
+                newBands = this.getSafeListValue(newValue);
 
                 if (cloneDeep(newBands).sort().join(',') !== newBands.join(',')) {
                     return
@@ -463,7 +533,7 @@ class WorkersSettings extends Component {
                         })
                         
                 }
-
+                */
                 break;
             default:
         };
