@@ -502,7 +502,7 @@ class WorkersSettings extends Component {
 
     configurationItem = (option) => {
         return (
-            <div className="p-inputgroup" style={{ display: "flex", flexWrap: "wrap" }}>
+            <div className="p-inputgroup" style={{ display: "flex", flexWrap: "wrap", overflowX: "scroll" }}>
                 <span className="justify-content-left" style={{ width: "20%" }}>{startCase(option.name)}</span>
                 <span className="justify-content-left" style={{ width: "65%" }}>{this.getSettingsAsHtmlTable(option.settings)}</span>
                 <span className="justify-content-left" style={{ width: "15%" }}>
