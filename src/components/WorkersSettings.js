@@ -256,7 +256,7 @@ class WorkersSettings extends Component {
                 editor = this.singleSelectEditor(setting)
                 break;
             case "multiselect":
-                editor = this.singleSelectEditor(setting)
+                editor = this.multipleSelectEditor(setting)
                 break;
             default:
                 editor = this.textEditor(setting)
@@ -338,17 +338,22 @@ class WorkersSettings extends Component {
         return (
             <InputSwitch
                 disabled={!options.rowData["editable"]}
-                checked={options.rowData[options.field]}
+                checked={options.rowData[options.field] === "true"}
                 onChange={(e) => this.onEditorValueChange(options, e.target.value)}
             />
         );
     };
 
+    getSafeListValue = (value) => {
+        let safeValue = value?.toString().trim() === '' ? [] : value
+        safeValue = Array.isArray(safeValue) ? safeValue : safeValue.split(",")
+        return safeValue
+    }
+
     editableListEditor = (options) => {
-        let value = options.rowData[options.field]
         return (
             <Chips
-                value={Array.isArray(value) ? value : value.split(",")}
+                value={this.getSafeListValue(options.rowData[options.field])}
                 onChange={(e) => this.onEditorValueChange(options, e.target.value)}
                 separator=","
                 keyfilter="int"
@@ -383,81 +388,105 @@ class WorkersSettings extends Component {
         return node;
     };
 
+    findNodeByPredicate = (nodes, predicate) => {
+        let matchingNodes = nodes.filter(predicate)
+        if (matchingNodes.length === 0) {
+            matchingNodes = nodes.flatMap((node) => {
+                if (node.children) {
+                    return this.findNodeByPredicate(node.children, predicate)
+                }
+                return []
+            })
+        }
+        return matchingNodes && matchingNodes.length > 0 ? matchingNodes[0] : null;
+    };
+
+    cloneSubtree = (node, newKey, newProperty) => {
+        let clonedNode = JSON.parse(JSON.stringify(node))
+        clonedNode.key = newKey
+        if (newProperty) {
+            clonedNode.data.property = newProperty
+        }
+        if (clonedNode.children) {
+            clonedNode.children = clonedNode.children.map((child, index) => {
+                let newChildKey = `${newKey}-${index}`
+                return this.cloneSubtree(child, newChildKey)
+            })
+        }
+        return clonedNode
+    }
+
+    handleBandsChange = (nodes, editedNode, editedField, newValue, oldValue, dependentNodeName, defaultOptionForNewBand) => {
+        editedNode.data[editedField] = newValue?.trim().length === 0 ? [] : newValue
+
+        let oldBands = this.getSafeListValue(oldValue);
+        let newBands = this.getSafeListValue(newValue);
+
+        if (cloneDeep(newBands).sort().join(',') !== newBands.join(',')) {
+            return
+        }
+
+        let parentNodeKey = editedNode.key.split("-").slice(0, -1).join("-")
+        let parentNode = this.findNodeByKey(nodes, parentNodeKey)
+        let addedBands = newBands.filter(band => !oldBands.includes(band));
+        let removedBands = oldBands.filter(band => !newBands.includes(band));
+        console.log(`oldBands: ${oldBands}, newBands: ${newBands}, addedBands: ${addedBands}, removedBands: ${removedBands}`)
+        let dependentNode = (parentNode ? parentNode.children : nodes).find((node) => node.key !== editedNode.key && node.data.property === dependentNodeName)
+        dependentNode = dependentNode ? dependentNode : this.findNodeByPredicate(nodes, (node) => {
+            return node.key !== editedNode.key && node.data.property === dependentNodeName
+        })
+        if (!dependentNode) {
+            return
+        }
+
+        function range(start, end) {
+            return new Array(end - start).fill().map((d, i) => i + start);
+        }
+        // FIXME - Better to recalculate all the subtree of the affected node on server side
+        // As an alternative clone recursively and change the key of the cloned nodes given the
+        // root new key
+        let newChildrenIndexes = range(dependentNode.children.length, dependentNode.children.length + addedBands.length)
+        dependentNode.children = dependentNode.children.concat(newChildrenIndexes.map((index) => {
+            return this.cloneSubtree(dependentNode.children[0], `${dependentNode.key}-${index}`, `band-${index}`)
+        }))
+
+        let childsToRemoveIndexes = oldBands.map((band, index) => {
+            return [band, index]
+        }).filter(x => {
+            return removedBands.includes(x[0])
+        }).map(x => {
+            return x[1]
+        })
+
+        if (removedBands.length > 0) {
+            dependentNode.children = dependentNode.children
+                .filter((_, index) => {
+                    return !childsToRemoveIndexes.includes(index)
+                })
+                .map((child, index) => {
+                    let currentKeyIndexes = child.key.split("-")
+                    let newChildKey = currentKeyIndexes.map((_, idx) => (idx < currentKeyIndexes.length - 1) ? idx : index).join("-")
+                    child.key = newChildKey
+                    child.data.property = `band-${index}`
+                    return child
+                })
+                
+        }
+    }
+
     onEditorValueChange = (options, value) => {
         let newNodes = JSON.parse(JSON.stringify(this.state.currentNodes));
         let editedNode = this.findNodeByKey(newNodes, options.node.key);
-        let newValue = editedNode.data["valueType"] === "list" ? value.join(",") : value;
+        let newValue = editedNode.data["valueType"] === "list" ? value.join(",") : value?.toString();
         let oldValue = editedNode.data[options.field]
         editedNode.data[options.field] = newValue
 
         switch (editedNode.data["property"]) {
-            case 'frequencies':
-                /*
-                if (newValue.length === 0) {
-                    return
-                }
-                */
-                let oldBands = Array.isArray(oldValue) ? oldValue : oldValue.split(",");
-                let newBands = Array.isArray(newValue) ? newValue : newValue.split(",");
-
-                if (cloneDeep(newBands).sort().join(',') !== newBands.join(',')) {
-                    return
-                }
-
-                let addedBands = newBands.filter(band => !oldBands.includes(band));
-                let removedBands = oldBands.filter(band => !newBands.includes(band));
-                console.log(`oldBands: ${oldBands}, newBands: ${newBands}, addedBands: ${addedBands}, removedBands: ${removedBands}`)
-                let crossfade = newNodes.find((node) => node.data.property === 'crossfade')
-                let allCrossfadePossibleSettings = crossfade.children[0].data.options
-                let defaultCrossfadeSettings = "NoCrossfadeSettings"
-                let crossfadeSettings = allCrossfadePossibleSettings.find((option) => {
-                    return option.name = defaultCrossfadeSettings
-                })?.settings
-                let crossfadeSettingsPath = crossfade.children[0].key.split("-")
-
-                function range(start, end) {
-                    return new Array(end - start).fill().map((d, i) => i + start);
-                }
-
-                let newChildrenIndexes = range(crossfade.children.length, crossfade.children.length + addedBands.length)
-                crossfade.children = crossfade.children.concat(newChildrenIndexes.map((index) => {
-                    let newChildKey = crossfadeSettingsPath.map((_, idx) => (idx < crossfadeSettingsPath.length - 1) ? idx : index).join("-")
-                    return {
-                        key: newChildKey,
-                        data: {
-                            "property": `band-${index}`,
-                            "value": defaultCrossfadeSettings,
-                            "options": allCrossfadePossibleSettings,
-                            "valueType": "select",
-                            "editable": "false"
-                        },
-                        children: crossfadeSettings
-                    }
-                }))
-
-                let childsToRemoveIndexes = oldBands.map((band, index) => {
-                    return [band, index]
-                }).filter(x => {
-                    return removedBands.includes(x[0])
-                }).map(x => {
-                    return x[1]
-                })
-
-                if (removedBands.length > 0) {
-                    crossfade.children = crossfade.children
-                        .filter((_, index) => {
-                            return !childsToRemoveIndexes.includes(index)
-                        })
-                        .map((child, index) => {
-                            let currentKeyIndexes = child.key.split("-")
-                            let newChildKey = currentKeyIndexes.map((_, idx) => (idx < currentKeyIndexes.length - 1) ? idx : index).join("-")
-                            child.key = newChildKey
-                            child.data.property = `band-${index}`
-                            return child
-                        })
-                        
-                }
-
+            case 'linked':
+                this.handleBandsChange(newNodes, editedNode, options.field, newValue, oldValue, 'linked', 'ZerosPLCSettings')
+                break;
+            case 'crossfade_frequencies':
+                this.handleBandsChange(newNodes, editedNode, options.field, newValue, oldValue, 'crossfade', 'NoCrossfadeSettings')
                 break;
             default:
         };
@@ -502,7 +531,7 @@ class WorkersSettings extends Component {
 
     configurationItem = (option) => {
         return (
-            <div className="p-inputgroup" style={{ display: "flex", flexWrap: "wrap" }}>
+            <div className="p-inputgroup" style={{ display: "flex", flexWrap: "wrap", overflowX: "scroll" }}>
                 <span className="justify-content-left" style={{ width: "20%" }}>{startCase(option.name)}</span>
                 <span className="justify-content-left" style={{ width: "65%" }}>{this.getSettingsAsHtmlTable(option.settings)}</span>
                 <span className="justify-content-left" style={{ width: "15%" }}>

@@ -243,7 +243,7 @@ export class ConfigurationService {
 
             if (["settingsList"].includes(property.type)) {
                 let frequencies = settings.find((setting) => {
-                    return setting.property === 'frequencies'
+                    return setting.property === 'crossfade_frequencies'
                 })
                 let bands = frequencies ? Array.isArray(frequencies.value) ? frequencies.value.length : frequencies.value.split(",").length : 1
 
@@ -280,6 +280,22 @@ export class ConfigurationService {
                 }
             }
 
+            if (["dictionary"].includes(property.type)) {
+                return {
+                    "key": itemPath.join("-"),
+                    "data": {
+                        "property": property.property,
+                        "value": "",
+                        "valueType": property.type,
+                        "editable": property.editable
+                    },
+                    "children": property.value
+                        .flatMap((child, childIndex) => {
+                            return this.getSettingsAsTreetableNodes([child], itemPath)
+                        })
+                }
+            }
+
             if (["select"].includes(property.type)) {
                 return {
                     key: itemPath.join("-"),
@@ -298,7 +314,7 @@ export class ConfigurationService {
                 key: itemPath.join("-"),
                 data: {
                     "property": property.property,
-                    "value": property.value,
+                    "value": property.value?.toString(),
                     "valueType": property.type,
                     "editable": property.editable,
                     "mandatory": true
