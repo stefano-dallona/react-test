@@ -245,7 +245,7 @@ class WorkersSettings extends Component {
 
     cellEditor = (setting) => {
         let editor = null
-        switch (setting.type) {
+        switch (setting.valueType) {
             case "int":
                 editor = this.numberEditor(setting)
                 break;
@@ -474,32 +474,78 @@ class WorkersSettings extends Component {
         }
     }
 
-    onEditorValueChange = (options, value) => {
+    findAncestorByPredicate = (nodes, node, predicate) => {
+        let parentNodeKey = node.key && node.key.trim() !== '' ? node.key.split("-").slice(0, -1).join("-") : ""
+        let parentNode = this.findNodeByKey(nodes, parentNodeKey)
+        if (predicate(node))
+            return [node, parentNode]
+        if (parentNode) {
+            return this.findAncestorByPredicate(nodes, parentNode, predicate)
+        }
+        return [null, null]
+    }
+
+    handlePropertyChange = async (nodesBeforeChange, nodesAfterChange, editedNode, currentWorkerSettings) => {
+        let modificationData = this.findAncestorByPredicate(nodesBeforeChange, editedNode, (node) => node.data["is_modifier"])
+        let modifierNode = modificationData[0]
+        let modifierNodeParent = modificationData[1]
+        if (modifierNode) {
+            if (!modifierNodeParent) {
+                modifierNodeParent = JSON.parse(JSON.stringify(currentWorkerSettings))
+                modifierNodeParent.settings = nodesBeforeChange
+            }
+            let modifierEditedNode = this.findNodeByKey(nodesAfterChange, modifierNode.key);
+            let modifiedNodeMetadata = await this.servicesContainer.configurationService.refreshSettingsMetadata([modifierNodeParent], modifierEditedNode.data["property"], modifierEditedNode.data["value"])
+            let modifierNodeSettingsNew = this.servicesContainer.configurationService.getSettingsAsTreetableNodes(modifiedNodeMetadata)
+            let path = modifierNodeParent.key?.strip() ? modifierNodeParent.key.split("-") : []
+            let newSettings = modifierNodeSettingsNew.map((child) => {
+                return this.cloneSubtree(child, path.concat(child.key).join("-"))
+            })
+
+            if (!modificationData[1]) {
+                return newSettings
+            }
+
+            modifierNodeParent = this.findNodeByKey(nodesAfterChange, modifierNodeParent.key)
+            modifierNodeParent.children = newSettings
+            return nodesAfterChange
+        }
+        return nodesAfterChange
+    }
+
+    onEditorValueChange = async (options, value) => {
         let newNodes = JSON.parse(JSON.stringify(this.state.currentNodes));
         let editedNode = this.findNodeByKey(newNodes, options.node.key);
         let newValue = editedNode.data["valueType"] === "list" ? value.join(",") : value?.toString();
         let oldValue = editedNode.data[options.field]
-        editedNode.data[options.field] = newValue
 
-        switch (editedNode.data["property"]) {
-            case 'linked':
-                this.handleBandsChange(newNodes, editedNode, options.field, newValue, oldValue, 'linked', 'ZerosPLCSettings')
-                break;
-            case 'crossfade_frequencies':
-                this.handleBandsChange(newNodes, editedNode, options.field, newValue, oldValue, 'crossfade', 'NoCrossfadeSettings')
-                break;
-            default:
-        };
+        if (newValue !== oldValue) {
+            editedNode.data[options.field] = newValue
 
-        if (editedNode.data["valueType"] === 'select' && editedNode.data.options.length > 0 && editedNode.data.options[0].settings) {
-            let selectedItemSettings = editedNode.data.options.find((option) => {
-                return option.name === newValue
-            })
-            console.log(`selectedItemSettings.settings: ${selectedItemSettings?.settings}`)
-            editedNode.children = selectedItemSettings.settings
+            newNodes = await this.handlePropertyChange(this.state.currentNodes, newNodes, editedNode, this.state.currentWorkerSettings)
+
+            if (editedNode.data["valueType"] === 'select' && editedNode.data.options.length > 0 && editedNode.data.options[0].settings) {
+                let selectedItemSettings = editedNode.data.options.find((option) => {
+                    return option.name === newValue
+                })
+                console.log(`selectedItemSettings.settings: ${selectedItemSettings?.settings}`)
+                editedNode.children = selectedItemSettings.settings
+            }
+    
+            /*
+            switch (editedNode.data["property"]) {
+                case 'linked':
+                    this.handleBandsChange(newNodes, editedNode, options.field, newValue, oldValue, 'linked', 'ZerosPLCSettings')
+                    break;
+                case 'crossfade_frequencies':
+                    this.handleBandsChange(newNodes, editedNode, options.field, newValue, oldValue, 'crossfade', 'NoCrossfadeSettings')
+                    break;
+                default:
+            };
+            */
+    
+            this.setCurrentNodes(newNodes);
         }
-
-        this.setCurrentNodes(newNodes);
     };
 
     valueEditor = (options) => {
