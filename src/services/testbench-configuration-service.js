@@ -226,37 +226,61 @@ export class ConfigurationService {
         return run_hierarchy.find((node) => node.file.endsWith(audio_file))
     }
 
-    async getSettingsMetadata() {
+
+    async refreshSettingsMetadata(settings_list = null, modified_setting = null, new_value = null) {
+        let options = {
+            "headers": {'Content-Type': 'application/json'},
+            "params": {
+                "modified_setting": modified_setting,
+                "new_value": new_value
+            }
+        }
         let requestUrl = this.baseUrl + "/settings_metadata"
         /*
         let response = await fetch(requestUrl)
         let settings_metadata = await response.json()
         */
-        let response = await this.axiosClient.get(requestUrl);
+        let requestBody = settings_list ? JSON.stringify(settings_list) : settings_list
+        let response = await this.axiosClient.put(requestUrl, requestBody, options);
+        let settings_metadata = response.data[0].value[0].settings
+        return settings_metadata
+    }
+
+    async getSettingsMetadata(settings_list = null, modified_setting = null, new_value = null) {
+        let options = {
+            "headers": {
+                "settings_list": settings_list ? JSON.stringify(settings_list) : settings_list
+            },
+            "params": {
+                "modified_setting": modified_setting,
+                "new_value": new_value
+            }
+        }
+        let requestUrl = this.baseUrl + "/settings_metadata"
+        /*
+        let response = await fetch(requestUrl)
+        let settings_metadata = await response.json()
+        */
+        let response = await this.axiosClient.get(requestUrl, options);
         let settings_metadata = response.data
         return settings_metadata
     }
 
-    getSettingsAsTreetableNodes(settings, path = [], applyDefaults = true) {
+    getSettingsAsTreetableNodes(settings, path = []) {
         return settings.flatMap((property, index) => {
             let itemPath = [...path, [index]]
 
-            if (["settingsList"].includes(property.type)) {
-                let frequencies = settings.find((setting) => {
-                    return setting.property === 'crossfade_frequencies'
-                })
-                let bands = frequencies ? Array.isArray(frequencies.value) ? frequencies.value.length : frequencies.value.split(",").length : 1
-
+            if (["settingsList"].includes(property.valueType)) {
                 return {
                     "key": itemPath.join("-"),
                     "data": {
                         "property": property.property,
                         "value": "",
-                        "valueType": property.type,
-                        "editable": property.editable
+                        "valueType": property.valueType,
+                        "editable": property.editable,
+                        "is_modifier": property.is_modifier || false
                     },
-                    "children": (applyDefaults ? Array((property.property === 'crossfade') ? bands + 1 : 1).fill(property.value[0]) : property.value)
-                        .map((child, childIndex) => {
+                    "children": property.value.map((child, childIndex) => {
                             let childPath = [...itemPath, [childIndex]]
                             let childChildren = this.getSettingsAsTreetableNodes(child.settings, childPath)
                             return {
@@ -265,29 +289,31 @@ export class ConfigurationService {
                                     "property": `band-${childIndex}`,
                                     "value": child.name,
                                     "valueType": "select",
-                                    "options": property.value.map((item, index) => {
+                                    "options": child.options.map((item, index) => {
                                         return {
                                             "name": item.name,
                                             "settings": this.getSettingsAsTreetableNodes(item.settings, childPath)
                                         }
                                     }),
-                                    "editable": true
+                                    "editable": true,
+                                    "mandatory": true
                                 },
                                 "children": childChildren
                             }
-                        }
-                        )
+                        })
                 }
             }
 
-            if (["dictionary"].includes(property.type)) {
+            if (["dictionary"].includes(property.valueType)) {
                 return {
                     "key": itemPath.join("-"),
                     "data": {
                         "property": property.property,
                         "value": "",
-                        "valueType": property.type,
-                        "editable": property.editable
+                        "valueType": property.valueType,
+                        "editable": property.editable,
+                        "mandatory": true,
+                        "is_modifier": property.is_modifier || false
                     },
                     "children": property.value
                         .flatMap((child, childIndex) => {
@@ -296,16 +322,17 @@ export class ConfigurationService {
                 }
             }
 
-            if (["select"].includes(property.type)) {
+            if (["select"].includes(property.valueType)) {
                 return {
                     key: itemPath.join("-"),
                     data: {
                         "property": property.property,
                         "value": property.value,
                         "options": property.options.map((option) => { return { name: option } }),
-                        "valueType": property.type,
+                        "valueType": property.valueType,
                         "editable": property.editable,
-                        "mandatory": true
+                        "mandatory": true,
+                        "is_modifier": property.is_modifier || false
                     }
                 }
             }
@@ -315,9 +342,10 @@ export class ConfigurationService {
                 data: {
                     "property": property.property,
                     "value": property.value?.toString(),
-                    "valueType": property.type,
+                    "valueType": property.valueType,
                     "editable": property.editable,
-                    "mandatory": true
+                    "mandatory": true,
+                    "is_modifier": property.is_modifier || false
                 }
             }
         })
