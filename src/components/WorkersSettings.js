@@ -73,7 +73,7 @@ class WorkersSettings extends Component {
             currentWorker: currentWorker
         })
         if (currentWorker) {
-            let workersSettings = this.defaultSettings.find((worker) => worker.name == currentWorker)
+            let workersSettings = this.defaultSettings.find((worker) => worker.name === currentWorker)
             if (workersSettings) {
                 workersSettings.uuid = create_UUID()
             }
@@ -493,11 +493,18 @@ class WorkersSettings extends Component {
             if (!modifierNodeParent) {
                 modifierNodeParent = JSON.parse(JSON.stringify(currentWorkerSettings))
                 modifierNodeParent.settings = nodesBeforeChange
+            } else {
+                modifierNodeParent.name = modifierNodeParent.data.value?.replace("Settings", "")
+                modifierNodeParent.settings = modifierNodeParent.children.map((child) => {
+                    return child
+                })
             }
             let modifierEditedNode = this.findNodeByKey(nodesAfterChange, modifierNode.key);
-            let modifiedNodeMetadata = await this.servicesContainer.configurationService.refreshSettingsMetadata([modifierNodeParent], modifierEditedNode.data["property"], modifierEditedNode.data["value"])
+            //let newValue = !modifierEditedNode.children || modifierEditedNode.children.length === 0 ?  modifierEditedNode.data["value"] : JSON.stringify(modifierEditedNode.children)
+            let newValue = JSON.stringify(modifierEditedNode)
+            let modifiedNodeMetadata = await this.servicesContainer.configurationService.refreshSettingsMetadata([modifierNodeParent], modifierEditedNode.data["property"], newValue)
             let modifierNodeSettingsNew = this.servicesContainer.configurationService.getSettingsAsTreetableNodes(modifiedNodeMetadata)
-            let path = modifierNodeParent.key?.strip() ? modifierNodeParent.key.split("-") : []
+            let path = modifierNodeParent.key && modifierNodeParent.key.trim() !== "" ? modifierNodeParent.key.split("-") : []
             let newSettings = modifierNodeSettingsNew.map((child) => {
                 return this.cloneSubtree(child, path.concat(child.key).join("-"))
             })

@@ -266,16 +266,11 @@ export class ConfigurationService {
         return settings_metadata
     }
 
-    getSettingsAsTreetableNodes(settings, path = [], applyDefaults = true) {
+    getSettingsAsTreetableNodes(settings, path = []) {
         return settings.flatMap((property, index) => {
             let itemPath = [...path, [index]]
 
             if (["settingsList"].includes(property.valueType)) {
-                let frequencies = settings.find((setting) => {
-                    return setting.property === 'crossfade_frequencies'
-                })
-                let bands = frequencies ? Array.isArray(frequencies.value) ? frequencies.value.length : frequencies.value.split(",").length : 1
-
                 return {
                     "key": itemPath.join("-"),
                     "data": {
@@ -285,8 +280,7 @@ export class ConfigurationService {
                         "editable": property.editable,
                         "is_modifier": property.is_modifier || false
                     },
-                    "children": (applyDefaults ? Array((property.property === 'crossfade') ? bands + 1 : 1).fill(property.value[0]) : property.value)
-                        .map((child, childIndex) => {
+                    "children": property.value.map((child, childIndex) => {
                             let childPath = [...itemPath, [childIndex]]
                             let childChildren = this.getSettingsAsTreetableNodes(child.settings, childPath)
                             return {
@@ -295,7 +289,7 @@ export class ConfigurationService {
                                     "property": `band-${childIndex}`,
                                     "value": child.name,
                                     "valueType": "select",
-                                    "options": property.value.map((item, index) => {
+                                    "options": child.options.map((item, index) => {
                                         return {
                                             "name": item.name,
                                             "settings": this.getSettingsAsTreetableNodes(item.settings, childPath)
@@ -306,8 +300,7 @@ export class ConfigurationService {
                                 },
                                 "children": childChildren
                             }
-                        }
-                        )
+                        })
                 }
             }
 
