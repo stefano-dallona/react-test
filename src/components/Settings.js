@@ -143,18 +143,7 @@ class Settings extends Component {
 
     getStoredSettings(workerType) {
         let index = this.pages.indexOf(workerType)
-        if (index >= 0 && this.storedSettings && this.storedSettings.length > index) {
-            if (index > 0) {
-                return this.storedSettings[index].map((item) => {
-                    let clonedItem = JSON.parse(JSON.stringify(item))
-                    clonedItem.settings = this.servicesContainer.configurationService.getSettingsAsTreetableNodes(item.settings)
-                    return clonedItem
-                })
-            }
-            return this.storedSettings[index]
-        } else {
-            return []
-        }
+        return (index >= 0 && this.storedSettings && this.storedSettings.length > index) ? this.storedSettings[index] : []
     }
 
     nextPage = () => {
@@ -268,7 +257,7 @@ class Settings extends Component {
                 toast={this.toast}
                 workerType={workerType}
                 selectedWorkers={this.getStoredSettings(workerType)}
-                defaultSettings={this.defaultSettings.find((setting) => setting.property == workerType).value} >
+                defaultSettings={this.defaultSettings.find((setting) => setting.property === workerType).value} >
             </WorkersSettings>
         )
     }

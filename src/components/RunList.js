@@ -106,10 +106,24 @@ class RunList extends Component {
         }
     }
 
+    getSettingsAsTreetableNodes(runConfiguration) {
+        return runConfiguration.map((item, index) => {
+            if (index > 0) {
+                return item.map((setting) => {
+                    let clonedSetting = JSON.parse(JSON.stringify(setting))
+                    clonedSetting.settings = this.servicesContainer.configurationService.getSettingsAsTreetableNodes(setting.settings)
+                    return clonedSetting
+                })
+            }
+            return item
+        })
+    }
+
     async modifyRun(runId) {
         let runConfiguration = await trackPromise(this.servicesContainer.configurationService.getRunConfiguration(runId));
+        let runConfigurationAsTreenodes = this.getSettingsAsTreetableNodes(runConfiguration)
         let key = "plc-testbench-ui.configuration"
-        localStorage.setItem(key, JSON.stringify(runConfiguration))
+        localStorage.setItem(key, JSON.stringify(runConfigurationAsTreenodes))
         this.rowEditHandler(runId)
     }
 
