@@ -19,7 +19,9 @@ import axios from 'axios'
 
 import Navigation from './components/Navigation';
 import { useContainer } from "./components/ServicesContextProvider"
-import { StreamingChart } from './components/SimpleChart'
+//import { StreamingChart } from './components/SimpleChartSvg'
+//import { StreamingChart } from './components/SimpleChartCanvas'
+import { StreamingChart } from './components/SimpleChartWebgl'
 
 
 function App() {
