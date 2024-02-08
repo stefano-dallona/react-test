@@ -247,9 +247,15 @@ export class ConfigurationService {
     }
 
     async validateSettings(settings_list = null) {
-        return {
-            //errors: ["'setting-1' is not valid", "'setting-2' is not valid"],
+        let options = {
+            "headers": {'Content-Type': 'application/json'}
         }
+        let requestUrl = this.baseUrl + "/settings/validate"
+        let requestBody = settings_list ? JSON.stringify(settings_list) : settings_list
+        let response = await this.axiosClient.put(requestUrl, requestBody, options);
+        let result = response.data
+
+        return result
     }
 
     async getSettingsMetadata(settings_list = null, modified_setting = null, new_value = null) {
