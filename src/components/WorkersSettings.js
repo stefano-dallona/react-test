@@ -143,7 +143,7 @@ class WorkersSettings extends Component {
         return workers
     }
 
-    saveWorker = () => {
+    saveWorker = async () => {
         if (!this.state.currentWorker) {
             return
         }
@@ -158,6 +158,12 @@ class WorkersSettings extends Component {
 
         let clonedCurrentNodes = cloneDeep(this.state.currentNodes)
         currentWorker.settings = clonedCurrentNodes
+
+        let validationResult = await this.servicesContainer.configurationService.validateSettings(currentWorker)
+        if (validationResult && validationResult.errors) {
+            this.showMessage('error', validationResult.errors.join("\n"))
+            return
+        }
 
         let existingWorker = this.state.selectedWorkers.find(oa => oa.uuid == currentWorker.uuid)
         if (existingWorker) {

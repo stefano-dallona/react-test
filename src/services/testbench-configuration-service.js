@@ -246,6 +246,12 @@ export class ConfigurationService {
         return settings_metadata
     }
 
+    async validateSettings(settings_list = null) {
+        return {
+            //errors: ["'setting-1' is not valid", "'setting-2' is not valid"],
+        }
+    }
+
     async getSettingsMetadata(settings_list = null, modified_setting = null, new_value = null) {
         let options = {
             "headers": {
