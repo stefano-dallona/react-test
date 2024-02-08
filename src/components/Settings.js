@@ -116,7 +116,7 @@ class Settings extends Component {
     }
 
     getPageSettings = (page = this.state.currentPage) => {
-        if (page == 0)
+        if (page === 0)
             return { name: this.pages[page], settings: this.inputFilesSelector.current.state.selectedInputFiles }
         else {
             let selectedWorkers = this.workerSettings.current.state.selectedWorkers

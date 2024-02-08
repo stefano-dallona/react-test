@@ -118,7 +118,7 @@ class WorkersSettings extends Component {
         let currentWorkerSettings = cloneDeep(this.state.currentWorkerSettings)
         currentWorkerSettings.settings.map((originalSetting) => {
             if (originalSetting.property === setting.property) {
-                originalSetting.value = value
+                originalSetting.data.value = value
                 return originalSetting
             } else {
                 return originalSetting
@@ -233,7 +233,8 @@ class WorkersSettings extends Component {
         let currentWorkerSettings = this.state.selectedWorkers.find((oa) => oa.uuid === value)
         if (currentWorkerSettings) {
             this.setCurrentWorker(currentWorkerSettings.name)
-            this.setCurrentWorkerSettings(currentWorkerSettings)
+            let clonedCurrentWorkorderSettings = JSON.parse(JSON.stringify(currentWorkerSettings))
+            this.setCurrentWorkerSettings(clonedCurrentWorkorderSettings)
         } else {
             this.setCurrentWorker(null)
         }
@@ -552,6 +553,7 @@ class WorkersSettings extends Component {
             */
     
             this.setCurrentNodes(newNodes);
+            this.setPropertyValue(editedNode, newValue);
         }
     };
 
