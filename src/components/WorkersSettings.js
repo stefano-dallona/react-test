@@ -363,8 +363,8 @@ class WorkersSettings extends Component {
                 value={this.getSafeListValue(options.rowData[options.field])}
                 onChange={(e) => this.onEditorValueChange(options, e.target.value)}
                 separator=","
-                keyfilter="int"
-            />
+                keyfilter={"int"}
+                tooltip={"Enter a comma to end new item's insertion"}            />
         );
     };
 
