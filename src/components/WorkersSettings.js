@@ -357,13 +357,24 @@ class WorkersSettings extends Component {
         return safeValue
     }
 
+    getKeyFilter = (valueType) => {
+        switch(valueType) {
+            case "int":
+                return "int"
+            case "float":
+                return "num"
+            default:
+        }
+        return /.*/
+    }
+
     editableListEditor = (options) => {
         return (
             <Chips
                 value={this.getSafeListValue(options.rowData[options.field])}
                 onChange={(e) => this.onEditorValueChange(options, e.target.value)}
                 separator=","
-                keyfilter={"int"}
+                keyfilter={this.getKeyFilter(options.rowData["nestedType"])}
                 tooltip={"Enter a comma to end new item's insertion"}            />
         );
     };

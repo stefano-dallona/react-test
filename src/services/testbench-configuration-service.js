@@ -355,6 +355,7 @@ export class ConfigurationService {
                     "property": property.property,
                     "value": property.value?.toString(),
                     "valueType": property.valueType,
+                    "nestedType": property.nestedType,
                     "editable": property.editable,
                     "mandatory": true,
                     "is_modifier": property.is_modifier || false
