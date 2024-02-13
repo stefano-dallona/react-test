@@ -20,6 +20,8 @@ import cloneDeep from 'lodash/cloneDeep';
 import startCase from 'lodash/startCase';
 import create_UUID from '../utils/Uuid';
 
+import '../css/worker-settings.css'
+
 var parse = require('html-react-parser');
 
 /*
@@ -57,7 +59,8 @@ class WorkersSettings extends Component {
             currentWorkerSettings: null,
             selectedWorkers: props.selectedWorkers || [],
             confirmationMessage: null,
-            currentNodes: null
+            currentNodes: null,
+            validationErrors: []
         };
     }
 
@@ -72,6 +75,7 @@ class WorkersSettings extends Component {
         this.setState({
             currentWorker: currentWorker
         })
+        this.setValidationErrors([])
         if (currentWorker) {
             let workersSettings = this.defaultSettings.find((worker) => worker.name === currentWorker)
             if (workersSettings) {
@@ -85,6 +89,7 @@ class WorkersSettings extends Component {
             this.setCurrentNodes(cloneDeep(currentNodes))
         } else {
             this.setCurrentWorkerSettings(null)
+            this.setCurrentNodes(null)
         }
     }
 
@@ -133,6 +138,12 @@ class WorkersSettings extends Component {
         })
     }
 
+    setValidationErrors(validationErrors) {
+        this.setState({
+            validationErrors: validationErrors
+        })
+    }
+
     getWorkers = () => {
         let workers = this.defaultSettings.filter((worker) => {
             //return worker.name !== 'ZerosPLC'
@@ -141,6 +152,12 @@ class WorkersSettings extends Component {
             return { "label": startCase(worker.name), "value": worker.name }
         })
         return workers
+    }
+
+    hasValidationErrors = (property) => {
+        return this.state.validationErrors.find((error) => {
+            return error.search(new RegExp('(^|\\s+)' + property + '(\\s+|\\.|$)')) >= 0
+        })
     }
 
     saveWorker = async () => {
@@ -159,8 +176,10 @@ class WorkersSettings extends Component {
         let clonedCurrentNodes = cloneDeep(this.state.currentNodes)
         currentWorker.settings = clonedCurrentNodes
 
+        this.setValidationErrors([])
         let validationResult = await this.servicesContainer.configurationService.validateSettings(currentWorker)
         if (validationResult && validationResult.errors) {
+            this.setValidationErrors(validationResult.errors)
             this.showMessage('error', validationResult.errors.join("\n"))
             return
         }
@@ -434,64 +453,6 @@ class WorkersSettings extends Component {
         return clonedNode
     }
 
-    handleBandsChange = (nodes, editedNode, editedField, newValue, oldValue, dependentNodeName, defaultOptionForNewBand) => {
-        editedNode.data[editedField] = newValue?.trim().length === 0 ? [] : newValue
-
-        let oldBands = this.getSafeListValue(oldValue);
-        let newBands = this.getSafeListValue(newValue);
-
-        if (cloneDeep(newBands).sort().join(',') !== newBands.join(',')) {
-            return
-        }
-
-        let parentNodeKey = editedNode.key.split("-").slice(0, -1).join("-")
-        let parentNode = this.findNodeByKey(nodes, parentNodeKey)
-        let addedBands = newBands.filter(band => !oldBands.includes(band));
-        let removedBands = oldBands.filter(band => !newBands.includes(band));
-        console.log(`oldBands: ${oldBands}, newBands: ${newBands}, addedBands: ${addedBands}, removedBands: ${removedBands}`)
-        let dependentNode = (parentNode ? parentNode.children : nodes).find((node) => node.key !== editedNode.key && node.data.property === dependentNodeName)
-        dependentNode = dependentNode ? dependentNode : this.findNodeByPredicate(nodes, (node) => {
-            return node.key !== editedNode.key && node.data.property === dependentNodeName
-        })
-        if (!dependentNode) {
-            return
-        }
-
-        function range(start, end) {
-            return new Array(end - start).fill().map((d, i) => i + start);
-        }
-        // FIXME - Better to recalculate all the subtree of the affected node on server side
-        // As an alternative clone recursively and change the key of the cloned nodes given the
-        // root new key
-        let newChildrenIndexes = range(dependentNode.children.length, dependentNode.children.length + addedBands.length)
-        dependentNode.children = dependentNode.children.concat(newChildrenIndexes.map((index) => {
-            return this.cloneSubtree(dependentNode.children[0], `${dependentNode.key}-${index}`, `band-${index}`)
-        }))
-
-        let childsToRemoveIndexes = oldBands.map((band, index) => {
-            return [band, index]
-        }).filter(x => {
-            return removedBands.includes(x[0])
-        }).map(x => {
-            return x[1]
-        })
-
-        if (removedBands.length > 0) {
-            dependentNode.children = dependentNode.children
-                .filter((_, index) => {
-                    return !childsToRemoveIndexes.includes(index)
-                })
-                .map((child, index) => {
-                    let currentKeyIndexes = child.key.split("-")
-                    let newChildKey = currentKeyIndexes.map((_, idx) => (idx < currentKeyIndexes.length - 1) ? idx : index).join("-")
-                    child.key = newChildKey
-                    child.data.property = `band-${index}`
-                    return child
-                })
-                
-        }
-    }
-
     findAncestorByPredicate = (nodes, node, predicate) => {
         let parentNodeKey = node.key && node.key.trim() !== '' ? node.key.split("-").slice(0, -1).join("-") : ""
         let parentNode = this.findNodeByKey(nodes, parentNodeKey)
@@ -541,7 +502,10 @@ class WorkersSettings extends Component {
     onEditorValueChange = async (options, value) => {
         let newNodes = JSON.parse(JSON.stringify(this.state.currentNodes));
         let editedNode = this.findNodeByKey(newNodes, options.node.key);
-        let newValue = editedNode.data["valueType"] === "list" ? value.join(",") : value?.toString();
+        let conversionFunction = (value) => {
+            return ["int", "num"].includes(options.rowData["nestedType"]) ? Number(value) : value
+        } 
+        let newValue = editedNode.data["valueType"] === "list" ? value.map(conversionFunction) : value?.toString();
         let oldValue = editedNode.data[options.field]
 
         if (newValue !== oldValue) {
@@ -676,6 +640,11 @@ class WorkersSettings extends Component {
                                         value={this.state.currentNodes}
                                         expandedKeys={this.state.expandedKeys}
                                         tableStyle={{ minWidth: "30rem" }}
+                                        validationErrors={this.state.validationErrors}
+                                        rowClassName={(node) => {
+                                            let error = this.hasValidationErrors(node.data.property)
+                                            return { 'p-invalid': error !== undefined } 
+                                        }}
                                     /*scrollable
                                     scrollHeight='85%'*/
                                     >
