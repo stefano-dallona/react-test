@@ -19,6 +19,8 @@ import { Fragment } from 'react';
 
 import NotificationMenu from "../components/NotificationMenu"
 
+import logo_cimil from '../assets/icons/logo-cimil-small.svg'
+
 var parse = require('html-react-parser');
 
 
@@ -146,6 +148,7 @@ const Navigation = (props) => {
         }
     );
 
+    const start = <img alt="logo-cimil" src={logo_cimil} height="40" className="mr-2"></img>;
     const navlist = [
         {
             label: '', icon: 'pi pi-info-circle', command: () => {
@@ -311,6 +314,7 @@ const Navigation = (props) => {
     return (
         <div>
             <Menubar
+                start={start}
                 model={navlist}
                 end={end}
             />

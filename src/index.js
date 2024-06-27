@@ -18,6 +18,8 @@ import { RunAnalysis } from './pages/RunAnalysis';
 import { WaveformView } from './pages/WaveformView';
 import { UserProfile } from './pages/UserProfile';
 
+import { Footer } from './components/Footer';
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   // https://levelup.gitconnected.com/handling-access-tokens-for-google-apis-with-react-node-js-tutorial-5ebf94d8f90f
@@ -42,6 +44,7 @@ root.render(
           <Route path='/run/analysis2' element={<WaveformView />} />
           <Route path='/userprofile' element={<UserProfile />} />
         </Routes>
+        <Footer />
       </BrowserRouter>
   </GoogleOAuthProvider>
 );
