@@ -78,8 +78,8 @@ export class NotificationService {
         let currenLocation = document.location.href.split("/")
         let currentPage = currenLocation[currenLocation.length - 1]
         currentPage = currentPage && currentPage.length > 0 ? currentPage : "index"
-        let baseUrl = local ? `${this.baseUrl.replace("https", "http").replace(":5000", ":3000")}` : ""
-        //let baseUrl = local ? this.baseUrl : ""
+        //let baseUrl = local ? `${this.baseUrl.replace("https", "http").replace(":5000", ":3000")}` : ""
+        let baseUrl = local ? this.baseUrl : ""
         let path = remapping ? `/help/${currentPage}.html` : url
         let helpPageUrl = local ? `${baseUrl}${path}` : url
         let response = await this.axiosClient.get(helpPageUrl);
