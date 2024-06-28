@@ -57,6 +57,7 @@
     "sass": "^1.62.1",
     "socket.io-client": "^4.6.1",
     "typescript": "^5.0.4",
+    "usehooks-ts": "^3.1.0",
     "waveform-data": "^4.3.0",
     "waves-audio": "github:wavesjs/waves-audio",
     "waves-ui": "github:wavesjs/waves-ui",

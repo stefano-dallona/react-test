@@ -100,16 +100,16 @@ class InputFilesSelector extends Component {
     render() {
         return (
             <div className="card">
-                <Splitter>
-                    <SplitterPanel size={50} className="flex align-items-center justify-content-center">
+                <Splitter style={{ height: '100%' }}>
+                    <SplitterPanel size={30} style={{ minHeight: '58vh' }} className="flex align-items-center justify-content-center">
                         <DropzoneComponent config={this.dropzoneConfig}
                             djsConfig={this.djsConfig}
                             eventHandlers={this.dropzoneEventHandlers}
                             className="mb-2"></DropzoneComponent>
                     </SplitterPanel>
-                    <SplitterPanel size={50} className="flex align-items-center justify-content-center">
+                    <SplitterPanel size={70} style={{ minHeight: '58vh', padding: 0 }} className="flex align-items-center justify-content-center">
                         <PickList source={this.state.availableInputFiles} target={this.state.selectedInputFiles} onChange={this.onChange} filter filterBy="name" breakpoint="1400px"
-                            sourceHeader="Available" targetHeader="Selected" sourceStyle={{ height: '30rem' }} targetStyle={{ height: '30rem' }}
+                            sourceHeader="Available" targetHeader="Selected" sourceStyle={{ minHeight: '53vh', fontSize: '1rem' }} targetStyle={{ minHeight: '53vh', fontSize: '1rem' }}
                             sourceFilterPlaceholder="Search by name" targetFilterPlaceholder="Search by name" />
                     </SplitterPanel>
                 </Splitter>

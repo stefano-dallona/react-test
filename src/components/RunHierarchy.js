@@ -461,7 +461,7 @@ class RunHierarchy extends Component {
                     id="runHierarchy"
                     className="hierarchy"
                     width="100%"
-                    height="500"
+                    height="68vh"
                     onContextMenu={this.handleContextMenu.bind(this)}>
                     <text visibility={this.isExecuting() ? 'hidden' : 'visible'}
                         textAnchor="middle"

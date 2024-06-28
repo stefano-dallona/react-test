@@ -160,7 +160,7 @@ export const RunHistory = (props) => {
                     /*saveFilterHandler={saveFilter}
                     loadSavedFiltersHandler={loadSavedFilters}*/ />
             </Panel>
-            <Panel header="Run List">
+            <Panel header="Run List" style={{ height: '72vh' }}>
                 <RunList
                     servicesContainer={servicesContainer}
                     ref={runList}

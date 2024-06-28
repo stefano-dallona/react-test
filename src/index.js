@@ -31,8 +31,11 @@ root.render(
   // https://realpython.com/flask-google-login/
   <GoogleOAuthProvider clientId="524953903108-944ibh494ugop6i54jh18gu2pkokfi9r.apps.googleusercontent.com">
       <BrowserRouter>
+      <div class="app-container">
         <App />
-        <Routes>
+        <div class="content-container">
+        { true &&
+        (<Routes>
           <Route path='' element={<Home />} />
           <Route path='/' element={<Home />} />
           <Route path='/run/history' element={<RunHistory />} />
@@ -43,8 +46,15 @@ root.render(
           <Route path='/run/:runId/analysis' element={<RunAnalysis />} />
           <Route path='/run/analysis2' element={<WaveformView />} />
           <Route path='/userprofile' element={<UserProfile />} />
-        </Routes>
-        <Footer />
+        </Routes>)
+        }
+        </div>
+        <div class="footer-container">
+        { true &&
+        (<Footer />)
+        }
+        </div>
+        </div>
       </BrowserRouter>
   </GoogleOAuthProvider>
 );

@@ -57,3 +57,30 @@
 .p-panel-toggler {
   color: orange !important;
 }
+
+html,
+body,
+#root{
+  height:100%;
+  margin: 0
+}
+
+.app-container{
+  display: flex;
+  flex-flow: column;
+  height: 100%;
+}
+
+.nav-container{
+  flex: 0 1 auto;
+}
+.content-container{
+  flex: 1 1 auto;
+  flex-shrink: 1;
+/*  background-color: yellow;*/
+  background-color: #1f2d40;
+}
+.footer-container{
+  flex: 0 1 auto;
+  background-color: green;
+}

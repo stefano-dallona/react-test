@@ -13,9 +13,9 @@ import { trackPromise } from 'react-promise-tracker';
 //https://dev.to/mihaiandrei97/jwt-authentication-using-axios-interceptors-55be
 //let baseUrl = `${process.env.REACT_APP_HTTPS && process.env.REACT_APP_HTTPS == "true" ? "https" : "http"}://${process.env.REACT_APP_HOST}:${process.env.REACT_APP_PORT}`
 //let baseUrl = `${env.HTTPS_ENABLED && env.HTTPS_ENABLED == "true" ? "https" : "http"}://${env.APP_HOST}:${env.APP_PORT}`
-let baseUrl = window.location.protocol + "//" + window.location.host
+//let baseUrl = window.location.protocol + "//" + window.location.host
 //let baseUrl = "https://127.0.0.1:5000"
-//let baseUrl = "https://localhost:5000"
+let baseUrl = "https://localhost:5000"
 
 class AxiosClient {
   client: Axios

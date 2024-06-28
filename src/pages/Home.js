@@ -9,6 +9,7 @@ import { Splitter, SplitterPanel } from 'primereact/splitter';
 import { ScrollPanel } from 'primereact/scrollpanel';
 import { Divider } from 'primereact/divider';
 import { useContainer } from '../components/ServicesContextProvider';
+import { useLocalStorage } from 'usehooks-ts';
 
 
 import Markdown from 'react-markdown';
@@ -28,6 +29,7 @@ export const Home = (props) => {
     const servicesContainer = useContainer();
     const navigate = useNavigate()
     const markdownUrl = '/help/README.md'
+    const [footerIsCollapsed, setFooterIsCollapsed, unsetFooterIsCollapsed] = useLocalStorage('footerIsCollapsed', false)
 
     useEffect(() => {
         setTasks([
@@ -91,19 +93,19 @@ export const Home = (props) => {
     };
 
     return (
-        <div className="card">
+        <div className="flex card content-container">
             <Panel className="flex">
                 <Splitter style={{ height: '100%' }}>
                     <SplitterPanel size={30} className="flex align-items-center justify-content-center">
                         <Panel header={'PLC Testbench is ...'} style={{ position: "relative", width: "100%", height: '100%', border: 'none' }}>
-                            <ScrollPanel style={{ position: "relative", width: '30rem', height: '75vh', textAlign: 'justify', padding: '20px' }} className="custombar1">
+                            <ScrollPanel style={{ position: "relative", width: '30rem', height: footerIsCollapsed ? '70vh' : '42vh', textAlign: 'justify', padding: '20px' }} className="custombar1">
                                 <Markdown>{help}</Markdown>
                             </ScrollPanel>
                         </Panel>
                     </SplitterPanel>
                     <SplitterPanel size={70} className="flex align-items-center justify-content-center">
                         <Panel header={'What would you like to do ?'} style={{ position: "relative", width: "100%", height: '100%', border: 'none' }}>
-                            <ScrollPanel style={{ position: "relative", height: '75vh', textAlign: 'justify', padding: '20px' }} className="custombar1">
+                            <ScrollPanel style={{ position: "relative", height: footerIsCollapsed ? '70vh' : '42vh', textAlign: 'justify', padding: '20px' }} className="custombar1">
                                 <DataView value={tasks} itemTemplate={taskTemplate} layout={'grid'} />
                             </ScrollPanel>
                         </Panel>
