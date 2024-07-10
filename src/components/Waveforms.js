@@ -30,6 +30,9 @@ import { WaveformCanvas } from './WaveformCanvas';
 
 import startCase from 'lodash/startCase';
 
+import barcodeIcon from 'iconoir/icons/barcode.svg'
+
+import _ from 'lodash';
 //import Peaks from 'peaks.js';
 
 var wavesUI = require('waves-ui');
@@ -93,7 +96,6 @@ class Waveforms extends Component {
         document.addEventListener("keydown", this.onKeyDownHandler.bind(this))
 
         this.selectedLossSimulation = null
-        this.selectedLoss = null
 
         this.state = {
             runId: props.runId || "",
@@ -103,6 +105,7 @@ class Waveforms extends Component {
             selectedAudioFiles: [],
             selectedChannel: "0",
             selectedLossSimulations: [],
+            selectedLoss: null,
             audioFileToPlay: 0,
             buffersListReady: false,
             lossSimulationsReady: false,
@@ -110,7 +113,8 @@ class Waveforms extends Component {
             zoomedRegion: {
                 offset: 0,
                 numSamples: -1
-            }
+            },
+            lostSegmentsOnlyPlaybackMode: false
         };
     }
 
@@ -124,10 +128,12 @@ class Waveforms extends Component {
         this.setState({
             selectedAudioFiles: [],
             selectedChannel: "0",
+            selectedLoss: null,
             selectedLossSimulations: [],
             audioFileToPlay: 0,
             buffersListReady: false,
-            lossSimulationsReady: false
+            lossSimulationsReady: false,
+            lostSegmentsOnlyPlaybackMode: false
         }, this.reloadData.bind(this))
 
         this.setState({
@@ -138,6 +144,21 @@ class Waveforms extends Component {
         if (onZoomOutHandler) onZoomOutHandler(true)
     }
 
+    setLostSegmentsOnlyPlaybackMode(lostSegmentsOnlyPlaybackMode) {
+        this.setState({
+            lostSegmentsOnlyPlaybackMode: lostSegmentsOnlyPlaybackMode
+        }, () => {
+            if (this.state.zoomedRegion && this.state.selectedLoss) {
+                let forward = this.state.selectedLoss.start_sample >= this.state.zoomedRegion.offset
+                this.slideWaveForm(forward)
+            }
+        })
+    }
+
+    toggleLostSegmentsOnlyPlaybackMode() {
+        this.setLostSegmentsOnlyPlaybackMode(!this.state.lostSegmentsOnlyPlaybackMode)
+    }
+
     setSelectedChannel(selectedChannel) {
         this.setState({
             selectedChannel: selectedChannel
@@ -145,6 +166,24 @@ class Waveforms extends Component {
             if (this.metricsVisualizerRef.current) {
                 this.metricsVisualizerRef.current.setSelectedChannel(this.state.selectedChannel)
             }
+        })
+    }
+
+    setSelectedLoss(selectedLoss) {
+        let oldSelectedLoss = this.state.selectedLoss
+        this.setState({
+            selectedLoss: selectedLoss
+        }, () => {
+            if (this.zoomedRegion.current && ! this.zoomedRegion.current.waveformsData) {
+                this.zoomedRegion.current.waveformsData = this.fetchWaveforms.bind(this)(this.setState.selectedChannel, this.zoomedRegion.current.offset, this.zoomedRegion.current.numSamples, this.getSelectedLossSimulations())
+                let sampleRate = this.buffersList[0].sampleRate
+                let oldCurrentTimeValue = this.player.current.audio.current.currentTime
+                let newCurrentTimeValue = selectedLoss ? selectedLoss.start_sample / sampleRate : oldCurrentTimeValue
+                this.player.current.audio.current.currentTime = newCurrentTimeValue
+                let forward = this.player.current.audio.current.currentTime >= newCurrentTimeValue
+                this.slideWaveForm(forward)
+            }
+            this.handleLostSegmentSelection(oldSelectedLoss, selectedLoss)
         })
     }
 
@@ -248,18 +287,20 @@ class Waveforms extends Component {
     setSelectedLossSimulations(lossSimulations) {
         this.selectedLossSimulation = lossSimulations
         this.clearWaveforms()
+        this.setSelectedLoss(null)
         this.refreshAudioFiles(lossSimulations)
         this.setState({
             selectedLossSimulations: lossSimulations,
             selectedAudioFiles: this.audioFiles.map((x) => x.uuid)
         }, () => {
+            //this.setLostSegmentsOnlyPlaybackMode(false)
             if (this.metricsVisualizerRef.current) {
                 this.metricsVisualizerRef.current.setSelectedLossSimulation(this.state.selectedLossSimulations)
             }
         });
     }
 
-    getSelectedLossSimulation() {
+    getSelectedLossSimulations() {
         return this.state.selectedLossSimulations
     }
 
@@ -489,7 +530,7 @@ class Waveforms extends Component {
                         //zoom: (duration * sampleRate) / numSamples
                         zoom: zoom
                     })
-                    let lossModelNodeId = this.getSelectedLossSimulation()
+                    let lossModelNodeId = this.getSelectedLossSimulations()
                     let waveformsData = await this.fetchWaveforms.bind(this)(channel, offset, numSamples, lossModelNodeId)
                     this.updateWaveforms(channel, waveformsData)
                     this.setPlayerCurrentTime(offset / sampleRate)
@@ -599,7 +640,7 @@ class Waveforms extends Component {
 
     refreshAudioFiles(lossModelNodeId) {
         const parentIsSelectedLoss = (x) => {
-            return !x.parent_id || x.parent_id == lossModelNodeId
+            return !x.parent_id || x.parent_id === lossModelNodeId
         }
         let audioFiles = this.findAudioFiles(this.hierarchy, parentIsSelectedLoss);
         this.setAudioFiles(audioFiles, lossModelNodeId)
@@ -709,6 +750,24 @@ class Waveforms extends Component {
         );
     }
 
+    getLostSegmentsOnlyPlaybackButton() {
+        return (
+            <Button
+            rounded
+            icon={(options) => <img alt="icon" src={barcodeIcon} {...options.iconProps} />}
+            tooltip="Playback only the selected lost segment"
+            tooltipOptions={{ position: 'top' }}
+            className="mr-2"
+            style={ {backgroundColor: this.state.lostSegmentsOnlyPlaybackMode ? "green" : ""} }
+            onClick={this.toggleLostSegmentsOnlyPlaybackMode.bind(this)}
+            visible={true}
+            disabled={!(this.state.selectedLoss
+                    //&& this.state.selectedLossSimulations
+                    //&& this.getCurrentLostSegmentIndexAndLayer(this.state.selectedLoss)?.layerKey.uuid === this.state.selectedLossSimulations
+                )} ></Button>
+        )
+    }
+
     getPlayableFilesButtons() {
         return this.audioFiles.map((file, i) => {
             return { label: file.label, icon: (this.state.audioFileToPlay == i) ? "pi pi-check" : "", command: () => { this.setAudioFileToPlay(i) } }
@@ -718,6 +777,90 @@ class Waveforms extends Component {
     setPlayerCurrentTime = (time) => {
         if (this.player.current && isFinite(time)) {
             this.player.current.audio.current.currentTime = time
+        }
+    }
+
+    getCurrentLostSegmentIndexAndLayer(selectedLoss) {
+        if (!selectedLoss) {
+            return null
+        }
+        let segmentLayers = Array.from(this.layersMap).filter(([key, value]) => value instanceof wavesUI.helpers.SegmentLayer)//.map(([key, value]) => { return { key: key, value: value } })
+        let sourceLayer = segmentLayers.find((layer) => layer[1].data.findIndex((x) => _.isEqual(x, selectedLoss)) >= 0)
+        if (!sourceLayer) {
+            return null
+        }
+        let index = sourceLayer[1].data.findIndex((x) => _.isEqual(x, selectedLoss))
+        return index >= 0 ? {
+            index: index,
+            layer: sourceLayer[1],
+            layerKey: sourceLayer[0]
+        } : null
+    }
+
+    getPreviousLostSegment(selectedLoss) {
+        let currentLostSegmentIndexAndLayer = this.getCurrentLostSegmentIndexAndLayer(selectedLoss)
+        if (!currentLostSegmentIndexAndLayer) {
+            return null
+        }
+        let previousLoss = (currentLostSegmentIndexAndLayer.index > 0) ? currentLostSegmentIndexAndLayer.layer.data[currentLostSegmentIndexAndLayer.index - 1] : null
+        return previousLoss
+    }
+
+    getNextLostSegment(selectedLoss) {
+        let currentLostSegmentIndexAndLayer = this.getCurrentLostSegmentIndexAndLayer(selectedLoss)
+        if (!currentLostSegmentIndexAndLayer) {
+            return null
+        }
+        let nextLoss = (currentLostSegmentIndexAndLayer.index < currentLostSegmentIndexAndLayer.layer.data.length - 1) ? currentLostSegmentIndexAndLayer.layer.data[currentLostSegmentIndexAndLayer.index + 1] : null
+        return nextLoss
+    }
+
+    highlightSelectedSegment = (oldSelectedLoss, newSelectedLoss) => {
+        if (oldSelectedLoss) {
+            if (oldSelectedLoss.color) {
+                delete oldSelectedLoss.color
+            }
+            oldSelectedLoss.color = 'white'
+            let oldLostSegmentIndexAndLayer = this.getCurrentLostSegmentIndexAndLayer(oldSelectedLoss)
+            if (oldLostSegmentIndexAndLayer) {
+                oldLostSegmentIndexAndLayer.layer.updateShapes();
+            }
+        }
+        if (newSelectedLoss) {
+            if (newSelectedLoss.color) {
+                delete newSelectedLoss.color
+            }
+            newSelectedLoss.color = 'orange'
+            let newLostSegmentIndexAndLayer = this.getCurrentLostSegmentIndexAndLayer(newSelectedLoss)
+            if (newLostSegmentIndexAndLayer) {
+                newLostSegmentIndexAndLayer.layer.updateShapes()
+            }
+        }
+    }
+
+    zoomRegionIsIncluded(zoomRegion, containingZoomRegion) {
+        return zoomRegion.start_sample >= containingZoomRegion.start_sample && zoomRegion.start_sample + zoomRegion.numSamples <= containingZoomRegion.start_sample + containingZoomRegion.numSamples
+    }
+
+    handleLostSegmentSelection(oldSelectedLoss, newSelectedLoss) {
+        if (! newSelectedLoss || _.isEqual(oldSelectedLoss, newSelectedLoss)) {
+            return
+        }
+        this.highlightSelectedSegment(oldSelectedLoss, newSelectedLoss)
+
+        let sampleRate = this.buffersList[0].sampleRate
+        let oldCurrentTimeValue = this.player.current.audio.current.currentTime
+        let newCurrentTimeValue = newSelectedLoss.start_sample / sampleRate
+        this.player.current.audio.current.currentTime = newCurrentTimeValue
+        this.slideWaveForm(newCurrentTimeValue >= oldCurrentTimeValue)
+
+        if (!this.samplesVisualizerRef.current) {
+            return
+        }
+
+        this.samplesVisualizerRef.current.fetchSamples(this.audioFiles, this.colors, newSelectedLoss.start_sample, newSelectedLoss.num_samples);
+        if (this.segmentEventHandler) {
+            this.segmentEventHandler.apply(null, [newSelectedLoss])
         }
     }
 
@@ -731,39 +874,15 @@ class Waveforms extends Component {
             return { "segment": segment, "sourceLayer": sourceLayer }
         }
 
-        const highlightSelectedSegment = (selectedLoss, sourceLayer) => {
-            if (this.selectedLoss) {
-                if (this.selectedLoss.color) {
-                    delete this.selectedLoss.color
-                }
-                this.selectedLoss.color = 'white'
-            }
-
-            this.selectedLoss = selectedLoss
-            selectedLoss.color = 'orange'
-            sourceLayer.updateShapes();
-        }
-
-        const handleSegmentOvering = (eventType, selectedLoss, sourceLayer) => {
-            if (eventType == 'mouseover' || eventType == 'mouseout') {
+        const handleSegmentHovering = (eventType, selectedLoss, sourceLayer) => {
+            if (eventType === 'mouseover' || eventType === 'mouseout') {
                 selectedLoss.opacity = eventType === 'mouseover' ? 1 : 0.8;
                 sourceLayer.updateShapes();
             }
         }
 
         const handleSegmentClick = (selectedLoss, sourceLayer) => {
-            highlightSelectedSegment(selectedLoss, sourceLayer)
-
-            //sourceLayer.updateShapes();
-
-            if (!this.samplesVisualizerRef.current) {
-                return
-            }
-
-            this.samplesVisualizerRef.current.fetchSamples(this.audioFiles, this.colors, selectedLoss.start_sample, selectedLoss.num_samples);
-            if (this.segmentEventHandler) {
-                this.segmentEventHandler.apply(null, [selectedLoss])
-            }
+            this.setSelectedLoss(selectedLoss)
         }
 
         return function (e) {
@@ -783,7 +902,7 @@ class Waveforms extends Component {
             console.log("selectedLoss: (x:" + selectedLoss.lossstart + ", width:" + selectedLoss.losswidth + ")")
 
             if (eventType === 'mouseover' || eventType === 'mouseout') {
-                handleSegmentOvering(eventType, selectedLoss, sourceLayer)
+                handleSegmentHovering(eventType, selectedLoss, sourceLayer)
             } else if (eventType === 'click') {
                 handleSegmentClick(selectedLoss, sourceLayer)
             }
@@ -871,7 +990,7 @@ class Waveforms extends Component {
             this.timeline.state = new BrushZoomState(this.timeline,
                 this.buffersList[0].sampleRate,
                 this.downsamplingEnabled ? async (channel, offset, numSamples) => {
-                    let waveformsData = await this.fetchWaveforms.bind(this)(channel, offset, numSamples, this.getSelectedLossSimulation())
+                    let waveformsData = await this.fetchWaveforms.bind(this)(channel, offset, numSamples, this.getSelectedLossSimulations())
                     this.updateWaveforms(channel, waveformsData)
                 } : null
             );
@@ -885,7 +1004,7 @@ class Waveforms extends Component {
 
         this.lossSimulations
             .filter((lossSimulation, index) => {
-                return this.lossSimulationFiles[index].uuid === this.getSelectedLossSimulation()
+                return this.lossSimulationFiles[index].uuid === this.getSelectedLossSimulations()
                     && this.layersMap.get(this.lossSimulationFiles[index]) == null
             })
             .map((lossSimulation, index) => {
@@ -931,6 +1050,8 @@ class Waveforms extends Component {
         console.log("zoom out")
 
         this.setZoomedRegion(null)
+        this.setSelectedLoss(null)
+        //this.setLostSegmentsOnlyPlaybackMode(false)
         this.timeline.state.zoomOut()
 
         let onZoomOutHandler = this.audioPlayerOnZoomOut.current
@@ -971,7 +1092,7 @@ class Waveforms extends Component {
         }
     }
 
-    async slideWaveForm() {
+    async slideWaveForm(forward=true) {
         let currentTime = JSON.parse(JSON.stringify(this.player.current.audio.current.currentTime))
         let duration = this.player.current.audio.current.duration
         let channel = 0
@@ -979,11 +1100,23 @@ class Waveforms extends Component {
         if (this.buffersList && this.buffersList.length > 0) {
             let sampleRate = this.buffersList[0].sampleRate
 
-            if (currentTime >= duration) {
-                this.player.current.audio.current.pause()
-                this.player.current.audio.current.currentTime = 0
+            let lostSegmentsOnlyPlaybackModeAndZoomedAndPlaybackEnded = this.state.lostSegmentsOnlyPlaybackMode
+                        && this.zoomedRegion.current
+                        && !this.player.current.audio.current.paused
+                        && currentTime >= this.zoomedRegion.current.endTime
+            if (currentTime >= duration
+                    || lostSegmentsOnlyPlaybackModeAndZoomedAndPlaybackEnded
+                ) {
+                if(!this.player.current.audio.current.paused) {
+                    this.player.current.audio.current.pause()
+                }
+                this.player.current.audio.current.currentTime = 
+                        lostSegmentsOnlyPlaybackModeAndZoomedAndPlaybackEnded ? this.zoomedRegion.current.startTime :
+                    0
                 currentTime = JSON.parse(JSON.stringify(this.player.current.audio.current.currentTime))
-                if (this.zoomedRegion.current) {
+                if (this.zoomedRegion.current
+                        && ! this.state.lostSegmentsOnlyPlaybackMode
+                    ) {
                     let numSamples = this.zoomedRegion.current.numSamples
                     this.setZoomedRegion({
                         offset: 0,
@@ -993,11 +1126,11 @@ class Waveforms extends Component {
                         sampleRate: sampleRate,
                         waveformsDataOffset: 0
                     })
-                    let waveformsData = await this.fetchWaveforms.bind(this)(channel, 0, numSamples, this.getSelectedLossSimulation())
+                    let waveformsData = await this.fetchWaveforms.bind(this)(channel, 0, numSamples, this.getSelectedLossSimulations())
                     this.timeline.timeContext.offset = -this.zoomedRegion.current.startTime
                     this.updateWaveforms(channel, waveformsData)
                 }
-                this.setCursorPosition(0)
+                this.setCursorPosition(currentTime)
             }
 
             console.log("audio.currentTime: " + currentTime)
@@ -1006,25 +1139,36 @@ class Waveforms extends Component {
             if (this.zoomedRegion.current) {
                 if (!this.zoomedRegion.current.waveformsData) {
                     let offset = Math.floor(this.zoomedRegion.current.endTime * sampleRate)
-                    this.zoomedRegion.current.waveformsData = this.fetchWaveforms.bind(this)(channel, offset, this.zoomedRegion.current.numSamples, this.getSelectedLossSimulation())
+                    this.zoomedRegion.current.waveformsData = this.fetchWaveforms.bind(this)(channel, offset, this.zoomedRegion.current.numSamples, this.getSelectedLossSimulations())
                     this.zoomedRegion.current.waveformsDataOffset = offset
                 }
-                if ((this.zoomedRegion.current.endTime - this.zoomedRegion.current.startTime) >= 5) {
-                    if ((currentTime - this.zoomedRegion.current.startTime) < -0.1 || currentTime >= this.zoomedRegion.current.endTime) {
+                if (((! this.state.lostSegmentsOnlyPlaybackMode) && this.zoomedRegion.current.endTime - this.zoomedRegion.current.startTime) >= 5
+                        || this.state.lostSegmentsOnlyPlaybackMode
+                    ) {
+                    if ((
+                        ! this.state.lostSegmentsOnlyPlaybackMode &&
+                        (currentTime - this.zoomedRegion.current.startTime < -0.1 || currentTime >= this.zoomedRegion.current.endTime)
+                        )
+                            || (
+                                this.state.lostSegmentsOnlyPlaybackMode
+                                //&& this.state.selectedLoss
+                                //&& this.zoomedRegion.current.offset !== this.state.selectedLoss.start_sample
+                                )
+                        ) {
                         let offset = Math.floor(currentTime * sampleRate)
                         let numSamples = this.zoomedRegion.current.numSamples
                         console.log(`fetching samples ${numSamples} starting from ${offset}`)
 
                         if (offset > this.zoomedRegion.current.waveformsDataOffset + numSamples || (offset - this.zoomedRegion.current.waveformsDataOffset) < 0.1) {
-                            this.zoomedRegion.current.waveformsData = this.fetchWaveforms.bind(this)(channel, offset, numSamples, this.getSelectedLossSimulation())
+                            this.zoomedRegion.current.waveformsData = this.fetchWaveforms.bind(this)(channel, offset, numSamples, this.getSelectedLossSimulations())
                             this.zoomedRegion.current.waveformsDataOffset = offset
                         }
                         let waveformsData = await this.zoomedRegion.current.waveformsData
 
                         let newZoomRegion = JSON.parse(JSON.stringify(this.zoomedRegion.current))
                         newZoomRegion.offset = newZoomRegion.waveformsDataOffset
-                        newZoomRegion.startTime = newZoomRegion.waveformsDataOffset / sampleRate
-                        newZoomRegion.endTime = (newZoomRegion.waveformsDataOffset / sampleRate) + (numSamples * 1.0 / sampleRate)
+                        newZoomRegion.startTime = Number.parseFloat((newZoomRegion.waveformsDataOffset / sampleRate).toFixed(6))
+                        newZoomRegion.endTime = Number.parseFloat(((newZoomRegion.waveformsDataOffset / sampleRate) + (numSamples * 1.0 / sampleRate)).toFixed(6))
                         newZoomRegion.waveformsData = null
                         this.setZoomedRegion(newZoomRegion)
 
@@ -1079,8 +1223,8 @@ class Waveforms extends Component {
     }
 
     refreshSampleVisualizer() {
-        if (this.selectedLoss) {
-            this.samplesVisualizerRef.current.fetchSamples(this.audioFiles, this.colors, this.selectedLoss.start_sample, this.selectedLoss.num_samples)
+        if (this.state.selectedLoss) {
+            this.samplesVisualizerRef.current.fetchSamples(this.audioFiles, this.colors, this.state.selectedLoss.start_sample, this.state.selectedLoss.num_samples)
         }
     }
 
@@ -1105,6 +1249,36 @@ class Waveforms extends Component {
             default:
 
         }
+    }
+
+    lostSegmentsOnlyPlaybackMode() {
+        console.log("Lost segments only playback mode clicked")
+    }
+
+    playLostSegmentNeighborhood() {
+        console.log("Playing lost segment neighborhood")
+    }
+
+    previousLostSegment() {
+        console.log("Moving to previous lost segment")
+        if (this.state.selectedLoss) {
+            this.setSelectedLoss(this.getPreviousLostSegment(this.state.selectedLoss))
+        }
+    }
+
+    nextLostSegment() {
+        console.log("Moving to next lost segment")
+        if (this.state.selectedLoss) {
+            this.setSelectedLoss(this.getNextLostSegment(this.state.selectedLoss))
+        }
+    }
+
+    handlePreviousButtonClick() {
+       this.state.lostSegmentsOnlyPlaybackMode ? this.previousLostSegment() : this.previousTrack() 
+    }
+
+    handleNextButtonClick() {
+        this.state.lostSegmentsOnlyPlaybackMode ? this.nextLostSegment() : this.nextTrack() 
     }
 
     previousTrack() {
@@ -1353,11 +1527,11 @@ class Waveforms extends Component {
                                 ref={this.player}
                                 autoPlay={false}
                                 showSkipControls={true}
-                                showJumpControls={true}
+                                showJumpControls={false}
                                 autoPlayAfterSrcChange={false}
                                 customProgressBarSection={[RHAP_UI.PROGRESS_BAR]}
                                 customControlsSection={[RHAP_UI.CURRENT_TIME, RHAP_UI.MAIN_CONTROLS, RHAP_UI.ADDITIONAL_CONTROLS, RHAP_UI.VOLUME_CONTROLS, RHAP_UI.DURATION]}
-                                customAdditionalControls={[this.getPlayableFilesCombo(),
+                                customAdditionalControls={[this.getLostSegmentsOnlyPlaybackButton(), this.getPlayableFilesCombo(), 
                                 /*<i className="mr-4 pi pi-search-plus"
                                     data-pr-tooltip="Brush on waveform to zoom-in"></i>,*/
                                 <Button
@@ -1407,8 +1581,8 @@ class Waveforms extends Component {
                                         this.setCursorPosition(positionToRestore)
                                         this.setPlayerCurrentTime(positionToRestore)
                                 }}
-                                onClickPrevious={this.previousTrack.bind(this)}
-                                onClickNext={this.nextTrack.bind(this)}
+                                onClickPrevious={this.handlePreviousButtonClick.bind(this)}
+                                onClickNext={this.handleNextButtonClick.bind(this)}
                                 width="100%"
                                 src={this.getAudioFileToPlayURL()}
                                 layout='stacked'
