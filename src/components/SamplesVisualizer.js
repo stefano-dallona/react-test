@@ -26,7 +26,7 @@ class SamplesVisualizer extends Component {
 
     async fetchSamples(audioFiles, colors, offset, numsamples, channel = 0) {
         let unitOfMeas = "samples"
-        const startat = offset - numsamples
+        const startat = Math.max(0, offset - numsamples)
         const nsamples = 3 * numsamples
         let samples =  await trackPromise(Promise.all(audioFiles.map(async (file) => {
             return nsamples > 0 ? await this.servicesContainer.analysisService.fetchSamplesFromFile(this.runId, audioFiles.uuid, file.uuid, channel, startat, nsamples, unitOfMeas) : []
