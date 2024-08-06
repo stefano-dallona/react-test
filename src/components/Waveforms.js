@@ -1145,7 +1145,7 @@ class Waveforms extends Component {
         this.setCursorPosition(currentTime)
     }
     
-    async slideZoomedRegion(forward) {
+    async slideZoomedRegion(forward = true, startTime = null) {
         if (!this.zoomedRegion.current) {
             return
         }
@@ -1154,7 +1154,9 @@ class Waveforms extends Component {
         let numSamples = this.zoomedRegion.current.numSamples
         let totalSamples = Math.ceil(this.player.current.audio.current.duration * sampleRate)
         let newZoomRegion = JSON.parse(JSON.stringify(this.zoomedRegion.current))
-        newZoomRegion.offset = (forward)  ? Math.min(newZoomRegion.offset + numSamples, totalSamples - numSamples + 1) : Math.max(0, newZoomRegion.offset - numSamples)
+        let startOffset = startTime ? Math.ceil(startTime * sampleRate) : newZoomRegion.offset
+        startOffset = startOffset + (startTime ? 0 : ((forward ? 1 : -1) * numSamples))
+        newZoomRegion.offset = (forward) ? Math.min(startOffset, totalSamples - numSamples + 1) : Math.max(0, startOffset)
         newZoomRegion.startTime = newZoomRegion.offset / sampleRate
         newZoomRegion.endTime = (newZoomRegion.offset + numSamples) / sampleRate
         newZoomRegion.waveformsData = null
@@ -1371,12 +1373,22 @@ class Waveforms extends Component {
 
     //############## BEGIN NEW CODE ##############
     playerOnListenHandler() {
-        let player = this.player.current.audio.current
-
-        if (this.isLostSegmentsOnlyPlaybackMode()) {
-            this.lostSegmentsOnlyPlaybackModeOnListenHandler(player, this.state.selectedLoss, this.zoomedRegion.current)            
+        let player = this.player.current
+        let nestedPlayer = player.audio.current
+        if (player.isPlaying()) {
+            if (this.isLostSegmentsOnlyPlaybackMode()) {
+                this.lostSegmentsOnlyPlaybackModeOnListenHandler(nestedPlayer, this.state.selectedLoss, this.zoomedRegion.current)            
+            } else {
+                this.fullTrackPlaybackModeOnListenHandler(nestedPlayer, this.zoomedRegion.current)
+            }
         } else {
-            this.fullTrackPlaybackModeOnListenHandler(player, this.zoomedRegion.current)
+            let oldZoomedRegion = this.zoomedRegion.current
+            if (oldZoomedRegion && (nestedPlayer.currentTime < oldZoomedRegion.startTime || nestedPlayer.currentTime > oldZoomedRegion.endTime)) {
+                let forward = nestedPlayer.currentTime > oldZoomedRegion.endTime
+                this.slideZoomedRegion(forward, nestedPlayer.currentTime)
+            } else {
+                this.setCursorPosition(nestedPlayer.currentTime)
+            }
         }
     }
 
