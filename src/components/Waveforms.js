@@ -295,17 +295,22 @@ class Waveforms extends Component {
     }
 
     setAudioFileToPlay(audioFileToPlay) {
+        let currentTime = this.player.current.audio.current.currentTime
         this.setState({
             audioFileToPlay: audioFileToPlay
         }, () => {
+            this.setPlayerCurrentTime(currentTime)
             if (this.metricsVisualizerRef.current) {
                 this.metricsVisualizerRef.current.setAudioFileToPlay(this.state.audioFileToPlay)
             }
             if (this.spectrogramRef.current) {
                 this.spectrogramRef.current.setAudioFileToPlay(this.state.audioFileToPlay)
             }
-            if (this.state.zoomedRegion) {
+            /*if (this.state.zoomedRegion && this.state.zoomedRegion.numSamples > 0) {
                 this.setCursorPosition(this.state.zoomedRegion.startTime)
+            }*/
+            if (this.state.lostSegmentsOnlyPlaybackMode) {
+                this.slideWaveFormForLostSegmentsOnly()
             }
         });
     }
@@ -523,7 +528,7 @@ class Waveforms extends Component {
                     let lossModelNodeId = this.getSelectedLossSimulations()
                     let waveformsData = await this.fetchWaveforms.bind(this)(channel, offset, numSamples, lossModelNodeId)
                     this.updateWaveforms(channel, waveformsData)
-                    this.setPlayerCurrentTime(offset / sampleRate)
+                    //this.setPlayerCurrentTime(offset / sampleRate)
                 } : null
             );
             this.timeline.on('event', this.handleSegmentEvent().bind(this));
@@ -745,7 +750,7 @@ class Waveforms extends Component {
             <Button
             rounded
             icon={(options) => <img alt="icon" src={barcodeIcon} {...options.iconProps} />}
-            tooltip="Playback only the selected lost segment"
+            tooltip={ this.state.lostSegmentsOnlyPlaybackMode ? "Playback only the selected lost segment" : "Play the entire track" }
             tooltipOptions={{ position: 'top' }}
             className="mr-2"
             style={ {backgroundColor: this.state.lostSegmentsOnlyPlaybackMode ? "orange" : ""} }
@@ -851,6 +856,8 @@ class Waveforms extends Component {
     }
 
     handleLostSegmentSelection(oldSelectedLoss, newSelectedLoss) {
+        let sampleRate = this.buffersList[0].sampleRate
+
         if (! newSelectedLoss || _.isEqual(oldSelectedLoss, newSelectedLoss)) {
             return
         }
@@ -858,12 +865,17 @@ class Waveforms extends Component {
 
         if (this.zoomedRegion.current) {
             this.zoomedRegion.current.waveformsData = this.fetchWaveforms.bind(this)(this.setState.selectedChannel, this.zoomedRegion.current.offset, this.zoomedRegion.current.numSamples, this.getSelectedLossSimulations())
-            let sampleRate = this.buffersList[0].sampleRate
             let oldCurrentTimeValue = this.player.current.audio.current.currentTime
             let newCurrentTimeValue = newSelectedLoss ? newSelectedLoss.start_sample / sampleRate : oldCurrentTimeValue
-            this.player.current.audio.current.currentTime = newCurrentTimeValue
+            newCurrentTimeValue = Math.max(0, newCurrentTimeValue - 0.5)
+            this.setPlayerCurrentTime(newCurrentTimeValue)
             let forward = this.player.current.audio.current.currentTime >= oldCurrentTimeValue
             this.slideWaveFormForLostSegmentsOnly(forward)
+        } else {
+            let newCurrentTimeValue = newSelectedLoss.start_sample / sampleRate
+            newCurrentTimeValue = Math.max(0, newCurrentTimeValue - 0.5)
+            this.setPlayerCurrentTime(newCurrentTimeValue)
+            this.setCursorPosition(newCurrentTimeValue)
         }
         
         if (!this.samplesVisualizerRef.current) {
@@ -905,7 +917,7 @@ class Waveforms extends Component {
                 if (eventType === 'click') {
                     let minTime = this.timeline.timeToPixel.invert(e.x)
                     let startTime = -this.timeline.offset + minTime
-                    this.player.current.audio.current.currentTime = startTime
+                    this.setPlayerCurrentTime(startTime)
                 }
                 return;
             }
@@ -1060,9 +1072,11 @@ class Waveforms extends Component {
 
     zoomOut() {
         console.log("zoom out")
-
+        let currentTime = this.player.current.audio.current.currentTime
         this.setZoomedRegion(null)
+        let selectedLoss = this.state.selectedLoss
         this.setSelectedLoss(null)
+        this.setSelectedLoss(selectedLoss)
         //this.setLostSegmentsOnlyPlaybackMode(false)
         this.timeline.state.zoomOut()
 
@@ -1070,6 +1084,7 @@ class Waveforms extends Component {
         if (onZoomOutHandler) {
             onZoomOutHandler()
         }
+        this.setPlayerCurrentTime(currentTime)
     }
 
     onKeyDownHandler(event) {
@@ -1123,7 +1138,7 @@ class Waveforms extends Component {
         let sampleRate = this.buffersList[0].sampleRate
         //let duration = this.player.current.audio.current.duration
         let channel = this.state.selectedChannel
-        let newOffset = Math.floor(this.state.selectedLoss.start_sample)
+        let newOffset = Math.max(0, this.state.selectedLoss.start_sample - Math.floor(this.state.selectedLoss.__sample_rate__ / 2))
         let numSamples = this.zoomedRegion.current.numSamples
 
         if (newOffset !== this.zoomedRegion.current.offset) {
@@ -1135,7 +1150,7 @@ class Waveforms extends Component {
                 sampleRate: sampleRate,
                 waveformsDataOffset: 0
             })
-            this.player.current.audio.current.currentTime = this.zoomedRegion.current.startTime
+            this.setPlayerCurrentTime(this.zoomedRegion.current.startTime)
             currentTime = JSON.parse(JSON.stringify(this.player.current.audio.current.currentTime))
         }
 
@@ -1163,7 +1178,7 @@ class Waveforms extends Component {
         newZoomRegion.waveformsDataOffset = newZoomRegion.offset + numSamples
         this.setZoomedRegion(newZoomRegion)
 
-        this.player.current.audio.current.currentTime = this.zoomedRegion.current.startTime
+        this.setPlayerCurrentTime(this.zoomedRegion.current.startTime)
 
         let waveformsData = await this.fetchWaveforms.bind(this)(this.state.selectedChannel, this.zoomedRegion.current.offset, this.zoomedRegion.current.numSamples, this.state.selectedLossSimulations)
         this.timeline.timeContext.offset = -this.zoomedRegion.current.startTime
@@ -1181,7 +1196,7 @@ class Waveforms extends Component {
 
             if (currentTime >= duration) {
                 this.player.current.audio.current.pause()
-                this.player.current.audio.current.currentTime = 0
+                this.setPlayerCurrentTime(0)
                 currentTime = JSON.parse(JSON.stringify(this.player.current.audio.current.currentTime))
                 if (this.zoomedRegion.current) {
                     let numSamples = this.zoomedRegion.current.numSamples
@@ -1247,7 +1262,7 @@ class Waveforms extends Component {
                 } else {
                     if (this.player.current.audio.current.currentTime >= this.zoomedRegion.current.endTime) {
                         this.player.current.audio.current.pause()
-                        this.player.current.audio.current.currentTime = this.zoomedRegion.current.startTime
+                        this.setPlayerCurrentTime(this.zoomedRegion.current.startTime)
                         currentTime = this.player.current.audio.current.currentTime
                         this.zoomedRegion.current.waveformsData = null
                     }
@@ -1384,7 +1399,7 @@ class Waveforms extends Component {
         } else {
             let zoomedRegion = this.zoomedRegion.current
             if (nestedPlayer.currentTime >= nestedPlayer.duration) {
-                nestedPlayer.currentTime = 0
+                this.setPlayerCurrentTime(0)
             }
             if (zoomedRegion && (nestedPlayer.currentTime < zoomedRegion.startTime || nestedPlayer.currentTime > zoomedRegion.endTime)) {
                 let forward = nestedPlayer.currentTime > zoomedRegion.endTime
@@ -1439,7 +1454,7 @@ class Waveforms extends Component {
             }
             let selectedLostSegmentStartTime = selectedLostSegment.start_sample / selectedLostSegment.__sample_rate__
             let selectedLostSegmentEndTime = (selectedLostSegment.start_sample + selectedLostSegment.num_samples) / selectedLostSegment.__sample_rate__
-            let endTime = (selectedLostSegmentEndTime - selectedLostSegmentStartTime > 1.0) ? selectedLostSegmentEndTime : selectedLostSegmentStartTime + 1.0
+            let endTime = selectedLostSegmentEndTime + 0.5
             return currentTime >= endTime
         }
         
@@ -1456,7 +1471,7 @@ class Waveforms extends Component {
 
         const getNextPageOffset = (selectedLostSegment, zoomedRegion) => {
             if (selectedLostSegment) {
-                return selectedLostSegment.start_sample
+                return Math.max(0, selectedLostSegment.start_sample - Math.ceil(selectedLostSegment.__sample_rate__ / 2))
             }
             else {
                 let offset = (zoomedRegion) ? zoomedRegion.offset : 0
@@ -1474,7 +1489,7 @@ class Waveforms extends Component {
         const updateCursor = (player, selectedLostSegment) => {
             if (player.paused) {
                 if (selectedLostSegment) {
-                    let selectedLostSegmentStartTime = selectedLostSegment.start_sample / selectedLostSegment.__sample_rate__
+                    let selectedLostSegmentStartTime = Math.max(0, selectedLostSegment.start_sample / selectedLostSegment.__sample_rate__ - 0.5)
                     player.currentTime = selectedLostSegmentStartTime
                 }
             }
@@ -1820,7 +1835,7 @@ class Waveforms extends Component {
                         audioFilesHandler={this.getPlayableFiles.bind(this)}
                         audioFileToPlay={this.state.audioFileToPlay}
                         nodeId={this.hierarchy}
-                        zoomedRegion={this.state.zoomedRegion}
+                        /*zoomedRegion={this.state.zoomedRegion}*/
                         filename={this.state.filename}></AudioSpectrogram>
                 </AccordionTab>
                 <AccordionTab header="Metrics" headerTemplate={this.headerTemplate({
@@ -1832,7 +1847,7 @@ class Waveforms extends Component {
                     {this.state.buffersListReady && (
                         <MetricsVisualizer runId={this.props.runId}
                             ref={this.metricsVisualizerRef}
-                            zoomedRegion={this.state.zoomedRegion}
+                            /*zoomedRegion={this.state.zoomedRegion}*/
                             audioFilesHandler={this.getPlayableFiles.bind(this)}
                             audioFileToPlay={this.state.audioFileToPlay}
                             channels={this.state.channels}
